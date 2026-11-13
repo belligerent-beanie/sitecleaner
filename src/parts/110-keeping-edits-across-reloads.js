@@ -6,7 +6,13 @@
   const STORE_KEY = host.storageKey();
   let pending = [];   // saved edits whose element is not on the page: {selector, snippet, before, after, text}
   // Saved as {v: 2, edits: [...], ops: [...]} (a bare list of edits, as the first version wrote it, is still read).
-  const saved = (rec) => ({ selector: rec.selector, snippet: rec.snippet, before: rec.before, after: rec.after || {}, text: rec.text || null });
+  const saved = (rec) => {
+    const after = { ...(rec.after || {}) };
+    if (after["background-image"] && after["background-image"].length > MAX_ATTR) delete after["background-image"];   // a big local picture is not kept across reloads
+    const before = { ...rec.before };
+    if (before["background-image"] && before["background-image"].length > 500) before["background-image"] = before["background-image"].slice(0, 500) + "…";
+    return { selector: rec.selector, snippet: rec.snippet, before, after, text: rec.text || null };
+  };
   /** An entry that changes nothing (everything put back as it was) is not worth keeping, counting or exporting. */
   function save() {
     if (PREVIEW) return;
@@ -79,6 +85,7 @@
       for (const prop of ["top", "left"]) if (/^-?\d+(\.\d+)?px$/.test(after[prop] || "")) place[prop] = after[prop];
       if (/^-?\d+$/.test(after["z-index"] || "")) place["z-index"] = after["z-index"];
       if (Object.keys(place).length) applyPositionOne(element, place);
+      if (/^url\("?(https?:|data:image\/)/i.test(after["background-image"] || "")) applyBackgroundOne(element, { "background-image": after["background-image"] });
       if (item.text && typeof item.text.after === "string" && !element.children.length) applyText(element, item.text.after);
       const rec = changes.get(element);
       if (rec) {   // "before" is how it was when the designer first changed it, not how it looks after a reload

@@ -125,3 +125,7 @@
 
 /* The Move tool: the bounds a sibling can be dragged within */
 .dz-bounds { outline: 2px dashed #b46bff; background: rgba(180, 107, 255, 0.07); }
+
+/* Replacing images: the picture a dropped file would replace, and the file chooser */
+.dz-drop { outline: 3px solid #2ecc71; background: rgba(46, 204, 113, 0.12); }
+.dz-file { width: 100%; color: #f3f3f6; font: inherit; }

@@ -34,6 +34,7 @@
           top: cs.top,
           left: cs.left,
           "z-index": cs.zIndex,
+          "background-image": cs.backgroundImage,
         },
       };
       changes.set(element, rec);

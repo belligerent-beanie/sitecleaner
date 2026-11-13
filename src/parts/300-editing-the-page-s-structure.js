@@ -114,6 +114,8 @@
   }, true);
   document.addEventListener("paste", (event) => {
     if (!clipboardIsOurs(event)) return;
+    const picture = [...(event.clipboardData.files || [])].find((file) => /^image\//.test(file.type));
+    if (picture && imageTargetsOf(selection).length) { event.preventDefault(); swapFromFiles([picture], imageTargetsOf(selection)); return; }
     const html = event.clipboardData.getData("text/html") || event.clipboardData.getData("text/plain") || clipboardHtml;
     if (!/<[a-z][\s\S]*>/i.test(html)) return;   // not markup: the page may have a use for it
     const into = selection.filter((el) => el.nodeType === 1 && el !== document.documentElement);

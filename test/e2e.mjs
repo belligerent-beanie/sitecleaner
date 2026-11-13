@@ -23,11 +23,17 @@ const eq = (name, got, want) => check(name, JSON.stringify(got) === JSON.stringi
 const PAGE = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Fixture</title><link rel="stylesheet" href="/fixture.css"></head>
 <body><main class="css-1x2y3z"><h1 class="title">Hello there</h1><p class="lede">A paragraph of text to restyle.</p>
 <button id="go" class="btn-a1b2c3d">Go</button><div class="card"><span class="muted">Muted words</span></div>
-<ul class="items"><li>One</li><li>Two</li><li>Three</li></ul></main><script src="/fixture.js"></script></body></html>`;
+<ul class="items"><li>One</li><li>Two</li><li>Three</li></ul>
+<img id="pic" class="hero-img" alt="Logo" src="/pic.png" srcset="/pic.png 1x, /pic2.png 2x"><div class="banner">Banner</div></main><script src="/fixture.js"></script></body></html>`;
 const CSS = `:root { --brand: #3366cc; --ink: #222222; } body { margin: 0; font: 16px system-ui; color: var(--ink); background: #ffffff; }
 main { padding: 24px; } .btn-a1b2c3d { background: var(--brand); color: #ffffff; border: 0; padding: 8px 16px; } .card { background: #eeeeee; padding: 12px; margin-top: 16px; }
-.muted { color: #999999; }`;
+.muted { color: #999999; } .hero-img { display: block; width: 120px; height: 60px; } .banner { height: 50px; background: url(/pic.png) center / cover; }`;
 const server = http.createServer((req, res) => {
+  if (req.url.startsWith("/pic")) {
+    res.setHeader("Content-Type", "image/png");
+    res.end(Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64"));
+    return;
+  }
   const type = req.url === "/fixture.css" ? "text/css" : req.url === "/fixture.js" ? "text/javascript" : "text/html";
   res.setHeader("Content-Type", type);
   res.setHeader("Content-Security-Policy", "default-src 'self'; style-src 'self'; script-src 'self'; frame-ancestors 'none'");   // no inline anything
@@ -377,6 +383,58 @@ try {
     await pp.locator(".dz-dock button:text-matches('Back to where')").click();
     eq("'Back to where the page put it' removes the placement", await where(), "static auto auto auto");
     await pp.close();
+  }
+
+  // ---- replacing images: a file chooser, a file dropped on a background picture, srcset handled, one undo each, kept across a reload
+  {
+    const ip = await context.newPage();
+    ip.on("pageerror", (error) => console.log("      [page error]", error.message));
+    await ip.goto(url + "images");
+    await ip.bringToFront();
+    await worker.evaluate(async () => { const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true }); await toggle(tab); });
+    await ip.locator(".dz-toggle").waitFor({ timeout: 8000 });
+    await ip.keyboard.press("Escape");
+    const img = () => ip.evaluate(() => { const e = document.getElementById("pic"); return [e.getAttribute("src").slice(0, 14), e.hasAttribute("srcset")].join(" "); });
+    const bg = () => ip.evaluate(() => getComputedStyle(document.querySelector(".banner")).backgroundImage);
+    const undoKey = async () => { await ip.evaluate(() => { const a = document.querySelector("#design-picker-extension-root").shadowRoot.activeElement; if (a) a.blur(); }); await ip.keyboard.press("Control+z"); };
+    const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64");
+
+    eq("the page's image starts as the page made it", await img(), "/pic.png true");
+    await ip.locator("#pic").click();
+    await ip.keyboard.press("Enter");
+    await ip.locator(".dz-dock button:text-is('Image')").click();
+    check("the Image tool says what it will replace", /replace the picture of/.test(await ip.locator(".dz-dock .dz-note").innerText()), await ip.locator(".dz-dock .dz-note").innerText());
+    await ip.locator(".dz-file").setInputFiles({ name: "logo-new.png", mimeType: "image/png", buffer: png });
+    eq("choosing a file replaced the image's source and dropped its srcset (which would hide the new one)", await img(), "data:image/png false");
+    await undoKey();
+    eq("one Ctrl+Z put back the source and the srcset", await img(), "/pic.png true");
+    await ip.keyboard.press("Control+Shift+z");
+    eq("and Ctrl+Shift+Z swapped it again", await img(), "data:image/png false");
+
+    await ip.keyboard.press("Escape"); await ip.keyboard.press("Escape"); await ip.keyboard.press("Escape");
+    await ip.locator(".banner").click();
+    check("before the drop the banner has the page's own CSS picture", (await bg()).includes("/pic.png"), await bg());
+    await ip.evaluate((bytes) => {
+      const data = new DataTransfer();
+      data.items.add(new File([new Uint8Array(bytes)], "banner-new.png", { type: "image/png" }));
+      document.querySelector(".banner").dispatchEvent(new DragEvent("drop", { dataTransfer: data, bubbles: true, cancelable: true }));
+    }, [...png]);
+    await ip.waitForFunction(() => getComputedStyle(document.querySelector(".banner")).backgroundImage.startsWith('url("data:image/png'), null, { timeout: 5000 }).catch(() => {});
+    check("dropping a file on the selected banner replaced its background picture", (await bg()).startsWith('url("data:image/png;base64'), (await bg()).slice(0, 60));
+    await undoKey();
+    check("one Ctrl+Z restored the page's own background", (await bg()).includes("/pic.png"), await bg());
+    await ip.keyboard.press("Control+Shift+z");
+    await ip.waitForFunction(() => getComputedStyle(document.querySelector(".banner")).backgroundImage.startsWith('url("data:image/png'), null, { timeout: 5000 }).catch(() => {});
+
+    await ip.keyboard.press("Escape"); await ip.keyboard.press("Escape"); await ip.keyboard.press("Escape");
+    await ip.locator(".dz-dock .dz-head button:text-matches('Changes')").click();
+    const text = await ip.locator(".dz-preview").innerText();
+    check("the export names the file that replaced the image, and shows the background change", /src "\/pic\.png" → "logo-new\.png"/.test(text) && /srcset/.test(text) && /background-image: url\(/.test(text), text);
+    await ip.reload();
+    await ip.waitForLoadState("load");
+    await ip.waitForFunction(() => document.getElementById("pic").getAttribute("src").startsWith("data:image/png"), null, { timeout: 10000 }).catch(() => {});
+    eq("after a reload the replaced image comes back by itself", await img(), "data:image/png false");
+    await ip.close();
   }
 
   // ---- a screen-size preview opens as a real window of that size and shows the edits, without the picker
