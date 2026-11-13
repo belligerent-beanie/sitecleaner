@@ -5,7 +5,7 @@
   let hovered = null;
   let climbed = [];            // the elements we came up from, so ↓ goes back the way we came
   let menuOpen = false;
-  let tool = null;             // "fill" | "border" | "shadow" | "text" | "font" | "size" | "spacing" | "radius" | "layout" | "tone" | "move" | null
+  let tool = null;             // "fill" | "border" | "shadow" | "text" | "font" | "size" | "spacing" | "radius" | "layout" | "tone" | "move" | "position" | null
   let showChanges = false;
   let showPreview = false;    // the screen-size preview panel
   let showFind = false;       // the find-by-selector panel

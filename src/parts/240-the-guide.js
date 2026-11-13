@@ -77,7 +77,7 @@
                     onclick: () => pasteLook(targets()) }));
     const tools = () => h("div", { class: "dz-tools" }, h("div", { class: "dz-menu" },
       menuButton("fill", "Fill"), menuButton("border", "Border"), menuButton("shadow", "Shadow"), menuButton("text", "Text"), menuButton("font", "Font"),
-      menuButton("size", "Size"), menuButton("spacing", "Spacing"), menuButton("radius", "Radius"), menuButton("layout", "Layout"), menuButton("tone", "Tone"), menuButton("move", "Move")), lookRow());
+      menuButton("size", "Size"), menuButton("spacing", "Spacing"), menuButton("radius", "Radius"), menuButton("layout", "Layout"), menuButton("tone", "Tone"), menuButton("move", "Move"), menuButton("position", "Position")), lookRow());
     if (!menuOpen && !tool) {
       dock.append(h("p", { class: "dz-hint", text: "Press Enter, or choose a tool." }), tools());
       return;
@@ -94,6 +94,7 @@
     else if (tool === "layout") dock.append(layoutPanel());
     else if (tool === "tone") dock.append(tonePanel());
     else if (tool === "move") dock.append(movePanel());
+    else if (tool === "position") dock.append(positionPanel());
     // Edits apply as they are made, so there is nothing to confirm; Done just closes the tool and lets go of the element
     // (Esc does the same in steps). Without it a phone, which has no Esc key, had no visible way out of a tool.
     dock.append(h("div", { class: "dz-done-row" },

@@ -30,6 +30,10 @@
           "justify-items": cs.justifyItems,
           gap: cs.rowGap === cs.columnGap ? cs.rowGap : `${cs.rowGap} ${cs.columnGap}`,
           opacity: cs.opacity,
+          position: cs.position,
+          top: cs.top,
+          left: cs.left,
+          "z-index": cs.zIndex,
         },
       };
       changes.set(element, rec);

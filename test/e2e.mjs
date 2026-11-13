@@ -323,6 +323,62 @@ try {
     await mp.close();
   }
 
+  // ---- the Position tool: nudge with the arrows, drag to place, exact numbers; one step each, kept across a reload
+  {
+    const pp = await context.newPage();
+    pp.on("pageerror", (error) => console.log("      [page error]", error.message));
+    await pp.goto(url + "position");
+    await pp.bringToFront();
+    await worker.evaluate(async () => { const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true }); await toggle(tab); });
+    await pp.locator(".dz-toggle").waitFor({ timeout: 8000 });
+    await pp.keyboard.press("Escape");
+    const where = () => pp.evaluate(() => { const c = getComputedStyle(document.getElementById("go")); return [c.position, c.left, c.top, c.zIndex].join(" "); });
+    const undoKey = async () => { await pp.evaluate(() => { const a = document.querySelector("#design-picker-extension-root").shadowRoot.activeElement; if (a) a.blur(); }); await pp.keyboard.press("Control+z"); };
+
+    await pp.locator("#go").click();
+    await pp.keyboard.press("Enter");
+    await pp.locator(".dz-dock button:text-is('Position')").click();
+    eq("Position starts from how the page placed it", await where(), "static auto auto auto");
+    for (let i = 0; i < 3; i++) await pp.keyboard.press("ArrowRight");
+    await pp.keyboard.press("Shift+ArrowDown");
+    eq("arrow keys nudge (1 px, Shift 10 px) and make a static element relative", await where(), "relative 3px 10px auto");
+    await undoKey();
+    eq("one Ctrl+Z took back the whole run of nudges", await where(), "static auto auto auto");
+
+    const box = await pp.locator("#go").boundingBox();
+    await pp.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await pp.mouse.down();
+    await pp.mouse.move(box.x + box.width / 2 + 40, box.y + box.height / 2 + 25, { steps: 8 });
+    await pp.mouse.up();
+    eq("dragging placed the element where the pointer took it", await where(), "relative 40px 25px auto");
+    eq("and the click that ends the drag did not change the selection", await pp.locator(".dz-head strong").first().innerText().then((t) => t.startsWith("button")), true);
+    await undoKey();
+    eq("one Ctrl+Z took back the whole drag", await where(), "static auto auto auto");
+    await pp.keyboard.press("Control+Shift+z");
+    eq("and Ctrl+Shift+Z did it again", await where(), "relative 40px 25px auto");
+
+    await pp.locator("[aria-label='Stacking order (z-index)']").fill("7");
+    eq("the panel's z-index field sets the layer", await where(), "relative 40px 25px 7");
+
+    await pp.keyboard.press("Escape"); await pp.keyboard.press("Escape"); await pp.keyboard.press("Escape");
+    await pp.locator(".dz-dock .dz-head button:text-matches('Changes')").click();
+    const text = await pp.locator(".dz-preview").innerText();
+    check("the export has position, top, left and z-index, before and after", /position: static → relative/.test(text) && /left: auto → 40px/.test(text) && /top: auto → 25px/.test(text) && /z-index: auto → 7/.test(text), text.slice(-300));
+    await pp.reload();
+    await pp.waitForLoadState("load");
+    await pp.waitForFunction(() => getComputedStyle(document.getElementById("go")).left === "40px", null, { timeout: 10000 }).catch(() => {});
+    eq("after a reload the placement comes back by itself", await where(), "relative 40px 25px 7");
+
+    await pp.locator(".dz-toggle").waitFor();
+    if ((await pp.locator(".dz-toggle").innerText()) !== "Design: on") await worker.evaluate(async () => { const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true }); await toggle(tab); });
+    await pp.locator("#go").click();
+    await pp.keyboard.press("Enter");
+    await pp.locator(".dz-dock button:text-is('Position')").click();
+    await pp.locator(".dz-dock button:text-matches('Back to where')").click();
+    eq("'Back to where the page put it' removes the placement", await where(), "static auto auto auto");
+    await pp.close();
+  }
+
   // ---- a screen-size preview opens as a real window of that size and shows the edits, without the picker
   await page.locator(".dz-dock .dz-head button:text-is('Preview')").click();
   const [popup] = await Promise.all([context.waitForEvent("page", { timeout: 15000 }), page.locator(".dz-dock button:text-matches('Phone')").click()]);

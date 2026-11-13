@@ -5,7 +5,7 @@
     for (const [element, rec] of [...changes.entries(), ...pending.map((item) => [null, item])]) {
       if (element && !element.isConnected) continue;   // removed from the page: its style edits are moot
       const lines = [];
-      for (const prop of ["background-color", "color", "font-size", "font-weight", "line-height", "letter-spacing", "text-align", "border", "border-radius", "box-shadow", "padding", "margin", "width", "height", "display", "flex-direction", "flex-wrap", "justify-content", "align-items", "justify-items", "gap", "opacity"]) {
+      for (const prop of ["background-color", "color", "font-size", "font-weight", "line-height", "letter-spacing", "text-align", "border", "border-radius", "box-shadow", "padding", "margin", "width", "height", "display", "flex-direction", "flex-wrap", "justify-content", "align-items", "justify-items", "gap", "opacity", "position", "top", "left", "z-index"]) {
         const after = rec.after && rec.after[prop];
         if (after !== undefined && after !== rec.before[prop]) lines.push(`  ${prop}: ${rec.before[prop]} → ${after}`);
       }
