@@ -2,9 +2,8 @@
   "manifest_version": 3,
   "name": "Design Picker",
   "version": "__VERSION__",
-  "description": "Select, restyle and measure any element on any page, check contrast, and hand the changes to a developer or Claude as Markdown.",
+  "description": "Select, restyle, move and measure anything on any page, check contrast, undo it all, and hand the changes to a developer or Claude.",
   "minimum_chrome_version": "114",
-  "homepage_url": "https://github.com/belligerent-beanie/coop-alchemy/tree/main/extension",
   "icons": {
     "16": "icons/16.png",
     "48": "icons/48.png",

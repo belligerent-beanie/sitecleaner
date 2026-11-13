@@ -1,7 +1,7 @@
 {
   "name": "design-picker",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "description": "A Chrome extension for designers: select, restyle, move, measure and check any element on any page, undo it all, and hand the changes over as Markdown.",
   "license": "Apache-2.0",
