@@ -71,7 +71,7 @@ try {
   const toggleBox = await page.locator(".dz-toggle").boundingBox();
   check("its styles applied despite the page's content security policy (the tab sits on the left edge)", toggleBox && toggleBox.x < 4 && toggleBox.height > 40, JSON.stringify(toggleBox));
   eq("the picker is on", await page.locator(".dz-toggle").innerText(), "Design: on");
-  check("the first-time guide opened", (await page.locator(".dz-dock").innerText()).includes("Guide 1 / 4"));
+  check("the first-time guide opened", (await page.locator(".dz-dock").innerText()).match(/Guide 1 \/ \d+/) !== null);
   await page.keyboard.press("Escape");
   check("no Patches link (those belong to the game's server)", !(await page.locator(".dz-dock .dz-head").innerText()).includes("Patches"));
 

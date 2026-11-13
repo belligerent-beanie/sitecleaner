@@ -1,17 +1,23 @@
   // ---------- the guide ----------
   const TOUR = [
-    { title: "Select an element", lines: [
-      "Alt+Shift+P turns the picker on and off.",
-      "While it is on, clicking an element selects it; the click does not reach the page, so buttons and links do nothing."] },
-    { title: "Move around", lines: [
-      "↑ selects the parent of what you have selected. ↓ goes back down the way you came, or to the first child.",
-      "Shift-click adds elements to the selection (or takes them out): the tools then change all of them at once. Esc clears the selection."] },
-    { title: "Change it", lines: [
-      "Enter opens the tools: Fill (colour), Border (style, thickness, colour), Shadow (presets, or offset, blur, spread, opacity, colour), Text (the words), Font (text colour, size, weight, line height, letter spacing, alignment), Size (width and height, or drag the pink handles), Spacing (padding and margin), Radius (rounded corners), Layout (display, flex and grid alignment and gap, opacity) and Tone (shift hue, saturation and brightness together). Alt+Shift+C copies an element's look and Alt+Shift+V pastes it onto another; hold M to measure distances or G to see what lines up with the selected element, press / to select everything that matches a CSS selector or some words, and press I to inspect what is under the pointer (size, type, colours, WCAG and APCA contrast, accessible name). Fill and Font show the contrast against what is behind the text, and every colour picker lists the colours already on the page. Hold Compare (or the \\ key) to see the original, and Preview opens the page at phone, tablet and laptop sizes.",
-      "Text works only on elements with nothing inside them. The page changes straight away, in this tab only; Done closes the tool. Ctrl+Z undoes a step and Ctrl+Shift+Z (or Ctrl+Y) redoes it."] },
-    { title: "Export your changes", lines: [
-      "Alt+Shift+E copies every change as Markdown. Paste it to Claude, who can then make the same changes in the code.",
-      "\"Changes\" lists them with Copy, Download and Reset. They are kept in this browser, through reloads, until you reset them."] },
+    { title: "Select", lines: [
+      "Alt+Shift+P turns the picker on and off. While it is on, clicking selects an element; the click does not reach the page.",
+      "Shift-click adds elements (or takes them out) and the tools then change all of them. / finds everything that matches a selector or some words. ↑ ↓ go to the parent and child, Tab to the next sibling, Esc clears."] },
+    { title: "Style", lines: [
+      "Enter (or a letter: C fill, B border, D shadow, F font, S size, P spacing, R radius, A layout, H tone) opens a tool. The page changes at once, in this tab only.",
+      "Fill and Font show the contrast against what is behind the text, WCAG and APCA. With a tool open, the arrow keys nudge: Shift for ten, Alt the other way."] },
+    { title: "Edit the page itself", lines: [
+      "Delete removes elements, Ctrl+D duplicates, Ctrl+C / X / V copy, cut and paste them, Ctrl+G groups. Double-click text to retype it. Drop an image file on a picture to replace it.",
+      "V moves elements through the page (arrows, or drag a sibling to reorder them). L places them anywhere. Everything here is undone with Ctrl+Z like the rest."] },
+    { title: "Look closely", lines: [
+      "I inspects whatever is under the pointer: size, type, colours, contrast, and the name a screen reader would give it. Hold M to measure distances, G to see what lines up, \\ to see the original.",
+      "Preview opens the page at phone, tablet and laptop sizes. Alt+Shift+S saves a screenshot of the selection."] },
+    { title: "Hand it over", lines: [
+      "Alt+Shift+E copies every change as Markdown: style changes with before and after, and the structure changes in order. Paste it to a developer, or to Claude, who can make the same changes in the code.",
+      "\"Changes\" lists them with Copy, Download and Reset all. They are kept in this browser, through reloads, until you reset them."] },
+    { title: "Every shortcut", lines: [
+      "? (or Keys) lists every shortcut, grouped.",
+      "Guide, at any time, shows these pages again."] },
   ];
   function endTour() {
     tourStep = null;
@@ -81,8 +87,9 @@
       h("button", { type: "button", class: "dz-menu-button", text: "Screenshot", disabled: !host.capture, title: host.capture ? "Save a PNG of the selected elements, or of the page if nothing is selected (Alt+Shift+S)" : "Screenshots need the Chrome extension",
                     onclick: () => takeScreenshot() }));
     const tools = () => h("div", { class: "dz-tools" }, h("div", { class: "dz-menu" },
-      menuButton("fill", "Fill"), menuButton("border", "Border"), menuButton("shadow", "Shadow"), menuButton("text", "Text"), menuButton("font", "Font"),
-      menuButton("size", "Size"), menuButton("spacing", "Spacing"), menuButton("radius", "Radius"), menuButton("layout", "Layout"), menuButton("tone", "Tone"), menuButton("move", "Move"), menuButton("position", "Position"), menuButton("image", "Image")), lookRow());
+      menuButton("fill", "Fill"), menuButton("border", "Border"), menuButton("shadow", "Shadow"), menuButton("radius", "Radius"), menuButton("tone", "Tone"),
+      menuButton("text", "Text"), menuButton("font", "Font"), menuButton("image", "Image"),
+      menuButton("size", "Size"), menuButton("spacing", "Spacing"), menuButton("layout", "Layout"), menuButton("position", "Position"), menuButton("move", "Move")), lookRow());
     if (!menuOpen && !tool) {
       dock.append(h("p", { class: "dz-hint", text: "Press Enter, or choose a tool." }), tools());
       return;
