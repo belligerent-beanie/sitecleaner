@@ -1,4 +1,23 @@
   // ---------- export ----------
+  // Colours in the export are written the way the designer's tokens are: hex, rgb() or hsl() (a setting in the Changes panel, remembered).
+  // Only the properties that carry a colour are converted, so words the designer typed are never rewritten.
+  const NOTATIONS = ["hex", "rgb", "hsl"];
+  const COLOUR_PROPS = ["background-color", "color", "border", "box-shadow"];
+  const notation = () => (NOTATIONS.includes(host.getPref("colours")) ? host.getPref("colours") : "hex");
+  function hslText(r, g, b, alpha) {
+    const [hue, sat, val] = rgbToHsv(r, g, b);
+    const light = val * (1 - sat / 2);
+    const s = light === 0 || light === 1 ? 0 : (val - light) / Math.min(light, 1 - light);
+    const text = `${Math.round(hue)}, ${Math.round(s * 100)}%, ${Math.round(light * 100)}%`;
+    return alpha === undefined ? `hsl(${text})` : `hsla(${text}, ${alpha})`;
+  }
+  const colourIn = (value) => {
+    const mode = notation();
+    if (mode === "hex") return value;
+    return value
+      .replace(/#[0-9a-f]{6}\b/gi, (hex) => { const [r, g, b] = parseHex(hex); return mode === "rgb" ? `rgb(${r}, ${g}, ${b})` : hslText(r, g, b); })
+      .replace(/rgba\((\d+), (\d+), (\d+), ([\d.]+)\)/g, (all, r, g, b, a) => (mode === "rgb" ? all : hslText(+r, +g, +b, a)));
+  };
   /** One text block per changed element: its selector (and a snippet of its text to confirm it), then each before → after. */
   function exportBlocks() {
     const blocks = [];
@@ -7,7 +26,8 @@
       const lines = [];
       for (const prop of ["background-color", "color", "font-size", "font-weight", "line-height", "letter-spacing", "text-align", "border", "border-radius", "box-shadow", "padding", "margin", "width", "height", "display", "flex-direction", "flex-wrap", "justify-content", "align-items", "justify-items", "gap", "opacity", "position", "top", "left", "z-index", "background-image"]) {
         const after = rec.after && rec.after[prop];
-        if (after !== undefined && after !== rec.before[prop]) lines.push(`  ${prop}: ${shorten(String(rec.before[prop]), 110)} → ${shorten(String(after), 110)}`);
+        const say = COLOUR_PROPS.includes(prop) ? (value) => colourIn(String(value)) : (value) => String(value);
+        if (after !== undefined && after !== rec.before[prop]) lines.push(`  ${prop}: ${shorten(say(rec.before[prop]), 110)} → ${shorten(say(after), 110)}`);
       }
       if (element && document.contains(element) && rec.before.contrast && rec.after && (rec.after["background-color"] !== undefined || rec.after.color !== undefined)) {
         const info = contrastInfo(element);

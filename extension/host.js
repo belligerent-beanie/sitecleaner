@@ -7,12 +7,12 @@
   window.__designerHostInstalled = true;
 
   const key = "dz-changes:" + location.origin + location.pathname;
-  const cache = { edits: null, tour: false };
+  const cache = { edits: null, tour: false, prefs: {} };
   let preview = false;
 
   // designer.js waits for this before it starts, so its reads of saved edits can stay synchronous.
   const ready = Promise.all([
-    chrome.storage.local.get([key, "dz-tour"]).then((stored) => { cache.edits = stored[key] ?? null; cache.tour = stored["dz-tour"] === "done"; }),
+    chrome.storage.local.get([key, "dz-tour", "dz-prefs"]).then((stored) => { cache.edits = stored[key] ?? null; cache.tour = stored["dz-tour"] === "done"; cache.prefs = stored["dz-prefs"] || {}; }),
     chrome.runtime.sendMessage({ type: "who" }).then((answer) => { preview = !!(answer && answer.preview); }).catch(() => { /* no worker: not a preview */ }),
   ]);
 
@@ -36,6 +36,8 @@
     markTourSeen() { cache.tour = true; chrome.storage.local.set({ "dz-tour": "done" }); },
     patches: null,
     takeGuide: () => false,
+    getPref: (name) => cache.prefs[name] ?? null,
+    setPref(name, value) { cache.prefs[name] = value; chrome.storage.local.set({ "dz-prefs": cache.prefs }); },
     isPreview: () => preview,
     openPreview: (width, height) => chrome.runtime.sendMessage({ type: "preview", url: location.href, width, height })
       .then((answer) => (answer && answer.error) || true),   // a string is shown to the designer as a message

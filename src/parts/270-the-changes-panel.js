@@ -19,6 +19,9 @@
         h("code", { text: shorten(describeOp(d), 50) + " (not on the page)" }),
         h("button", { type: "button", class: "dz-link", text: "Forget", onclick: () => { pushStep([], true); pendingOps = pendingOps.filter((other) => other !== d); save(); renderDock(); } })));
     }
+    panel.append(h("div", { class: "dz-menu" }, h("span", { class: "dz-hint", text: "Colours in the export:" }),
+      ...NOTATIONS.map((name) => h("button", { type: "button", class: "dz-menu-button" + (notation() === name ? " dz-active" : ""), text: name, "aria-pressed": String(notation() === name),
+        title: `Write colours as ${name}`, onclick: () => { host.setPref("colours", name); renderDock(); } }))));
     const copy = h("button", { type: "button", class: "dz-menu-button", text: "Copy", title: "Alt+Shift+E", onclick: copyChanges });
     panel.append(h("pre", { class: "dz-preview", text: exportMarkdown() || "(nothing differs from the original)" }),
       h("div", { class: "dz-menu" }, copy,

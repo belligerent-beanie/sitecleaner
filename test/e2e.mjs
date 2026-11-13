@@ -567,6 +567,40 @@ try {
     await dp.close();
   }
 
+  // ---- colour notation in the export: hex, rgb or hsl, only on colour properties, and remembered
+  {
+    const np = await context.newPage();
+    np.on("pageerror", (error) => console.log("      [page error]", error.message));
+    await np.goto(url + "notation");
+    await np.bringToFront();
+    await worker.evaluate(async () => { const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true }); await toggle(tab); });
+    await np.locator(".dz-toggle").waitFor({ timeout: 8000 });
+    await np.keyboard.press("Escape");
+    await np.locator("#go").click();
+    await np.keyboard.press("Enter");
+    await np.locator(".dz-dock button:text-is('Fill')").click();
+    await np.locator(".dz-chip[title*='--ink']").click();   // #222222
+    await np.keyboard.press("Escape"); await np.keyboard.press("Escape");
+    await np.locator(".dz-dock button:text-is('Text')").click().catch(() => {});
+    await np.keyboard.press("Escape"); await np.keyboard.press("Escape"); await np.keyboard.press("Escape");
+    await np.locator(".dz-dock .dz-head button:text-matches('Changes')").click();
+    const out = () => np.locator(".dz-preview").innerText();
+    check("by default colours are written as hex", (await out()).includes("background-color: #3366cc → #222222"), await out());
+    await np.locator(".dz-dock button:text-is('hsl')").click();
+    check("hsl: the same colours as hsl()", (await out()).includes("background-color: hsl(220, 60%, 50%) → hsl(0, 0%, 13%)"), await out());
+    await np.locator(".dz-dock button:text-is('rgb')").click();
+    check("rgb: as rgb()", (await out()).includes("background-color: rgb(51, 102, 204) → rgb(34, 34, 34)"), await out());
+    await np.reload();
+    await np.waitForLoadState("load");
+    await np.locator(".dz-toggle").waitFor({ timeout: 8000 });
+    await np.waitForFunction(() => getComputedStyle(document.getElementById("go")).backgroundColor === "rgb(34, 34, 34)", null, { timeout: 8000 }).catch(() => {});
+    if ((await np.locator(".dz-toggle").innerText()) !== "Design: on") await worker.evaluate(async () => { const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true }); await toggle(tab); });
+    await np.keyboard.press("Escape");
+    await np.locator(".dz-dock .dz-head button:text-matches('Changes')").click();
+    eq("the choice is remembered across a reload", await np.locator(".dz-dock button.dz-active:text-is('rgb')").count(), 1);
+    await np.close();
+  }
+
   // ---- a screen-size preview opens as a real window of that size and shows the edits, without the picker
   await page.locator(".dz-dock .dz-head button:text-is('Preview')").click();
   const [popup] = await Promise.all([context.waitForEvent("page", { timeout: 15000 }), page.locator(".dz-dock button:text-matches('Phone')").click()]);
