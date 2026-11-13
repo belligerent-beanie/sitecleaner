@@ -75,7 +75,7 @@ To add a feature: a new file in `src/parts/`, registered through the `keyHooks`,
 ## Test
 
     bun install                   # Playwright, for the tests
-    node test/e2e.mjs             # 98 checks in a real browser
+    node test/e2e.mjs             # 103 checks in a real browser
 
 It builds the extension, loads it into Playwright's Chromium (branded Chrome no longer loads unpacked extensions from the command line), and
 drives it on a page that is nothing like a designer's own: a strict content security policy, generated class names, its own CSS variables. It covers

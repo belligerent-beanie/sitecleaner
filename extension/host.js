@@ -49,6 +49,21 @@
       shadow.adoptedStyleSheets = [sheet];
       shadow.append(root);
       document.documentElement.append(shadowHost);
+      // The top layer (the popover attribute, as VisBug does) puts the picker above everything on the page, a modal dialog's backdrop included,
+      // which no z-index can do.
+      try { shadowHost.popover = "manual"; shadowHost.showPopover(); } catch (_) { /* an older browser: the z-index has to do */ }
+      // A modal dialog makes everything outside it inert and is drawn over anything opened before it, so while one is open the picker lives inside
+      // it (still in the top layer, and now neither covered nor inert), and goes back to the page when the dialog closes.
+      const rehome = () => {
+        const modal = [...document.querySelectorAll("dialog[open]")].find((d) => { try { return d.matches(":modal"); } catch (_) { return false; } });
+        const home = modal || document.documentElement;
+        if (shadowHost.parentNode === home) return;
+        try { shadowHost.hidePopover(); } catch (_) { /* not shown */ }
+        home.append(shadowHost);
+        try { shadowHost.showPopover(); } catch (_) { /* an older browser */ }
+      };
+      new MutationObserver(rehome).observe(document.documentElement, { subtree: true, attributes: true, attributeFilter: ["open"] });
+      rehome();
     },
     isOwn: (node) => node === shadowHost,
   };

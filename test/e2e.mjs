@@ -24,7 +24,7 @@ const PAGE = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>
 <body><main class="css-1x2y3z"><h1 class="title">Hello there</h1><p class="lede">A paragraph of text to restyle.</p>
 <button id="go" class="btn-a1b2c3d">Go</button><div class="card"><span class="muted">Muted words</span></div>
 <ul class="items"><li>One</li><li>Two</li><li>Three</li></ul>
-<img id="pic" class="hero-img" alt="Logo" src="/pic.png" srcset="/pic.png 1x, /pic2.png 2x"><div class="banner">Banner</div></main><script src="/fixture.js"></script></body></html>`;
+<img id="pic" class="hero-img" alt="Logo" src="/pic.png" srcset="/pic.png 1x, /pic2.png 2x"><div class="banner">Banner</div></main><dialog id="modal"><p class="in-modal">A modal dialog</p><button id="shut">Close</button></dialog><script src="/fixture.js"></script></body></html>`;
 const CSS = `:root { --brand: #3366cc; --ink: #222222; } body { margin: 0; font: 16px system-ui; color: var(--ink); background: #ffffff; }
 main { padding: 24px; } .btn-a1b2c3d { background: var(--brand); color: #ffffff; border: 0; padding: 8px 16px; } .card { background: #eeeeee; padding: 12px; margin-top: 16px; }
 .muted { color: #999999; } .hero-img { display: block; width: 120px; height: 60px; } .banner { height: 50px; background: url(/pic.png) center / cover; }`;
@@ -535,6 +535,36 @@ try {
     await kp.keyboard.press("Escape");
     eq("Esc closes the list", await kp.locator(".dz-keys").count(), 0);
     await kp.close();
+  }
+
+  // ---- a modal dialog opened after the picker: the picker stays on top, stays clickable, and can select inside the dialog
+  {
+    const dp = await context.newPage();
+    dp.on("pageerror", (error) => console.log("      [page error]", error.message));
+    await dp.goto(url + "dialog");
+    await dp.bringToFront();
+    await worker.evaluate(async () => { const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true }); await toggle(tab); });
+    await dp.locator(".dz-toggle").waitFor({ timeout: 8000 });
+    await dp.keyboard.press("Escape");
+    const top = () => dp.evaluate(() => {
+      const host = document.getElementById("design-picker-extension-root");
+      const box = host.shadowRoot.querySelector(".dz-dock").getBoundingClientRect();
+      const hit = document.elementFromPoint(box.left + 30, box.top + 30);
+      return { inTopLayer: host.matches(":popover-open"), onTop: !!hit && hit.id === "design-picker-extension-root", home: host.parentNode.tagName.toLowerCase() };
+    });
+    eq("the picker is in the top layer, on top, in the page", await top(), { inTopLayer: true, onTop: true, home: "html" });
+    await dp.evaluate(() => document.getElementById("modal").showModal());
+    await dp.waitForTimeout(150);
+    eq("with a modal dialog open it is still on top (it lives inside the dialog meanwhile)", await top(), { inTopLayer: true, onTop: true, home: "dialog" });
+    await dp.locator(".dz-dock .dz-head button:text-is('Keys')").click({ timeout: 4000 });
+    eq("and still clickable", await dp.locator(".dz-keys").count(), 1);
+    await dp.keyboard.press("Escape");
+    await dp.locator(".in-modal").click();
+    eq("it can select an element inside the dialog", await dp.locator(".dz-head strong").first().innerText().then((t) => t.startsWith("p")), true);
+    await dp.evaluate(() => document.getElementById("modal").close());
+    await dp.waitForTimeout(150);
+    eq("when the dialog closes the picker goes back to the page", await top(), { inTopLayer: true, onTop: true, home: "html" });
+    await dp.close();
   }
 
   // ---- a screen-size preview opens as a real window of that size and shows the edits, without the picker
