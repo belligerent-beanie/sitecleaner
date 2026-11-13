@@ -39,6 +39,10 @@
     isPreview: () => preview,
     openPreview: (width, height) => chrome.runtime.sendMessage({ type: "preview", url: location.href, width, height })
       .then((answer) => (answer && answer.error) || true),   // a string is shown to the designer as a message
+    capture: () => chrome.runtime.sendMessage({ type: "capture" }).then((answer) => {
+      if (answer && answer.dataUrl) return answer.dataUrl;
+      throw new Error((answer && answer.error) || "no picture came back");
+    }),
     mount(root) {
       const sheet = new CSSStyleSheet();   // a constructed sheet: not blocked by the page's content security policy
       sheet.replaceSync(window.__designerCss || "");

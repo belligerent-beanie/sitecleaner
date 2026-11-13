@@ -437,6 +437,36 @@ try {
     await ip.close();
   }
 
+  // ---- screenshot: a PNG of the selected element at the screen's pixel density, or of the visible page when nothing is selected
+  {
+    const sh = await context.newPage();
+    sh.on("pageerror", (error) => console.log("      [page error]", error.message));
+    await sh.goto(url + "shot");
+    await sh.bringToFront();
+    await worker.evaluate(async () => { const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true }); await toggle(tab); });
+    await sh.locator(".dz-toggle").waitFor({ timeout: 8000 });
+    await sh.keyboard.press("Escape");
+    const pngSize = async (download) => {
+      const file = await download.path();
+      const bytes = fs.readFileSync(file);
+      return { signature: bytes.subarray(0, 8).toString("hex"), width: bytes.readUInt32BE(16), height: bytes.readUInt32BE(20), name: download.suggestedFilename() };
+    };
+    const dpr = await sh.evaluate(() => window.devicePixelRatio);
+    await sh.locator(".title").click();
+    const box = await sh.locator(".title").boundingBox();
+    await sh.keyboard.press("Enter");
+    const [shot] = await Promise.all([sh.waitForEvent("download", { timeout: 15000 }), sh.locator(".dz-dock button:text-is('Screenshot')").click()]);
+    const one = await pngSize(shot);
+    check("Screenshot saved a PNG of just the selected element, at the screen's pixel density", one.signature === "89504e470d0a1a0a" && Math.abs(one.width - Math.round(box.width * dpr)) <= 2 && Math.abs(one.height - Math.round(box.height * dpr)) <= 2 && /\.png$/.test(one.name), JSON.stringify({ one, box, dpr }));
+    check("the picker's dock and outlines are back on screen after the shot", await sh.evaluate(() => document.querySelector("#design-picker-extension-root").shadowRoot.querySelector(".dz-root").style.visibility === ""), "still hidden");
+    await sh.keyboard.press("Escape"); await sh.keyboard.press("Escape"); await sh.keyboard.press("Escape");
+    const [whole] = await Promise.all([sh.waitForEvent("download", { timeout: 15000 }), sh.keyboard.press("Alt+Shift+KeyS")]);
+    const all = await pngSize(whole);
+    const view = await sh.evaluate(() => [innerWidth, innerHeight]);
+    check("with nothing selected, Alt+Shift+S saves the whole visible page", Math.abs(all.width - Math.round(view[0] * dpr)) <= 2 && Math.abs(all.height - Math.round(view[1] * dpr)) <= 2, JSON.stringify({ all, view, dpr }));
+    await sh.close();
+  }
+
   // ---- a screen-size preview opens as a real window of that size and shows the edits, without the picker
   await page.locator(".dz-dock .dz-head button:text-is('Preview')").click();
   const [popup] = await Promise.all([context.waitForEvent("page", { timeout: 15000 }), page.locator(".dz-dock button:text-matches('Phone')").click()]);

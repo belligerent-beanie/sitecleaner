@@ -19,6 +19,7 @@
       }, 500);
       return true;
     },
+    capture: null,   // () => a promise of a PNG data URL of the visible tab: only the extension can
     mount(root) { document.body.append(root); },
     isOwn: () => false,   // a node outside the root that is still the picker's (the extension's shadow host)
   }, pre || {});

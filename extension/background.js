@@ -66,6 +66,10 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
     previewTabs.get(sender.tab ? sender.tab.id : -1).then((info) => respond({ preview: !!info }));
     return true;
   }
+  if (message.type === "capture") {   // a picture of the visible part of the tab that asked (activeTab, or the all-sites permission, allows it)
+    chrome.tabs.captureVisibleTab(sender.tab.windowId, { format: "png" }).then((dataUrl) => respond({ dataUrl }), (error) => respond({ error: String((error && error.message) || error) }));
+    return true;
+  }
   if (message.type === "restore") {
     if (sender.tab) inject(sender.tab.id).catch(() => { /* a page that does not allow scripts */ });
     return false;

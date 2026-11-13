@@ -74,7 +74,9 @@
     const lookRow = () => h("div", { class: "dz-menu dz-look" },
       h("button", { type: "button", class: "dz-menu-button", text: "Copy look", title: "Copy this element's fill, type, border, corners, shadow and padding (Alt+Shift+C)", onclick: () => copyLook(selected) }),
       h("button", { type: "button", class: "dz-menu-button", text: "Paste look", disabled: !copiedLook, title: copiedLook ? `Paste the look of ${copiedLook.from} (Alt+Shift+V)` : "Copy an element's look first",
-                    onclick: () => pasteLook(targets()) }));
+                    onclick: () => pasteLook(targets()) }),
+      h("button", { type: "button", class: "dz-menu-button", text: "Screenshot", disabled: !host.capture, title: host.capture ? "Save a PNG of the selected elements, or of the page if nothing is selected (Alt+Shift+S)" : "Screenshots need the Chrome extension",
+                    onclick: () => takeScreenshot() }));
     const tools = () => h("div", { class: "dz-tools" }, h("div", { class: "dz-menu" },
       menuButton("fill", "Fill"), menuButton("border", "Border"), menuButton("shadow", "Shadow"), menuButton("text", "Text"), menuButton("font", "Font"),
       menuButton("size", "Size"), menuButton("spacing", "Spacing"), menuButton("radius", "Radius"), menuButton("layout", "Layout"), menuButton("tone", "Tone"), menuButton("move", "Move"), menuButton("position", "Position"), menuButton("image", "Image")), lookRow());
