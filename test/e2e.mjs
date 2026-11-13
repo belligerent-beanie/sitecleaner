@@ -190,6 +190,7 @@ try {
   // ---- structure: delete, duplicate, group, copy and paste, select similar, in-place text; all undoable, in the export, kept across a reload
   {
     const sp = await context.newPage();
+    sp.on("pageerror", (error) => console.log("      [page error]", error.message));
     await sp.goto(url + "structure");
     await sp.bringToFront();
     await worker.evaluate(async () => { const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true }); await toggle(tab); });
@@ -268,6 +269,58 @@ try {
     await undoKey();
     eq("and one Ctrl+Z brings all of it back", await items(), before);
     await sp.close();
+  }
+
+  // ---- the Move tool: arrow keys through the structure, and dragging to reorder (one move, one undo)
+  {
+    const mp = await context.newPage();
+    mp.on("pageerror", (error) => console.log("      [page error]", error.message));
+    await mp.goto(url + "move");
+    await mp.bringToFront();
+    await worker.evaluate(async () => { const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true }); await toggle(tab); });
+    await mp.locator(".dz-toggle").waitFor({ timeout: 8000 });
+    await mp.keyboard.press("Escape");
+    const order = () => mp.evaluate(() => [...document.querySelectorAll("ul.items > li")].map((el) => el.textContent.trim()).join(" "));
+    const undoKey = async () => { await mp.evaluate(() => { const a = document.querySelector("#design-picker-extension-root").shadowRoot.activeElement; if (a) a.blur(); }); await mp.keyboard.press("Control+z"); };
+
+    await mp.locator("ul.items li:nth-child(2)").click();
+    await mp.keyboard.press("Enter");
+    await mp.locator(".dz-dock button:text-is('Move')").click();
+    await mp.keyboard.press("ArrowLeft");
+    eq("Move: the left arrow moved the element past its previous sibling", await order(), "Two One Three");
+    await mp.keyboard.press("ArrowRight");
+    eq("and the right arrow moved it back", await order(), "One Two Three");
+    await mp.keyboard.press("ArrowUp");
+    eq("the up arrow moved it out of its parent, to just before it", await mp.evaluate(() => [document.querySelector("main > li") && document.querySelector("main > li").nextElementSibling.className, document.querySelectorAll("ul.items > li").length]), ["items", 2]);
+    await undoKey();
+    eq("one Ctrl+Z put it back in the list", await order(), "One Two Three");
+
+    await mp.keyboard.press("Escape"); await mp.keyboard.press("Escape");
+    await mp.locator("ul.items li:nth-child(1)").click();
+    await mp.keyboard.press("Enter");
+    await mp.locator(".dz-dock button:text-is('Move')").click();
+    const one = await mp.locator("ul.items li:nth-child(1)").boundingBox();
+    const three = await mp.locator("ul.items li:nth-child(3)").boundingBox();
+    await mp.mouse.move(one.x + one.width / 2, one.y + one.height / 2);
+    await mp.mouse.down();
+    await mp.mouse.move(three.x + three.width / 2, three.y + three.height * 0.75, { steps: 8 });
+    await mp.mouse.up();
+    eq("dragging the first item below the last reordered the list", await order(), "Two Three One");
+    eq("and the selection is the element that was dragged", await mp.locator(".dz-head strong").first().innerText().then((t) => t.startsWith("li")), true);
+    await undoKey();
+    eq("one Ctrl+Z undid the whole drag", await order(), "One Two Three");
+    await mp.keyboard.press("Control+Shift+z");
+    eq("and Ctrl+Shift+Z did it again", await order(), "Two Three One");
+
+    await mp.keyboard.press("Escape"); await mp.keyboard.press("Escape"); await mp.keyboard.press("Escape");
+    await mp.locator(".dz-dock .dz-head button:text-matches('Changes')").click();
+    const text = await mp.locator(".dz-preview").innerText();
+    check("the export says what moved, from where and to where", /moved `[^`]*li[^`]*` \("One"\) from child 1 of `[^`]*` to child 3 of `[^`]*`/.test(text), text.slice(-300));
+    await mp.reload();
+    await mp.waitForLoadState("load");
+    await mp.waitForFunction(() => [...document.querySelectorAll("ul.items > li")].map((el) => el.textContent.trim()).join(" ") === "Two Three One", null, { timeout: 10000 }).catch(() => {});
+    eq("after a reload the new order comes back by itself", await order(), "Two Three One");
+    await mp.close();
   }
 
   // ---- a screen-size preview opens as a real window of that size and shows the edits, without the picker

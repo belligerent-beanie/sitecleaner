@@ -5,7 +5,7 @@
   let hovered = null;
   let climbed = [];            // the elements we came up from, so ↓ goes back the way we came
   let menuOpen = false;
-  let tool = null;             // "fill" | "border" | "shadow" | "text" | "font" | "size" | "spacing" | "radius" | "layout" | "tone" | null
+  let tool = null;             // "fill" | "border" | "shadow" | "text" | "font" | "size" | "spacing" | "radius" | "layout" | "tone" | "move" | null
   let showChanges = false;
   let showPreview = false;    // the screen-size preview panel
   let showFind = false;       // the find-by-selector panel
@@ -18,3 +18,4 @@
   const pageEventHooks = [];   // (event) => true to take over a click, pointer or double-click on the page (it is not swallowed)
   const keyHooks = [];         // (event) => true if the key was used (checked while the picker is on, after undo and redo)
   const offHooks = [];         // () => called when the picker is turned off
+  const refreshHooks = [];     // () => called whenever the outlines are redrawn (a tool that draws its own overlay)

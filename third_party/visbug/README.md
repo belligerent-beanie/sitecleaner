@@ -13,3 +13,4 @@ it was adapted from, and it is listed below. All of them have been modified.
 |---|---|---|
 | `src/parts/300-editing-the-page-s-structure.js` | `app/features/selectable.js` | Delete, duplicate, copy / cut / paste of elements, group and ungroup, select similar, walking siblings with Tab: each is now a recorded, undoable op; pasted markup is cleaned of scripts and event handlers; body and html are protected. |
 | `src/parts/310-editing-text-in-place.js` | `app/features/text.js` | Double-click to edit text: only text with nothing inside it; recorded as a text change (saved, exported, one undo step); Enter / Escape end it. |
+| `src/parts/320-the-move-tool.js` | `app/features/move.js` | Arrow-key moves (past a sibling, out of the parent, into the next sibling) as recorded ops; dragging reorders by inserting before / after the hovered sibling (one move) instead of VisBug's swap of the two; body and html protected. |

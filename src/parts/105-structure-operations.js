@@ -27,7 +27,8 @@
   function moveOp(node, parent, before) {
     const oldParent = node.parentNode, oldNext = node.nextSibling;
     const desc = { type: "move", selector: selectorFor(node), snippet: snippetOf(node), from: placeOf(node),
-                   to: { parentSelector: selectorFor(parent), index: before ? [...parent.children].indexOf(before) : parent.children.length } };
+                   to: { parentSelector: selectorFor(parent), index: before ? [...parent.children].indexOf(before) : parent.children.length,   // index: counted before the move (replay finds `before` by it)
+                         final: (() => { const rest = [...parent.children].filter((child) => child !== node); return before ? rest.indexOf(before) : rest.length; })() } };   // final: where it ends up (what the export says)
     return { desc, redo: () => parent.insertBefore(node, before), undo: () => reinsert(node, oldParent, oldNext) };
   }
   /** Put `nodes` in a new element (a div) where the first of them is. */
@@ -77,10 +78,10 @@
   }
 
   /** Perform structural changes as one step; each is {desc, redo, undo}. */
-  function doOps(list) {
+  function doOps(list, applied = false) {   // applied: they have been run already, one after another (each planned on the page the last left)
     if (!list.length) return;
     if (comparing) setCompare(false);
-    for (const op of list) op.redo();
+    if (!applied) for (const op of list) op.redo();
     ops.push(...list);
     if (!restoring) {
       undoStack.push({ ops: list, inverted: false });
@@ -136,7 +137,7 @@
     switch (d.type) {
       case "remove": return `removed ${named(d.selector, d.snippet)}: it was child ${d.index + 1} of \`${d.parentSelector}\``;
       case "duplicate": return `duplicated ${named(d.selector, d.snippet)}: the copy sits right after it`;
-      case "move": return `moved ${named(d.selector, d.snippet)} from child ${d.from.index + 1} of \`${d.from.parentSelector}\` to child ${d.to.index + 1} of \`${d.to.parentSelector}\``;
+      case "move": return `moved ${named(d.selector, d.snippet)} from child ${d.from.index + 1} of \`${d.from.parentSelector}\` to child ${(d.to.final === undefined ? d.to.index : d.to.final) + 1} of \`${d.to.parentSelector}\``;
       case "wrap": return `grouped ${d.selectors.map((s) => `\`${s}\``).join(", ")} in a new \`${d.tag}\``;
       case "unwrap": return `ungrouped ${named(d.selector, d.snippet)}: its children now sit where it was`;
       case "insert": return `inserted markup as child ${d.index + 1} of \`${d.parentSelector}\`: \`${shorten(d.html.replace(/\s+/g, " "), 120)}\``;

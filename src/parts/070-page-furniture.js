@@ -85,4 +85,5 @@
     updateHandles();
     renderMeasure();
     renderGuides();
+    for (const hook of refreshHooks) hook();
   }

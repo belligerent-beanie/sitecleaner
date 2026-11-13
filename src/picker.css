@@ -122,3 +122,6 @@
 .dz-guides { position: fixed; inset: 0; pointer-events: none; }
 .dz-g-line { position: fixed; background: #ff5ca8; opacity: 0.7; pointer-events: none; }
 .dz-g-box { position: fixed; outline: 1px dashed #ff5ca8; background: rgba(255, 92, 168, 0.08); pointer-events: none; }
+
+/* The Move tool: the bounds a sibling can be dragged within */
+.dz-bounds { outline: 2px dashed #b46bff; background: rgba(180, 107, 255, 0.07); }
