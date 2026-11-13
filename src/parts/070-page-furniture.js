@@ -50,7 +50,7 @@
     handle.addEventListener("pointercancel", release);
   }
   function updateHandles() {
-    selectBox.classList.toggle("dz-sizing", on && selection.length === 1 && tool === "size" && tourStep === null && !showChanges && !showPatches);
+    selectBox.classList.toggle("dz-sizing", on && selection.length === 1 && tool === "size" && tourStep === null && !showChanges);
   }
 
 

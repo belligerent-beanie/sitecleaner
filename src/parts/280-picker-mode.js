@@ -5,7 +5,6 @@
     else setSelection(add ? [...selection, element] : [element]);
     if (!add) { closeTool(); menuOpen = false; }   // adding more keeps the tool that is open
     showChanges = false;
-    showPatches = false;
     showPreview = false;
     showFind = false;
     renderDock();
@@ -44,7 +43,7 @@
     }
     if (event.key === "/" && !event.ctrlKey && !event.metaKey && !event.altKey && !isEditingField(eventTarget(event))) {   // find
       event.preventDefault();
-      showFind = true; showChanges = false; showPatches = false; showPreview = false;
+      showFind = true; showChanges = false; showPreview = false;
       renderDock();
       return;
     }
@@ -73,7 +72,6 @@
       event.preventDefault();
       if (showFind) showFind = false;
       else if (showPreview) showPreview = false;
-      else if (showPatches) showPatches = false;
       else if (showChanges) showChanges = false;
       else if (tool) closeTool();
       else if (menuOpen) menuOpen = false;
@@ -102,7 +100,7 @@
     const method = on ? "addEventListener" : "removeEventListener";
     for (const type of STOPPED) window[method](type, swallow, true);
     window[method]("mousemove", onMove, true);
-    if (!on) { inspecting = false; renderInspect(null); hovered = null; setSelection([]); climbed = []; menuOpen = false; tool = null; showChanges = false; tourStep = null; showPatches = false; }
+    if (!on) { inspecting = false; renderInspect(null); hovered = null; setSelection([]); climbed = []; menuOpen = false; tool = null; showChanges = false; tourStep = null; }
     else {
       if (!host.tourSeen()) tourStep = 0;   // the first time on this browser
     }
@@ -119,9 +117,4 @@
   toggle.addEventListener("click", () => setOn(!on));
   host.mount(root);
   restore();
-  if (host.takeGuide("designer")) {   // asked for on the Guides page
-    setOn(true);
-    tourStep = 0;
-    renderDock();
-  }
 })();

@@ -1,6 +1,6 @@
   // ---------- keeping edits across reloads ----------
   // Every edit is saved in this browser (localStorage, one list per page) and put back when the page loads again, so a
-  // reload, a new version of the site or a design patch switched on never costs a designer their work. An edit whose element
+  // reload, or a new version of the site never costs a designer their work. An edit whose element
   // is not on the page (yet: the game board draws itself later; or any more: the page changed) is kept as it is, listed
   // under Changes and still exported, until it is reset.
   const STORE_KEY = host.storageKey();
