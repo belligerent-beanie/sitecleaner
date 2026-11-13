@@ -1,0 +1,11 @@
+Design Picker
+Copyright 2026 The Design Picker authors
+
+Licensed under the Apache License, Version 2.0 (see LICENSE).
+
+This product includes software derived from VisBug
+(https://github.com/GoogleChromeLabs/ProjectVisBug), authored by Adam Argyle and its contributors and
+licensed under the Apache License, Version 2.0 (a copy of that project's licence is in third_party/visbug/LICENSE).
+The files adapted from it have been modified (they are rewritten to run inside this product's selection,
+undo, saved-edits and export machinery); each carries a header saying where it came from, and they are listed in
+third_party/visbug/README.md. "VisBug" is not a name this product uses or has any right to use.

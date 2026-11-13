@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Design Picker options</title>
+<style>
+  body { font: 15px/1.5 system-ui, sans-serif; max-width: 38rem; margin: 2rem auto; padding: 0 1rem; color: #222; }
+  h1 { font-size: 1.3rem; }
+  button { font: inherit; padding: 6px 14px; cursor: pointer; }
+  #state { font-weight: 600; }
+  p.small { color: #555; font-size: 13px; }
+</style>
+</head>
+<body>
+<h1>Design Picker</h1>
+<p>The picker works on the tab you click it on, with no special permission. Access to every site is <strong>optional</strong>, and is what makes two
+things work:</p>
+<ul>
+  <li><strong>Edits come back by themselves after a reload.</strong> Without it, you turn the picker on again and they are restored.</li>
+  <li><strong>Screen-size previews</strong>, which open a second window and need to put your edits on it.</li>
+</ul>
+<p>All sites: <span id="state">…</span> (checks a page for saved edits; reads nothing else)</p>
+<p><button id="allow" type="button">Allow all sites</button> <button id="revoke" type="button">Remove that permission</button></p>
+<p class="small">Your edits are kept in this browser only, per site and page, and nothing is sent anywhere.</p>
+<script src="options.js"></script>
+</body>
+</html>
