@@ -129,3 +129,10 @@
 /* Replacing images: the picture a dropped file would replace, and the file chooser */
 .dz-drop { outline: 3px solid #2ecc71; background: rgba(46, 204, 113, 0.12); }
 .dz-file { width: 100%; color: #f3f3f6; font: inherit; }
+
+/* The shortcuts panel */
+.dz-keys { gap: 3px; }
+.dz-keys-title { margin: 8px 0 2px; color: #ff9fcb; font-size: 12px; }
+.dz-keys-row { display: flex; gap: 8px; align-items: baseline; }
+.dz-keys-row kbd { flex: none; min-width: 74px; padding: 1px 5px; border: 1px solid #55555f; border-radius: 4px; background: #2b2b33; color: #f3f3f6; font: 11px/1.5 ui-monospace, Consolas, monospace; }
+.dz-keys-row span { color: #d8d8e0; font-size: 12px; }

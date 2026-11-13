@@ -22,3 +22,4 @@ it was adapted from, and it is listed below. All of them have been modified.
 `src/parts/350-screenshot.js` (screenshots of the selection or the page) is this product's own work: VisBug lists a screenshot tool but ships only
 `alert('Coming Soon!')`. The same goes for the picker's foundation (recording, undo, saved edits, the Markdown export, the host adapter), the
 contrast, APCA, find, tone, guides, layout, font, size, spacing, radius and shadow panels, and the Chrome extension around it.
+| `src/parts/360-shortcuts-and-nudging.js` | `app/components/vis-bug/model.js`, `app/features/padding.js`, `margin.js`, `font.js` | The keyboard model: a letter opens a tool, arrow keys nudge (1 unit, Shift ten, Alt the other way, Ctrl with up / down all four sides), with this product's tools on the letters; every nudge is recorded and a run of presses is one undo step; a shortcuts panel. |

@@ -467,6 +467,59 @@ try {
     await sh.close();
   }
 
+  // ---- the keyboard layer: a letter opens a tool, the arrow keys nudge (Shift ten, Alt the other way), ? lists everything
+  {
+    const kp = await context.newPage();
+    kp.on("pageerror", (error) => console.log("      [page error]", error.message));
+    await kp.goto(url + "keys");
+    await kp.bringToFront();
+    await worker.evaluate(async () => { const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true }); await toggle(tab); });
+    await kp.locator(".dz-toggle").waitFor({ timeout: 8000 });
+    await kp.keyboard.press("Escape");
+    const card = (prop) => kp.evaluate((p) => getComputedStyle(document.querySelector(".card"))[p], prop);
+    const tool = () => kp.evaluate(() => { const a = document.querySelector("#design-picker-extension-root").shadowRoot.querySelector(".dz-menu-button.dz-active"); return a ? a.textContent : ""; });
+    const undoKey = async () => { await kp.evaluate(() => { const a = document.querySelector("#design-picker-extension-root").shadowRoot.activeElement; if (a) a.blur(); }); await kp.keyboard.press("Control+z"); };
+
+    await kp.locator(".card").click({ position: { x: 3, y: 3 } });
+    await kp.keyboard.press("p");
+    eq("P opened the Spacing tool", await tool(), "Spacing");
+    eq("the card starts with 12 px of padding all round", await card("padding"), "12px");
+    await kp.keyboard.press("ArrowUp");
+    await kp.keyboard.press("Shift+ArrowRight");
+    await kp.keyboard.press("Alt+ArrowLeft");
+    eq("arrows change one side each: ▲ +1, Shift ▶ +10, Alt ◀ −1", await card("padding"), "13px 22px 12px 11px");
+    await kp.keyboard.press("Control+ArrowUp");
+    eq("Ctrl ▲ changes all four sides together", await card("padding"), "14px 23px 13px 12px");
+    await undoKey();
+    eq("one Ctrl+Z took back the whole run of nudges", await card("padding"), "12px");
+
+    await kp.locator(".dz-dock button:text-is('Margin')").click();
+    await kp.keyboard.press("ArrowDown");
+    eq("the panel can send the arrows to the margin instead", [await card("marginBottom"), await card("paddingBottom")], ["1px", "12px"]);
+
+    await kp.keyboard.press("f");
+    eq("F switched to the Font tool", await tool(), "Font");
+    const size0 = parseFloat(await card("fontSize"));
+    await kp.keyboard.press("ArrowUp");
+    await kp.keyboard.press("Shift+ArrowUp");
+    await kp.keyboard.press("ArrowRight");
+    eq("in Font, ▲ and Shift ▲ change the size, ▶ the letter spacing", [parseFloat(await card("fontSize")) - size0, await card("letterSpacing")], [11, "0.5px"]);
+
+    await kp.keyboard.press("s");
+    eq("S switched to the Size tool", await tool(), "Size");
+    const width0 = await kp.evaluate(() => Math.round(document.querySelector(".card").getBoundingClientRect().width));
+    for (let i = 0; i < 3; i++) await kp.keyboard.press("ArrowRight");
+    eq("in Size, ▶ widens the element", await kp.evaluate(() => Math.round(document.querySelector(".card").getBoundingClientRect().width)) - width0, 3);
+
+    await kp.keyboard.press("Escape"); await kp.keyboard.press("Escape"); await kp.keyboard.press("Escape");
+    await kp.keyboard.press("?");
+    const keys = await kp.locator(".dz-keys").innerText();
+    check("? lists the shortcuts, grouped, including the ones just used", /Select/.test(keys) && /Spacing/.test(keys) && /Ctrl D/.test(keys) && /Alt Shift S/.test(keys), keys.slice(0, 200));
+    await kp.keyboard.press("Escape");
+    eq("Esc closes the list", await kp.locator(".dz-keys").count(), 0);
+    await kp.close();
+  }
+
   // ---- a screen-size preview opens as a real window of that size and shows the edits, without the picker
   await page.locator(".dz-dock .dz-head button:text-is('Preview')").click();
   const [popup] = await Promise.all([context.waitForEvent("page", { timeout: 15000 }), page.locator(".dz-dock button:text-matches('Phone')").click()]);

@@ -83,7 +83,11 @@
   }
   function spacingPanel() {
     const element = selected;
-    return h("div", { class: "dz-panel dz-spacing-panel" }, spacingGroup(element, "padding", "Padding", 0, 80), spacingGroup(element, "margin", "Margin", -40, 80));
+    const keys = ["padding", "margin"].map((kind) => h("button", { type: "button", class: "dz-menu-button" + (spacingKeys === kind ? " dz-active" : ""), text: kind[0].toUpperCase() + kind.slice(1),
+      "aria-pressed": String(spacingKeys === kind), onclick: () => { spacingKeys = kind; renderDock(); } }));
+    return h("div", { class: "dz-panel dz-spacing-panel" }, spacingGroup(element, "padding", "Padding", 0, 80), spacingGroup(element, "margin", "Margin", -40, 80),
+      h("div", { class: "dz-panel" }, h("span", { class: "dz-hint", text: "The arrow keys change:" }), h("div", { class: "dz-menu" }, ...keys),
+        h("span", { class: "dz-hint", text: "◀ ▶ ▲ ▼ the sides, Alt takes away, Shift is ten, Ctrl with ▲ ▼ all four." })));
   }
   const RADIUS_PRESETS = [["Square", "0px"], ["Soft", "6px"], ["Round", "16px"], ["Pill", "9999px"]];
   function radiusPanel() {

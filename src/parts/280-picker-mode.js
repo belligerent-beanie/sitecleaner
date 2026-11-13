@@ -7,6 +7,7 @@
     showChanges = false;
     showPreview = false;
     showFind = false;
+    showKeys = false;
     renderDock();
     refreshBoxes();
   }
@@ -45,7 +46,7 @@
     for (const hook of keyHooks) if (hook(event)) return;
     if (event.key === "/" && !event.ctrlKey && !event.metaKey && !event.altKey && !isEditingField(eventTarget(event))) {   // find
       event.preventDefault();
-      showFind = true; showChanges = false; showPreview = false;
+      showFind = true; showChanges = false; showPreview = false; showKeys = false;
       renderDock();
       return;
     }
@@ -72,7 +73,8 @@
     const typing = ours(eventTarget(event)) && /^(INPUT|TEXTAREA|SELECT)$/.test(eventTarget(event).tagName);
     if (event.key === "Escape") {
       event.preventDefault();
-      if (showFind) showFind = false;
+      if (showKeys) showKeys = false;
+      else if (showFind) showFind = false;
       else if (showPreview) showPreview = false;
       else if (showChanges) showChanges = false;
       else if (tool) closeTool();

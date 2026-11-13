@@ -43,7 +43,7 @@
     updateHandles();
     if (tourStep !== null) { dock.append(tourPanel()); return; }
 
-    changesLink = h("button", { type: "button", class: "dz-link", text: `Changes (${changeCount()})`, onclick: () => { showChanges = !showChanges; showPreview = false; showFind = false; renderDock(); } });
+    changesLink = h("button", { type: "button", class: "dz-link", text: `Changes (${changeCount()})`, onclick: () => { showChanges = !showChanges; showPreview = false; showFind = false; showKeys = false; renderDock(); } });
     undoLink = h("button", { type: "button", class: "dz-link", text: "Undo", title: "Undo (Ctrl+Z)", onclick: undo });
     redoLink = h("button", { type: "button", class: "dz-link", text: "Redo", title: "Redo (Ctrl+Shift+Z or Ctrl+Y)", onclick: redo });
     showHistory();
@@ -53,18 +53,21 @@
     compareLink.addEventListener("pointerdown", (event) => { event.preventDefault(); setCompare(true); });
     for (const type of ["pointerup", "pointerleave", "pointercancel"]) compareLink.addEventListener(type, () => setCompare(false));
     const findLink = h("button", { type: "button", class: "dz-link", text: "Find", title: "Select everything that matches a CSS selector or some words (/)",
-      onclick: () => { showFind = !showFind; showChanges = false; showPreview = false; renderDock(); } });
+      onclick: () => { showFind = !showFind; showChanges = false; showPreview = false; showKeys = false; renderDock(); } });
     const previewLink = h("button", { type: "button", class: "dz-link", text: "Preview", title: "See this page at phone, tablet and laptop sizes",
-      onclick: () => { showPreview = !showPreview; showChanges = false; showFind = false; renderDock(); } });
+      onclick: () => { showPreview = !showPreview; showChanges = false; showFind = false; showKeys = false; renderDock(); } });
     const head = h("div", { class: "dz-head" },
       h("strong", { text: selection.length > 1 ? `${selection.length} elements` : selected ? label(selected) : "UI picker" }),
       undoLink, redoLink, findLink, inspectLink, compareLink, previewLink,
       changesLink,
+      h("button", { type: "button", class: "dz-link", text: "Keys", title: "Every keyboard shortcut (?)", "aria-pressed": String(showKeys),
+                    onclick: () => { showKeys = !showKeys; showChanges = false; showPreview = false; showFind = false; renderDock(); } }),
       h("button", { type: "button", class: "dz-link", text: "Guide", title: "How the picker works", onclick: () => { tourStep = 0; renderDock(); } }),
       h("button", { type: "button", class: "dz-link", text: "Off", title: "Turn picker mode off", onclick: () => setOn(false) }));
     dock.append(head);
 
     if (showPreview) { dock.append(previewPanel()); return; }
+    if (showKeys) { dock.append(keysPanel()); return; }
     if (showFind) { const panel = findPanel(); dock.append(panel); panel.querySelector(".dz-find").focus(); return; }   // focus at once: keys typed straight after / must land in the field
     if (showChanges) { dock.append(changesPanel()); return; }
     if (!selected) {
