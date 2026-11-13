@@ -22,7 +22,8 @@ const eq = (name, got, want) => check(name, JSON.stringify(got) === JSON.stringi
 // ---- a site that is not ours
 const PAGE = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Fixture</title><link rel="stylesheet" href="/fixture.css"></head>
 <body><main class="css-1x2y3z"><h1 class="title">Hello there</h1><p class="lede">A paragraph of text to restyle.</p>
-<button id="go" class="btn-a1b2c3d">Go</button><div class="card"><span class="muted">Muted words</span></div></main><script src="/fixture.js"></script></body></html>`;
+<button id="go" class="btn-a1b2c3d">Go</button><div class="card"><span class="muted">Muted words</span></div>
+<ul class="items"><li>One</li><li>Two</li><li>Three</li></ul></main><script src="/fixture.js"></script></body></html>`;
 const CSS = `:root { --brand: #3366cc; --ink: #222222; } body { margin: 0; font: 16px system-ui; color: var(--ink); background: #ffffff; }
 main { padding: 24px; } .btn-a1b2c3d { background: var(--brand); color: #ffffff; border: 0; padding: 8px 16px; } .card { background: #eeeeee; padding: 12px; margin-top: 16px; }
 .muted { color: #999999; }`;
@@ -185,6 +186,89 @@ try {
   const lines = await page.locator(".dz-g-line").count();
   await page.keyboard.up("g");
   eq("holding G draws the six guide lines and they go when it is released", [lines, await page.locator(".dz-g-line").count()], [6, 0]);
+
+  // ---- structure: delete, duplicate, group, copy and paste, select similar, in-place text; all undoable, in the export, kept across a reload
+  {
+    const sp = await context.newPage();
+    await sp.goto(url + "structure");
+    await sp.bringToFront();
+    await worker.evaluate(async () => { const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true }); await toggle(tab); });
+    await sp.locator(".dz-toggle").waitFor({ timeout: 8000 });
+    await sp.keyboard.press("Escape");
+    const items = () => sp.evaluate(() => [...document.querySelectorAll("ul.items > *")].map((el) => el.tagName.toLowerCase() + ":" + el.textContent.trim()).join(" "));
+    const pick = async (selector, shift = false, position) => { if (shift) await sp.keyboard.down("Shift"); await sp.locator(selector).click(position ? { position } : {}); if (shift) await sp.keyboard.up("Shift"); };
+    const undoKey = async () => { await sp.evaluate(() => { const a = document.querySelector("#design-picker-extension-root").shadowRoot.activeElement; if (a) a.blur(); }); await sp.keyboard.press("Control+z"); };
+
+    const original = await items();
+    await pick("ul.items li:nth-child(2)");
+    await sp.keyboard.press("Delete");
+    eq("Delete removed the selected element", await items(), "li:One li:Three");
+    await undoKey();
+    eq("Ctrl+Z put it back, where it was", await items(), original);
+    await sp.keyboard.press("Control+Shift+z");
+    eq("and Ctrl+Shift+Z removed it again", await items(), "li:One li:Three");
+    await undoKey();
+
+    await pick("ul.items li:nth-child(1)");
+    await sp.keyboard.press("Control+d");
+    eq("Ctrl+D duplicated it (the copy sits right after, and is selected)", [await items(), await sp.locator(".dz-head strong").first().innerText().then((t) => t.startsWith("li"))], ["li:One li:One li:Two li:Three", true]);
+    await sp.keyboard.press("Control+g");
+    eq("Ctrl+G grouped the selected copy in a new div", await sp.evaluate(() => document.querySelector("ul.items > div > li") ? "grouped" : "not grouped"), "grouped");
+    await sp.keyboard.press("Control+Shift+g");
+    eq("Ctrl+Shift+G ungrouped it again", await sp.evaluate(() => document.querySelector("ul.items > div") ? "still grouped" : "ungrouped"), "ungrouped");
+
+    await sp.keyboard.press("Escape"); await sp.keyboard.press("Escape");
+    await pick("ul.items li:nth-child(1)");
+    await sp.keyboard.press("Control+Shift+e");
+    eq("Ctrl+Shift+E selected every similar element", await sp.locator(".dz-head strong").first().innerText(), "4 elements");
+
+    await sp.keyboard.press("Escape"); await sp.keyboard.press("Escape");
+    await pick(".title");
+    await sp.evaluate(() => { document.dispatchEvent(new ClipboardEvent("copy", { bubbles: true, cancelable: true, clipboardData: new DataTransfer() })); });
+    await sp.keyboard.press("Escape"); await sp.keyboard.press("Escape");
+    await pick("ul.items", false, { x: 4, y: 4 });   // the list itself (its padding), not an item in it
+    const pasted = await sp.evaluate(() => {
+      const data = new DataTransfer();
+      data.setData("text/html", '<h6 class="pasted" onclick="alert(1)">Pasted<script>window.__ran = 1</script></h6>');
+      document.dispatchEvent(new ClipboardEvent("paste", { bubbles: true, cancelable: true, clipboardData: data }));
+      const h6 = document.querySelector("ul.items > h6.pasted");
+      return { there: !!h6, onclick: h6 && h6.hasAttribute("onclick"), script: !!document.querySelector("ul.items script"), ran: window.__ran === 1 };
+    });
+    eq("pasting markup puts it in the selected element, with scripts and event handlers stripped", pasted, { there: true, onclick: false, script: false, ran: false });
+
+    await sp.keyboard.press("Escape"); await sp.keyboard.press("Escape");
+    await sp.locator(".lede").dblclick();
+    await sp.keyboard.press("End");
+    await sp.keyboard.type(" plus");
+    await sp.keyboard.press("Enter");
+    eq("double-click edits text in place, and Enter finishes", [await sp.locator(".lede").innerText(), await sp.evaluate(() => document.querySelector(".lede").hasAttribute("contenteditable"))], ["A paragraph of text to restyle. plus", false]);
+    await undoKey();
+    eq("one Ctrl+Z took back everything typed", await sp.locator(".lede").innerText(), "A paragraph of text to restyle.");
+    await sp.keyboard.press("Control+Shift+z");
+
+    await sp.keyboard.press("Escape"); await sp.keyboard.press("Escape");
+    await sp.locator(".dz-dock .dz-head button:text-matches('Changes')").click();
+    const exported = await sp.locator(".dz-preview").innerText();
+    check("the export lists the structure changes, in order, with the selectors", exported.includes("## Structure changes") && /duplicated `[^`]*li[^`]*`/.test(exported) && /inserted markup as child \d+ of `ul/.test(exported) && exported.includes("text: \"A paragraph of text to restyle.\" → \"A paragraph of text to restyle. plus\""), exported.slice(-600));
+    const before = await items();
+
+    await sp.reload();
+    await sp.waitForLoadState("load");
+    await sp.waitForFunction((want) => [...document.querySelectorAll("ul.items > *")].map((el) => el.tagName.toLowerCase() + ":" + el.textContent.trim()).join(" ") === want, before, { timeout: 10000 }).catch(() => {});
+    eq("after a reload the structure changes come back by themselves", [await items(), await sp.locator(".lede").innerText()], [before, "A paragraph of text to restyle. plus"]);
+
+    await sp.locator(".dz-dock .dz-head button:text-matches('Changes')").click().catch(() => {});
+    await sp.keyboard.press("Alt+Shift+KeyP").catch(() => {});
+    await worker.evaluate(async () => { const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true }); await toggle(tab); });
+    await sp.locator(".dz-toggle").waitFor();
+    if ((await sp.locator(".dz-toggle").innerText()) !== "Design: on") await worker.evaluate(async () => { const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true }); await toggle(tab); });
+    await sp.locator(".dz-dock .dz-head button:text-matches('Changes')").click();
+    await sp.locator(".dz-dock button:text-is('Reset all')").click();
+    eq("Reset all puts the structure and the text back as the page had them", [await items(), await sp.locator(".lede").innerText()], [original, "A paragraph of text to restyle."]);
+    await undoKey();
+    eq("and one Ctrl+Z brings all of it back", await items(), before);
+    await sp.close();
+  }
 
   // ---- a screen-size preview opens as a real window of that size and shows the edits, without the picker
   await page.locator(".dz-dock .dz-head button:text-is('Preview')").click();

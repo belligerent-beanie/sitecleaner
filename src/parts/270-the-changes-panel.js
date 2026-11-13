@@ -3,7 +3,7 @@
     const panel = h("div", { class: "dz-panel" });
     if (!changeCount()) { panel.append(h("p", { class: "dz-hint", text: "No changes yet." })); return panel; }
     for (const [element, rec] of changes) {
-      if (!hasChange(rec)) continue;
+      if (!element.isConnected || !hasChange(rec)) continue;
       panel.append(h("div", { class: "dz-change" },
         h("code", { text: rec.selector }),
         h("button", { type: "button", class: "dz-link", text: "Reset", onclick: () => resetElement(element) })));
@@ -12,6 +12,12 @@
       panel.append(h("div", { class: "dz-change", title: "Kept and exported, but this element is not on the page right now" },
         h("code", { text: item.selector + " (not on the page)" }),
         h("button", { type: "button", class: "dz-link", text: "Forget", onclick: () => forgetPending(item) })));
+    }
+    for (const op of ops) panel.append(h("div", { class: "dz-change", title: describeOp(op.desc) }, h("code", { text: shorten(describeOp(op.desc), 60) })));
+    for (const d of pendingOps) {   // saved, but what it needs is not on the page right now
+      panel.append(h("div", { class: "dz-change", title: "Kept and exported, but not on the page right now: " + describeOp(d) },
+        h("code", { text: shorten(describeOp(d), 50) + " (not on the page)" }),
+        h("button", { type: "button", class: "dz-link", text: "Forget", onclick: () => { pushStep([], true); pendingOps = pendingOps.filter((other) => other !== d); save(); renderDock(); } })));
     }
     const copy = h("button", { type: "button", class: "dz-menu-button", text: "Copy", title: "Alt+Shift+E", onclick: copyChanges });
     panel.append(h("pre", { class: "dz-preview", text: exportMarkdown() || "(nothing differs from the original)" }),

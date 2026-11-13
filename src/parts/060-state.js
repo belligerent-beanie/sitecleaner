@@ -14,3 +14,7 @@
   let changesLink = null;      // the "Changes (n)" button in the dock, kept so its count can change without rebuilding the dock
   let exported = true;         // false while there are edits that were not copied or downloaded
   const changes = new Map();   // element -> {selector, tag, snippet, props: Map(prop -> {before, after, original}), text}
+  // Features register with these instead of editing the handlers below.
+  const pageEventHooks = [];   // (event) => true to take over a click, pointer or double-click on the page (it is not swallowed)
+  const keyHooks = [];         // (event) => true if the key was used (checked while the picker is on, after undo and redo)
+  const offHooks = [];         // () => called when the picker is turned off

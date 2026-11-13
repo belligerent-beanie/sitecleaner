@@ -5,30 +5,38 @@
   // under Changes and still exported, until it is reset.
   const STORE_KEY = host.storageKey();
   let pending = [];   // saved edits whose element is not on the page: {selector, snippet, before, after, text}
+  // Saved as {v: 2, edits: [...], ops: [...]} (a bare list of edits, as the first version wrote it, is still read).
   const saved = (rec) => ({ selector: rec.selector, snippet: rec.snippet, before: rec.before, after: rec.after || {}, text: rec.text || null });
   /** An entry that changes nothing (everything put back as it was) is not worth keeping, counting or exporting. */
   function save() {
     if (PREVIEW) return;
     try {
-      const all = [...[...changes.values()].map(saved), ...pending].filter(hasChange);
-      host.writeEdits(STORE_KEY, all.length ? JSON.stringify(all) : null);
+      const live = [...changes.entries()].filter(([element]) => element.isConnected);   // what was removed from the page cannot come back
+      for (const [element, rec] of live) rec.selector = selectorFor(element);            // named by the page as it is now, structure changes included
+      const edits = [...live.map(([, rec]) => saved(rec)), ...pending].filter(hasChange);
+      const structure = [...ops.map((op) => op.desc), ...pendingOps];
+      host.writeEdits(STORE_KEY, edits.length || structure.length ? JSON.stringify({ v: 2, edits, ops: structure }) : null);
     } catch (_) { /* the edits still work in this tab */ }
   }
   function restore() {
-    try {
-      const raw = JSON.parse(host.readEdits(STORE_KEY) || "[]");
-      pending = Array.isArray(raw) ? raw.filter((item) => item && typeof item.selector === "string" && item.before && hasChange(item)) : [];
-    } catch (_) { pending = []; }
-    if (!pending.length) return;
+    let raw = null;
+    try { raw = JSON.parse(host.readEdits(STORE_KEY) || "null"); } catch (_) { raw = null; }
+    const edits = Array.isArray(raw) ? raw : raw && Array.isArray(raw.edits) ? raw.edits : [];
+    pending = edits.filter((item) => item && typeof item.selector === "string" && item.before && hasChange(item));
+    pendingOps = raw && Array.isArray(raw.ops) ? raw.ops.filter((d) => d && typeof d.type === "string") : [];
+    if (!pending.length && !pendingOps.length) return;
     putBack();
     let tries = 0;   // the page may build the element later: look again every second for half a minute
-    const timer = setInterval(() => { if (!pending.length || ++tries > 30) clearInterval(timer); else putBack(); }, 1000);
+    const timer = setInterval(() => { if ((!pending.length && !pendingOps.length) || ++tries > 30) clearInterval(timer); else putBack(); }, 1000);
   }
   function putBack() {
     restoring = true;
     try { putBackEdits(); } finally { restoring = false; }
   }
   function putBackEdits() {
+    const leftOps = [];   // structure first, in the order it was done: the style edits are named by the page as it ended up
+    for (const d of pendingOps) { try { if (!replayOp(d)) leftOps.push(d); } catch (_) { leftOps.push(d); } }
+    pendingOps = leftOps;
     const left = [];
     for (const item of pending) {
       let element = null;
@@ -184,7 +192,15 @@
     renderDock();
   }
   function resetAll() {
-    if (changes.size || pending.length) pushStep([...changes.keys()].map(snapshotOf), true);
+    if (changes.size || pending.length || ops.length || pendingOps.length) {   // one step puts all of it back
+      undoStack.push({ snaps: [...changes.keys()].map(snapshotOf), pending: [...pending], pendingOps: [...pendingOps], ops: [...ops], inverted: true });
+      if (undoStack.length > MAX_STEPS) undoStack.shift();
+      redoStack.length = 0;
+      showHistory();
+    }
+    for (const op of [...ops].reverse()) op.undo();
+    ops.length = 0;
+    pendingOps = [];
     bulk++;
     try { for (const element of [...changes.keys()]) resetElement(element); } finally { bulk--; }
     pending = [];

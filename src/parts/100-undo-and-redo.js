@@ -41,7 +41,7 @@
     if (redoLink) redoLink.disabled = !redoStack.length;
   }
   function pushStep(snaps, keepPending) {
-    undoStack.push({ snaps, pending: keepPending ? [...pending] : null });
+    undoStack.push({ snaps, pending: keepPending ? [...pending] : null, pendingOps: keepPending ? [...pendingOps] : null });
     if (undoStack.length > MAX_STEPS) undoStack.shift();
     redoStack.length = 0;
     showHistory();
@@ -61,9 +61,16 @@
   function moveStep(from, to) {
     const entry = from.pop();
     if (!entry) return;
-    to.push({ snaps: entry.snaps.map((snap) => snapshotOf(snap.element)), pending: entry.pending ? [...pending] : null });
-    entry.snaps.forEach(putSnapshotBack);
-    if (entry.pending) pending = entry.pending;
+    const next = { ...entry };   // what the step becomes on the other stack: the state as it is now, to come back to
+    if (entry.snaps) { next.snaps = entry.snaps.map((snap) => snapshotOf(snap.element)); entry.snaps.forEach(putSnapshotBack); }
+    if (entry.pending) { next.pending = [...pending]; pending = entry.pending; }
+    if (entry.pendingOps) { next.pendingOps = [...pendingOps]; pendingOps = entry.pendingOps; }
+    if (entry.ops) {   // structural changes: undo them newest first, or do them again oldest first; a Reset all step is the other way round
+      const undoing = (from === undoStack) !== !!entry.inverted;
+      if (undoing) { for (const op of [...entry.ops].reverse()) { op.undo(); const i = ops.indexOf(op); if (i >= 0) ops.splice(i, 1); } }
+      else { for (const op of entry.ops) op.redo(); ops.push(...entry.ops); }
+    }
+    to.push(next);
     lastEdit = { kind: "", elements: [], at: 0 };
     exported = false;
     showCount();

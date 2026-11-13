@@ -13,6 +13,7 @@
   const STOPPED = ["click", "dblclick", "mousedown", "mouseup", "pointerdown", "pointerup", "auxclick", "contextmenu", "submit", "dragstart"];
   function swallow(event) {
     if (ours(eventTarget(event))) return;
+    for (const hook of pageEventHooks) if (hook(event)) return;
     event.preventDefault();
     event.stopImmediatePropagation();
     if (event.type === "click") { climbed = []; select(eventTarget(event), event.shiftKey); }
@@ -41,6 +42,7 @@
       if (!editing && (forward ? redoStack.length : undoStack.length)) { event.preventDefault(); if (forward) redo(); else undo(); }
       return;
     }
+    for (const hook of keyHooks) if (hook(event)) return;
     if (event.key === "/" && !event.ctrlKey && !event.metaKey && !event.altKey && !isEditingField(eventTarget(event))) {   // find
       event.preventDefault();
       showFind = true; showChanges = false; showPreview = false;
@@ -100,21 +102,10 @@
     const method = on ? "addEventListener" : "removeEventListener";
     for (const type of STOPPED) window[method](type, swallow, true);
     window[method]("mousemove", onMove, true);
-    if (!on) { inspecting = false; renderInspect(null); hovered = null; setSelection([]); climbed = []; menuOpen = false; tool = null; showChanges = false; tourStep = null; }
+    if (!on) { for (const hook of offHooks) hook(); inspecting = false; renderInspect(null); hovered = null; setSelection([]); climbed = []; menuOpen = false; tool = null; showChanges = false; tourStep = null; }
     else {
       if (!host.tourSeen()) tourStep = 0;   // the first time on this browser
     }
     renderDock();
     refreshBoxes();
   }
-
-  window.__designerApi = { toggle: () => setOn(!on), isOn: () => on };   // the extension's toolbar button
-  if (PREVIEW) { startPreviewMode(); return; }   // the screen-size preview window
-  window.addEventListener("keydown", onKey, true);
-  window.addEventListener("scroll", refreshBoxes, { capture: true, passive: true });
-  window.addEventListener("resize", refreshBoxes);
-  setInterval(() => { if (on && selected) refreshBoxes(); }, 500);   // the page may move things around (the board does)
-  toggle.addEventListener("click", () => setOn(!on));
-  host.mount(root);
-  restore();
-})();

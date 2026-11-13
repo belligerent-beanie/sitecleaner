@@ -3,6 +3,7 @@
   function exportBlocks() {
     const blocks = [];
     for (const [element, rec] of [...changes.entries(), ...pending.map((item) => [null, item])]) {
+      if (element && !element.isConnected) continue;   // removed from the page: its style edits are moot
       const lines = [];
       for (const prop of ["background-color", "color", "font-size", "font-weight", "line-height", "letter-spacing", "text-align", "border", "border-radius", "box-shadow", "padding", "margin", "width", "height", "display", "flex-direction", "flex-wrap", "justify-content", "align-items", "justify-items", "gap", "opacity"]) {
         const after = rec.after && rec.after[prop];
@@ -22,7 +23,8 @@
    *  It is meant to be pasted into a chat with Claude, who can then make the same changes in the source files. */
   function exportMarkdown() {
     const blocks = exportBlocks();
-    if (!blocks.length) return "";
+    const structure = structureLines();
+    if (!blocks.length && !structure.length) return "";
     const sized = blocks.some((block) => /^  (width|height):/m.test(block));
     return [
       "# UI changes from the designer picker",
@@ -32,6 +34,7 @@
       ...(sized ? ["Width and height are fixed pixel sizes set in this window: when applying them keep the layout working on smaller screens (min-width, percentages or clamp())."] : []),
       "",
       blocks.join("\n\n"),
+      ...(structure.length ? [blocks.length ? "" : null, "## Structure changes (in the order they were made)", ...structure.map((line) => "- " + line)].filter((line) => line !== null) : []),
       "",
     ].join("\n");
   }
@@ -58,7 +61,7 @@
   }
   /** Copy every change to the clipboard (the Alt+Shift+E shortcut and the Copy button); if the browser refuses, download it instead. */
   async function copyChanges() {
-    const count = exportBlocks().length;
+    const count = exportBlocks().length + structureLines().length;
     if (!count) { showToast("No changes to export yet."); return false; }
     const text = exportMarkdown();
     let ok = false;

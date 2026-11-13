@@ -66,5 +66,5 @@
   /** Only an end state that differs from the start is a change: set and set back (or switched and switched back) is not. */
   const hasChange = (item) => Object.entries(item.after || {}).some(([prop, value]) => value !== (item.before || {})[prop])
     || !!(item.text && item.text.after !== item.text.before);
-  const changeCount = () => [...changes.values(), ...pending].filter(hasChange).length;
+  const changeCount = () => [...changes.entries()].filter(([el, rec]) => el.isConnected && hasChange(rec)).length + pending.filter(hasChange).length + ops.length + pendingOps.length;
   function showCount() { if (changesLink) changesLink.textContent = `Changes (${changeCount()})`; }
