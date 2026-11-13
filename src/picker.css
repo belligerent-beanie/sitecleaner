@@ -136,3 +136,8 @@
 .dz-keys-row { display: flex; gap: 8px; align-items: baseline; }
 .dz-keys-row kbd { flex: none; min-width: 74px; padding: 1px 5px; border: 1px solid #55555f; border-radius: 4px; background: #2b2b33; color: #f3f3f6; font: 11px/1.5 ui-monospace, Consolas, monospace; }
 .dz-keys-row span { color: #d8d8e0; font-size: 12px; }
+
+/* The dock is dragged by its header; the box model drawn while the Spacing tool is open */
+.dz-head { cursor: grab; }
+.dz-head button { cursor: pointer; }
+.dz-margin, .dz-padding { background: none !important; outline: none !important; }

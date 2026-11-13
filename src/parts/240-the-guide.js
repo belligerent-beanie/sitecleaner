@@ -127,7 +127,7 @@
     return h("button", {
       type: "button", class: "dz-menu-button" + (tool === name ? " dz-active" : ""), text, disabled: !!blocked,
       title: blocked || undefined, "aria-pressed": tool === name ? "true" : "false",
-      onclick: () => { menuOpen = true; tool = tool === name ? null : name; renderDock(); },
+      onclick: () => { menuOpen = true; tool = tool === name ? null : name; renderDock(); refreshBoxes(); },
     });
   }
   function currentFill(element) {

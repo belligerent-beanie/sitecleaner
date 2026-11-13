@@ -62,7 +62,7 @@ Lets a designer select, restyle, move and measure elements on a web page to try 
 
 ## Release checklist
 
-1. `node test/e2e.mjs` passes (95 checks).
+1. `node test/e2e.mjs` passes (98 checks).
 2. Bump `version` in `package.json`; `node scripts/build.mjs --zip`.
 3. Fill in the name decision and the two URLs above; make the 440 × 280 promo tile.
 4. Upload the zip; paste the fields above; add the screenshots; submit.

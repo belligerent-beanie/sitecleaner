@@ -484,6 +484,12 @@ try {
     await kp.keyboard.press("p");
     eq("P opened the Spacing tool", await tool(), "Spacing");
     eq("the card starts with 12 px of padding all round", await card("padding"), "12px");
+    const frames = await kp.evaluate(() => {
+      const sr = document.querySelector("#design-picker-extension-root").shadowRoot;
+      const m = getComputedStyle(sr.querySelector(".dz-margin")), p2 = getComputedStyle(sr.querySelector(".dz-padding"));
+      return { margin: [m.borderTopWidth, m.borderLeftWidth], padding: [p2.borderTopWidth, p2.borderLeftWidth], shown: !sr.querySelector(".dz-margin").hidden };
+    });
+    eq("the box model is drawn while Spacing is open: margin 16 px above, padding 12 px inside", frames, { margin: ["16px", "0px"], padding: ["12px", "12px"], shown: true });
     await kp.keyboard.press("ArrowUp");
     await kp.keyboard.press("Shift+ArrowRight");
     await kp.keyboard.press("Alt+ArrowLeft");
@@ -512,6 +518,17 @@ try {
     eq("in Size, ▶ widens the element", await kp.evaluate(() => Math.round(document.querySelector(".card").getBoundingClientRect().width)) - width0, 3);
 
     await kp.keyboard.press("Escape"); await kp.keyboard.press("Escape"); await kp.keyboard.press("Escape");
+    const dockBox = await kp.locator(".dz-dock").boundingBox();
+    const headBox = await kp.locator(".dz-dock .dz-head strong").first().boundingBox();
+    await kp.mouse.move(headBox.x + 4, headBox.y + 4);
+    await kp.mouse.down();
+    await kp.mouse.move(headBox.x - 296, headBox.y - 96, { steps: 6 });
+    await kp.mouse.up();
+    const moved = await kp.locator(".dz-dock").boundingBox();
+    check("the dock can be dragged by its header", Math.abs(moved.x - (dockBox.x - 300)) <= 6 && Math.abs(moved.y - (dockBox.y - 100)) <= 6, JSON.stringify({ dockBox, moved }));
+    await kp.mouse.dblclick(headBox.x - 296 + 4, headBox.y - 96 + 4);
+    const back = await kp.locator(".dz-dock").boundingBox();
+    check("and a double-click on the header puts it back in its corner", Math.abs(back.x - dockBox.x) <= 6 && Math.abs(back.y - dockBox.y) <= 6, JSON.stringify({ dockBox, back }));
     await kp.keyboard.press("?");
     const keys = await kp.locator(".dz-keys").innerText();
     check("? lists the shortcuts, grouped, including the ones just used", /Select/.test(keys) && /Spacing/.test(keys) && /Ctrl D/.test(keys) && /Alt Shift S/.test(keys), keys.slice(0, 200));

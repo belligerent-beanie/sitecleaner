@@ -14,6 +14,7 @@
     menuOpen = true;
     tool = tool === name ? null : name;
     renderDock();
+    refreshBoxes();   // a tool may draw its own overlay
     return true;
   });
 
