@@ -23,7 +23,7 @@
     const engine = readable();
     if (!engine) { showToast("This needs the extension's reading settings, which did not load."); return; }
     accessOpts = { ...engine.defaults, ...(keptAccess() || engine.current() || {}) };
-    showAccess = true; showChanges = false; showFind = false; showPreview = false; showKeys = false; tourStep = null;
+    showAccess = true; showChanges = false; showFind = false; showPreview = false; showKeys = false; showClasses = false; tourStep = null;
     renderDock();
   }
   function previewAccess() {

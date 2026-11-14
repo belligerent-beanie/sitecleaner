@@ -31,7 +31,7 @@ const EDITIONS = {
   designer: { name: "SiteCleaner", dir: "dist", zip: "sitecleaner", features: { keep: false },   // the designer edition keeps edits its own way (per page, replayed by the picker)
     description: "Select, restyle, move and measure anything on any page, check contrast, undo it all, and hand the changes to a developer or Claude." },
   consumer: { name: "SiteCleaner Personal", dir: "dist-consumer", zip: "sitecleaner-personal",   // the name is a placeholder: check it before publishing
-    features: { find: false, inspector: false, compare: false, preview: false, measure: false, export: false,
+    features: { find: false, classes: false, inspector: false, compare: false, preview: false, measure: false, export: false,
       size: false, layout: false, position: false, move: false, image: false, states: false, structure: false,   // tools whose changes cannot be kept (or are for designers)
       plain: true, watermark: true, access: true },   // keep is on; watermark: pictures say they are of an edited page; plain: everyday words, a short tutorial, a Delete button
     permissions: ["contextMenus"],   // right-click the toolbar icon to switch a site's changes off or on

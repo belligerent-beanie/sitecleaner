@@ -33,7 +33,7 @@ async function run(edition) {
     check(`${edition}: the first-run tutorial has ${pages} pages`, tourTitle === `Tutorial 1 / ${pages}`, tourTitle);
     await page.keyboard.press("Escape");   // close the tutorial
     const dock = async () => (await page.locator(".dz-dock").innerText());
-    const links = { find: "Find", inspector: "Inspect", compare: "Compare", preview: "Preview" };
+    const links = { find: "Find", classes: "Classes", inspector: "Inspect", compare: "Compare", preview: "Preview" };
     const head = await page.locator(".dz-head").innerText();
     const wanted = edition === "designer";
     for (const [feature, text] of Object.entries(links)) {

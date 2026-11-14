@@ -24,10 +24,10 @@ const PAGE = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>
 <body><main class="css-1x2y3z"><h1 class="title">Hello there</h1><p class="lede">A paragraph of text to restyle.</p>
 <button id="go" class="btn-a1b2c3d">Go</button><div class="card"><span class="muted">Muted words</span></div>
 <ul class="items"><li>One</li><li>Two</li><li>Three</li></ul>
-<img id="pic" class="hero-img" alt="Logo" src="/pic.png" srcset="/pic.png 1x, /pic2.png 2x"><div class="banner">Banner</div></main><a class="cta" href="#cta">Visit</a><section class="tiles"><a class="tile" href="#t1">One</a><a class="tile" href="#t2">Two</a><a class="tile" href="#t3">Three</a><a class="tile" href="#t4">Four</a><a class="tile feature" href="#t5">Five</a></section><dialog id="modal"><p class="in-modal">A modal dialog</p><button id="shut">Close</button></dialog><script src="/fixture.js"></script></body></html>`;
+<img id="pic" class="hero-img" alt="Logo" src="/pic.png" srcset="/pic.png 1x, /pic2.png 2x"><div class="banner">Banner</div></main><a class="cta" href="#cta">Visit</a><section class="tiles"><a class="tile" href="#t1">One</a><a class="tile" href="#t2">Two</a><a class="tile" href="#t3">Three</a><a class="tile" href="#t4">Four</a><a class="tile feature" href="#t5">Five</a><span class="chip">Chip</span></section><dialog id="modal"><p class="in-modal">A modal dialog</p><button id="shut">Close</button></dialog><script src="/fixture.js"></script></body></html>`;
 const CSS = `:root { --brand: #3366cc; --ink: #222222; } body { margin: 0; font: 16px system-ui; color: var(--ink); background: #ffffff; }
 main { padding: 24px; } .btn-a1b2c3d { background: var(--brand); color: #ffffff; border: 0; padding: 8px 16px; } .card { background: #eeeeee; padding: 12px; margin-top: 16px; } .cta { display: inline-block; color: #0000ee; background: #ffffff; padding: 4px 8px; transition: background-color 0.4s; } .cta:hover { background: #ffee00; }
-.muted { color: #999999; } .tile { display: inline-block; color: #0000ee; background: #ffffff; padding: 4px 8px; margin: 0 4px 4px 0; } .hero-img { display: block; width: 120px; height: 60px; } .banner { height: 50px; background: url(/pic.png) center / cover; }`;
+.muted { color: #999999; } @layer ui { .chip { background: #ffe0e0; color: #cc0000; } } .tile { display: inline-block; color: #0000ee; background: #ffffff; padding: 4px 8px; margin: 0 4px 4px 0; } .hero-img { display: block; width: 120px; height: 60px; } .banner { height: 50px; background: url(/pic.png) center / cover; }`;
 const server = http.createServer((req, res) => {
   if (req.url.startsWith("/pic")) {
     res.setHeader("Content-Type", "image/png");
@@ -905,6 +905,54 @@ try {
     await xp.close();
   }
 
+  // ---- the classes panel: the page's classes with how many elements use each, where they are defined and their rules; a click selects every element
+  {
+    const cp = await context.newPage();
+    cp.on("pageerror", (error) => console.log("      [page error]", error.message));
+    await cp.goto(url + "classes");
+    await cp.bringToFront();
+    await worker.evaluate(async () => { const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true }); await toggle(tab); });
+    await cp.locator(".dz-toggle").waitFor({ timeout: 8000 });
+    await cp.keyboard.press("Escape");
+    await cp.locator(".dz-dock .dz-head button:text-is('Classes')").click();
+    const tileRow = cp.locator(".dz-class", { has: cp.locator(".dz-class-name:text-is('.tile')") });
+    eq("the panel lists the page's classes, with how many elements use each", await tileRow.locator(".dz-num").innerText(), "×5");
+    eq("and which style sheet defines it", await tileRow.locator(".dz-class-file").innerText(), "/fixture.css");
+    const names = await cp.locator(".dz-class-name").allInnerTexts();
+    check("classes with generated names are left out, the page's own are there", names.includes(".card") && names.includes(".tile") && !names.some((n) => /a1b2c3d/.test(n)), names.join(" "));
+    check("the most used come first", names[0] === ".tile", names.join(" "));
+    await tileRow.locator("button:text-is('Rules')").click();
+    const rule = await tileRow.locator(".dz-class-rule").innerText();
+    check("Rules shows the rule and its file", rule.includes("/fixture.css") && /\.tile \{[^}]*background/.test(rule), rule);
+    await cp.locator(".dz-class-filter").fill("til");
+    eq("the filter narrows the list", await cp.locator(".dz-class-name").allInnerTexts(), [".tile", ".tiles"]);
+    const tilesRow = cp.locator(".dz-class", { has: cp.locator(".dz-class-name:text-is('.tiles')") });
+    check("a class that elements have but no readable rule defines is listed, and says so", /no rule I can read/.test(await tilesRow.locator(".dz-class-file").innerText()) && (await tilesRow.locator("button:text-is('Rules')").count()) === 0, await tilesRow.innerText());
+    await cp.locator(".dz-class-filter").fill("chip");
+    const chipRow = cp.locator(".dz-class", { has: cp.locator(".dz-class-name:text-is('.chip')") });
+    check("a rule inside @layer is read too", (await chipRow.locator(".dz-class-file").innerText()) === "/fixture.css", await chipRow.innerText());
+    await cp.locator(".dz-class-filter").fill("til");
+    await cp.locator(".dz-class-name:text-is('.tile')").click();
+    eq("clicking a class selects every element that has it", await cp.locator(".dz-head strong").first().innerText(), "5 elements");
+    await cp.keyboard.press("Escape");
+    eq("Esc closes the list and keeps the selection", [await cp.locator(".dz-classes").count(), await cp.locator(".dz-head strong").first().innerText()], [0, "5 elements"]);
+    // and the export's from: finds the rule inside @layer
+    await cp.keyboard.press("Escape"); await cp.keyboard.press("Escape");
+    await cp.locator(".dz-dock .dz-head button:text-is('Classes')").click();
+    await cp.locator(".dz-class-filter").fill("chip");
+    await cp.locator(".dz-class-name:text-is('.chip')").click();
+    await cp.keyboard.press("Escape");
+    await cp.keyboard.press("Enter");
+    await cp.locator(".dz-dock button:text-is('Fill')").click();
+    await cp.locator(".dz-chip[title*='--ink']").click();
+    await cp.locator(".dz-dock .dz-head button:text-matches('Changes')").click();
+    await cp.locator(".dz-dock button:text-is('compact')").click();
+    const layered = await cp.locator(".dz-preview").innerText();
+    check("the compact export's from: names a rule that sits inside @layer", /^ {2}from: \/fixture\.css \.chip$/m.test(layered), layered);
+    await cp.locator(".dz-dock button:text-is('Reset all')").click();
+    await cp.close();
+  }
+
   // ---- the tutorial: shown once per version, a button at any time, nine pages, page numbers to jump to, and buttons that open what a page is about
   {
     const tp = await context.newPage();
@@ -926,6 +974,8 @@ try {
     eq("the Tutorial button opens it at any point", await header(), "Tutorial 1 / 9");
     await tp.locator(".dz-tour button:text-is('Next')").click();
     eq("Next turns the page", await header(), "Tutorial 2 / 9");
+    const tops = await tp.locator(".dz-step").evaluateAll((buttons) => buttons.map((b) => Math.round(b.getBoundingClientRect().top)));
+    check("the nine page numbers sit in one row", tops.length === 9 && new Set(tops).size === 1, tops.join(" "));
     await tp.locator(".dz-step:text-is('7')").click();
     eq("the page numbers jump to a page", [await header(), await tp.locator(".dz-tour-title").innerText(), await tp.locator(".dz-step.dz-active").getAttribute("aria-current")], ["Tutorial 7 / 9", "Hand it over", "step"]);
     await tp.keyboard.press("ArrowRight");
@@ -937,6 +987,34 @@ try {
     await tp.keyboard.press("Escape");
     eq("Esc closes it", await tp.locator(".dz-tour").count(), 0);
     await tp.close();
+  }
+
+  // ---- a style sheet from another origin cannot be read; the classes its elements have are still listed, and can still be selected
+  {
+    const cssServer = http.createServer((req, res) => { res.setHeader("Content-Type", "text/css"); res.end(".remote { color: #00aa00; } .one { margin: 0; }"); });
+    await new Promise((resolve) => cssServer.listen(0, "127.0.0.1", resolve));
+    const pageServer = http.createServer((req, res) => {
+      res.setHeader("Content-Type", "text/html");
+      res.end(`<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Remote</title><link rel="stylesheet" href="http://127.0.0.1:${cssServer.address().port}/x.css"></head><body><p class="remote one">A</p><p class="remote two">B</p></body></html>`);
+    });
+    await new Promise((resolve) => pageServer.listen(0, "127.0.0.1", resolve));
+    const rp = await context.newPage();
+    rp.on("pageerror", (error) => console.log("      [page error]", error.message));
+    await rp.goto(`http://127.0.0.1:${pageServer.address().port}/`);
+    await rp.bringToFront();
+    await rp.waitForLoadState("load");
+    eq("the style sheet really is one the page's own scripts cannot read", await rp.evaluate(() => { try { void document.styleSheets[0].cssRules.length; return "readable"; } catch (_) { return "unreadable"; } }), "unreadable");
+    await worker.evaluate(async () => { const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true }); await toggle(tab); });
+    await rp.locator(".dz-toggle").waitFor({ timeout: 8000 });
+    await rp.keyboard.press("Escape");
+    await rp.locator(".dz-dock .dz-head button:text-is('Classes')").click();
+    const remoteRow = rp.locator(".dz-class", { has: rp.locator(".dz-class-name:text-is('.remote')") });
+    eq("its classes are listed with how many elements have them", [await remoteRow.locator(".dz-num").innerText(), await rp.locator(".dz-class-name").count()], ["×2", 3]);
+    check("each says no rule can be read, and the summary counts them", /no rule I can read/.test(await remoteRow.locator(".dz-class-file").innerText()) && /no rule can be read/.test(await rp.locator(".dz-classes .dz-hint").first().innerText()), await rp.locator(".dz-classes").innerText());
+    await rp.locator(".dz-class-name:text-is('.remote')").click();
+    eq("and a click still selects them", await rp.locator(".dz-head strong").first().innerText(), "2 elements");
+    await rp.close();
+    cssServer.close(); pageServer.close();
   }
 
   // ---- the options page shows the shortcut the browser actually assigned, and how to change it

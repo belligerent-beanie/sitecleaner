@@ -8,6 +8,7 @@
     showPreview = false;
     showFind = false;
     showKeys = false;
+    showClasses = false;
     renderDock();
     refreshBoxes();
   }
@@ -49,7 +50,7 @@
     for (const hook of keyHooks) if (hook(event)) return;
     if (event.key === "/" && has("find") && !event.ctrlKey && !event.metaKey && !event.altKey && !isEditingField(eventTarget(event))) {   // find
       event.preventDefault();
-      showFind = true; showChanges = false; showAccess = false; showPreview = false; showKeys = false;
+      showFind = true; showChanges = false; showAccess = false; showPreview = false; showKeys = false; showClasses = false;
       renderDock();
       return;
     }
@@ -79,6 +80,7 @@
       if (repicking) { repicking = null; showToast("Cancelled."); }
       else if (showAccess) showAccess = false;
       else if (showKeys) showKeys = false;
+      else if (showClasses) showClasses = false;
       else if (showFind) showFind = false;
       else if (showPreview) showPreview = false;
       else if (showChanges) showChanges = false;
@@ -113,7 +115,7 @@
     window[method]("mousemove", onMove, true);
     clearInterval(pollTimer);   // the page may move things around (the board does): poll for it only while the picker is on
     pollTimer = on ? setInterval(() => { if (selected) refreshBoxes(); }, 500) : null;
-    if (!on) { repicking = null; keptIntro = false; for (const hook of offHooks) hook(); inspecting = false; renderInspect(null); hovered = null; setSelection([]); climbed = []; menuOpen = false; tool = null; showChanges = false; showAccess = false; tourStep = null; }
+    if (!on) { repicking = null; keptIntro = false; for (const hook of offHooks) hook(); inspecting = false; renderInspect(null); hovered = null; setSelection([]); climbed = []; menuOpen = false; tool = null; showChanges = false; showClasses = false; showAccess = false; tourStep = null; }
     else {
       if (!host.tourSeen(TUTORIAL_VERSION)) tourStep = 0;   // the first time on this browser, and once after an update that changes the tutorial
     }

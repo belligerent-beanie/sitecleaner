@@ -9,7 +9,7 @@ options page, and `test/keep.mjs`. **Built as a first version, for you to react 
 | | Designer (today) | Consumer (new) |
 |---|---|---|
 | Purpose | Restyle a page, then hand the changes to a developer or an AI | Make a site look the way *I* like, and keep it |
-| Tools | All of them, including find, inspect, compare, preview, measuring, export | The editing tools and undo; the handoff tools are left out (`features` in `scripts/build.mjs`) |
+| Tools | All of them, including find, the classes panel, inspect, compare, preview, measuring, export | The editing tools and undo; the handoff tools are left out (`features` in `scripts/build.mjs`) |
 | Edits kept | Per page, replayed by the picker | Per site, applied by a small loader (below) |
 | Permissions | `activeTab`; all sites optional | `activeTab`; one site at a time, asked when the user keeps changes there |
 | Name | SiteCleaner | **placeholder** ("SiteCleaner Personal"): check the Web Store before using any name |

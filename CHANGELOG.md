@@ -9,16 +9,23 @@ Every released version, and everything that is waiting for one. Newest first. Da
 - **Changes in waiting** are listed under "Unreleased" below, each with the pull request that holds it. When one merges, its entry moves under the version that ships it. Pull requests that change behaviour add their entry here.
 - **The tutorial** (`TUTORIAL_VERSION` in `src/parts/240-the-guide.js`) has its own number: people who have seen an older one see the new one once.
 
-## Unreleased: waiting for review
+## Unreleased
 
-None of this is in a release. Neither pull request bumps the version, so the numbers below are suggestions.
+Neither of these is in a release yet, and neither bumps the version, so the numbers are suggestions. A release is made on request (`bun run share`).
 
-| Pull request | Branch | What | Tests | Suggested version |
-|---|---|---|---|---|
-| [#7](https://github.com/belligerent-beanie/sitecleaner/pull/7) | `classes-panel` | The classes panel (first of the three "workspace" pieces) | 188 of 188, audit clean | 0.3.2 |
-| [#9](https://github.com/belligerent-beanie/sitecleaner/pull/9) | `editions-and-performance` | 14 patches: performance, a minified build, the consumer edition | 172 of 172, plus editions, keep and access checks, and two audits clean | 0.4.0 (a second edition and a changed build are more than a patch) |
+| Pull request | Branch | What | State | Tests | Suggested version |
+|---|---|---|---|---|---|
+| [#9](https://github.com/belligerent-beanie/sitecleaner/pull/9) | `editions-and-performance` | 14 patches: performance, a minified build, the consumer edition | **merged into `main`** (14 Nov 2026), not released | 172 of 172, plus editions, keep and access checks, and two audits clean | 0.4.0 (a second edition and a changed build are more than a patch) |
+| [#7](https://github.com/belligerent-beanie/sitecleaner/pull/7) | `classes-panel` | The classes panel, in the designer edition only | **this change**: takes `main` (with #9) and merges after CI | 188 of 188, plus editions, keep and access checks, and two audits clean | goes with #9 in the next release |
 
-**They conflict.** Merging one into the other fails in `scripts/a11y.mjs`, `src/parts/240-the-guide.js`, `src/parts/280-picker-mode.js` and `src/parts/360-shortcuts-and-nudging.js`. Whichever merges first, the other needs `main` merged into it and the four files resolved. Nothing has been resolved in advance.
+The two touched the same code (the dock header, key handling, shortcuts, the accessibility script). The conflicts were resolved when #7 took `main` after #9 merged: the classes link is now one of the designer edition's feature switches (`has("classes")`, off in the consumer edition), and every panel closes the others, including the consumer edition's "Easier to read" and the first-Keep note.
+
+### Performance, a minified build and the consumer edition (#9, merged)
+
+- **Performance:** outlines redraw once per frame and only while the picker is on; saving no longer recomputes every edited element's selector on every edit (the patch message gives the old cost as about 50 s for 300 edited elements on a 20,000-element page; the names are now worked out again only after the page has changed); `bun run profile` times the heavy operations.
+- **Minified build:** the picker goes from 218 KB to 111 KB (61 KB to 37 KB gzipped) with esbuild, a new dev dependency; `--no-minify` keeps readable files.
+- **Two editions** from the same files. The designer edition is the default build, as before. `--edition consumer` builds a separate extension (name `SiteCleaner Personal` is a placeholder) that keeps changes per site as CSS rules applied by a small loader before the page paints, asks permission one site at a time, keeps deleted elements and retyped text, shows what is kept with a switch and a Remove for each rule, flags stale rules with a Re-pick, watermarks screenshots as edited, and has an **Easier to read** preset. It asks for one more permission (`contextMenus`) than the designer edition. Design: `docs/EDITIONS.md`.
+- Open before this can ship: a real name, a Web Store listing and privacy policy for the second extension, and the consumer edition's open questions in `docs/EDITIONS.md`.
 
 ### Classes panel (#7)
 
@@ -26,14 +33,7 @@ None of this is in a release. Neither pull request bumps the version, so the num
 - Reads inside `@media`, `@supports`, `@layer`, `@container` and nested rules. Classes the elements have but whose rules cannot be read (a style sheet from another site, or a script) are listed too and say so. Measured on real sites: Wikipedia 215 classes in use, GitHub 371, Tailwind's site 702, Bootstrap's site 151; counts matched an independent count on seven sites.
 - The compact export's `from:` lookup reads inside `@layer` as well.
 - The tutorial's nine page numbers share one row (fixes a cosmetic fault in 0.3.1: the "9" sat alone on a second line).
-- Not yet in the tutorial: the panel is not described in it. Update `TUTORIAL_VERSION` and the pages when this ships.
-
-### Performance, a minified build and the consumer edition (#9)
-
-- **Performance:** outlines redraw once per frame and only while the picker is on; saving no longer recomputes every edited element's selector on every edit (the patch message gives the old cost as about 50 s for 300 edited elements on a 20,000-element page; the names are now worked out again only after the page has changed); `bun run profile` times the heavy operations.
-- **Minified build:** the picker goes from 218 KB to 111 KB (61 KB to 37 KB gzipped) with esbuild, a new dev dependency; `--no-minify` keeps readable files.
-- **Two editions** from the same files. The designer edition is the default build, as before. `--edition consumer` builds a separate extension (name `SiteCleaner Personal` is a placeholder) that keeps changes per site as CSS rules applied by a small loader before the page paints, asks permission one site at a time, keeps deleted elements and retyped text, shows what is kept with a switch and a Remove for each rule, flags stale rules with a Re-pick, watermarks screenshots as edited, and has an **Easier to read** preset. It asks for one more permission (`contextMenus`) than the designer edition. Design: `docs/EDITIONS.md`.
-- Open before this can ship: a real name, a Web Store listing and privacy policy for the second extension, and the consumer edition's open questions in `docs/EDITIONS.md`.
+- Designer edition only. Not yet in the tutorial: the panel is not described there, and the tutorial version is not bumped for one sentence; add it with the next tutorial change.
 
 ## 0.3.1 (2026-11-14)
 
