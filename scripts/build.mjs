@@ -31,7 +31,9 @@ const EDITIONS = {
   designer: { name: "SiteCleaner", dir: "dist", zip: "sitecleaner", features: { keep: false },   // the designer edition keeps edits its own way (per page, replayed by the picker)
     description: "Select, restyle, move and measure anything on any page, check contrast, undo it all, and hand the changes to a developer or Claude." },
   consumer: { name: "SiteCleaner Personal", dir: "dist-consumer", zip: "sitecleaner-personal",   // the name is a placeholder: check it before publishing
-    features: { find: false, inspector: false, compare: false, preview: false, measure: false, export: false },   // keep is on
+    features: { find: false, inspector: false, compare: false, preview: false, measure: false, export: false,
+      size: false, layout: false, position: false, move: false, image: false, states: false, structure: false,   // tools whose changes cannot be kept (or are for designers)
+      plain: true },   // keep is on; plain: everyday words, a short tutorial, a Delete button
     description: "Make any website look the way you like: change colours and text, undo anything, and keep your changes." },
 };
 const editionName = args.includes("--edition") ? args[args.indexOf("--edition") + 1] : "designer";
@@ -50,11 +52,13 @@ const css = shrink(fs.readFileSync(path.join(root, "src", "picker.css"), "utf8")
 fs.writeFileSync(path.join(out, "designer-css.js"), `window.__designerCss = ${JSON.stringify(css)};\n`);
 
 // ---- the extension's own files
-for (const file of ["restore.js", "apply.js", "keep.html", "keep.js", "background.js", "options.html", "options.js"]) fs.copyFileSync(path.join(ext, file), path.join(out, file));
-const hostSource = fs.readFileSync(path.join(ext, "host.js"), "utf8");
+for (const file of ["restore.js", "apply.js", "keep.html", "keep.js", "background.js", "options.html"]) fs.copyFileSync(path.join(ext, file), path.join(out, file));
 const marked = /\/\*edition\*\/[\s\S]*?\/\*end\*\//;
-if (!marked.test(hostSource)) throw new Error("extension/host.js has lost its /*edition*/ ... /*end*/ marker");
-fs.writeFileSync(path.join(out, "host.js"), hostSource.replace(marked, () => JSON.stringify({ name: editionName, features: edition.features })));
+for (const file of ["host.js", "options.js"]) {   // the files that need to know which edition they are in
+  const source = fs.readFileSync(path.join(ext, file), "utf8");
+  if (!marked.test(source)) throw new Error(`extension/${file} has lost its /*edition*/ ... /*end*/ marker`);
+  fs.writeFileSync(path.join(out, file), source.replace(marked, () => JSON.stringify({ name: editionName, features: edition.features })));
+}
 const manifest = JSON.parse(fs.readFileSync(path.join(ext, "manifest.template.json"), "utf8").replace("__VERSION__", version));
 manifest.name = edition.name;
 manifest.description = edition.description;

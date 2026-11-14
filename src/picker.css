@@ -168,3 +168,5 @@
 .dz-tour-steps { gap: 4px; }
 .dz-step { min-width: 28px; padding: 3px 0 !important; text-align: center; }
 .dz-tutorial { margin: 0 0 0 auto !important; padding: 3px 10px !important; }
+
+.dz-keep { font-weight: 700 !important; color: var(--dz-accent-text) !important; }

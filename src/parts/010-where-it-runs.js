@@ -31,3 +31,7 @@
   }, pre || {});
   /** Is this feature part of this edition of the picker? Everything is, unless the host switched it off (see the editions in scripts/build.mjs). */
   const has = (name) => !host.features || host.features[name] !== false;
+  /** The plainer interface of the consumer edition: everyday words for the tools, a short tutorial, a Delete button. Off unless the edition switches it on. */
+  const plain = () => !!(host.features && host.features.plain);
+  const PLAIN_LABELS = { fill: "Background", border: "Border", shadow: "Shadow", radius: "Corners", tone: "Colour mood", text: "Edit words", font: "Text style", spacing: "Spacing", changes: "My changes" };
+  const say = (key, fallback) => (plain() && PLAIN_LABELS[key]) || fallback;

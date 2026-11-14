@@ -46,7 +46,7 @@ try {
   await page.locator(".tile").nth(1).click({ modifiers: ["Shift"] });
   await page.locator(".tile").nth(2).click({ modifiers: ["Shift"] });
   await page.keyboard.press("Enter");
-  await page.locator(".dz-dock button:text-is('Fill')").click();
+  await page.locator(".dz-dock button:text-is('Background')").click();
   await page.locator(".dz-hex").fill("#cc3333");
   check("the Keep button is there", (await page.locator(".dz-head button:text-is('Keep')").count()) === 1);
   await page.locator(".dz-head button:text-is('Keep')").click();
@@ -56,6 +56,20 @@ try {
   check("three tiles changed alike are one rule on their shared class", saved && saved.rules[0].b === "div.tile", saved && saved.rules[0].b);
   check("the rule beats the site's own CSS (important)", saved && /background-color:(#cc3333|rgb\(204, 51, 51\)) !important/.test(saved.rules[0].d), saved && saved.rules[0].d);
   check("the loader is registered for this site only", (await registered()) === 1);
+
+  // ---- the options page lists the site, what is kept, and has a switch
+  const options = await context.newPage();
+  await options.goto(`chrome-extension://${new URL(worker.url()).host}/options.html`);
+  check("the options page of the consumer edition shows the site as a card", (await options.locator(".site").count()) === 1 && (await options.locator(".site").innerText()).includes(new URL(base).host));
+  check("and hides what is for designers", !(await options.locator("#allow").isVisible()));
+  await options.locator(".site summary").click();
+  check("it says what is kept, in words", /background-color (#cc3333|rgb\(204, 51, 51\))/.test(await options.locator(".site ul.rules").innerText()), await options.locator(".site ul.rules").innerText());
+  await options.locator(".site input[type=checkbox]").uncheck();
+  for (let i = 0; i < 20 && (await registered()) === 1; i++) await options.waitForTimeout(150);
+  check("the switch there turns the site off", (await registered()) === 0 && (await entry()).enabled === false);
+  await options.locator(".site input[type=checkbox]").check();
+  for (let i = 0; i < 20 && (await registered()) === 0; i++) await options.waitForTimeout(150);
+  check("and back on", (await registered()) === 1);
 
   // ---- a new page of the same site: the colour is there at once, and the picker is not
   const fresh = await context.newPage();
@@ -133,6 +147,9 @@ try {
   check("and on again", (await registered()) === 1);
   while ((await page.locator(".dz-kept .dz-change").count()) > 0) { await page.locator(".dz-kept .dz-change button", { hasText: "Remove" }).first().click(); await page.waitForTimeout(300); }
   check("removing the last rule forgets the site and unregisters the loader", (await entry()) === null && (await registered()) === 0);
+
+  await options.reload();
+  check("with nothing kept, the options page explains how to start", await options.locator("#empty").isVisible());
 
   // ---- what the worker will accept
   const rejected = await worker.evaluate(async () => (validRules([{ s: "a", b: "a", d: "color:red;}body{display:none" }]) ? "accepted" : "rejected"));

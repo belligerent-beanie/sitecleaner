@@ -2,8 +2,7 @@
 
 Status: **built** are the edition switch (`--edition`, the feature list, `test/editions.mjs`) and the **keep feature** of the consumer edition: the site sheet (`src/parts/128-site-rules.js`),
 the loader (`extension/apply.js`), the per-site permission window (`extension/keep.html`), the worker side (`extension/background.js`, "kept sites"), a plain list of kept sites in the
-options page, and `test/keep.mjs`. **Not built, and waiting for the design decisions**: the consumer interface (a short dock, the saved-sites page as a designed page, the tutorial) and
-everything under "Open questions". The sections below describe the design; "What was built" says where it differs.
+options page, and `test/keep.mjs`. **Built as a first version, for you to react to**: the consumer interface (see below). **Not built**: everything under "Open questions". The sections below describe the design; "What was built" says where it differs.
 
 ## The two editions
 
@@ -57,12 +56,16 @@ The picker is injected only when the user opens it to edit, as now.
 
 If a saved selector matches nothing (the site changed), the loader marks the site "needs attention": the toolbar badge shows it, the saved-sites page lists the rules that no longer match, and the dock offers to re-pick them. It never fails silently. Selectors made from generated class names are not saved as the primary key; where a rule can only be named by position, it is marked fragile when it is saved.
 
-## The consumer interface (to design with Arsh)
+## The consumer interface
 
-- **Dock:** a short tool list (colours, text, font size, spacing, corners, hide), larger buttons, plain words. Undo and Reset stay.
-- **Saved sites page** (options): each site with an on/off switch, the number of rules, "needs attention", and Reset and Forget.
-- **First run:** a three-page tutorial in place of the nine-page designer one.
-- **Toolbar badge:** on/off for the current site without opening anything.
+First version, built from the choices below. **These are my choices, made so there was something to react to; change any of them.**
+
+- **Everyday words** (`plain` in the edition's features; `say()` in `src/parts/010`): Fill is **Background**, Radius **Corners**, Tone **Colour mood**, Text **Edit words**, Font **Text style**, Changes **My changes**, and the side tab says "Edit" where the designer edition says "Design".
+- **Fewer tools:** Background, Border, Shadow, Corners, Colour mood, Edit words, Text style, Spacing, Copy/Paste look, a **Delete** button and Screenshot. Left out: Size, Layout, Position, Move, Image (they are for rebuilding a page, and moves and picture swaps cannot be kept), the hover/focus/active switch, and duplicate, group and copy/paste of elements. The keys of tools that are left out do nothing, and the Keys list shows only what exists.
+- **Three-page tutorial** (Welcome, Change things, Keep it) instead of nine.
+- **Keep** is the one bold action in the dock; **My changes** lists this visit's changes and, under "Kept on this site", what is kept, with a switch and a Remove for each rule. No export controls.
+- **My sites** (the options page): a card per site with a switch, the number of changes, Forget, a "What is kept" list with Remove for each change, a warning when rules match nothing, and an empty state that says how to start.
+- **Not done:** a toolbar on/off for the current site without opening the picker; offering to re-pick stale rules in the dock; a first-run prompt after the first Keep; app-like touches for phones (the dock is the designer's).
 
 ## What was built, and where it differs from the design
 
@@ -84,7 +87,7 @@ If a saved selector matches nothing (the site changed), the loader marks the sit
 1. **Edition switch** (done): build option, feature list, test.
 2. **Site sheet** (done, in a first form): rules from the session's edits. Still to do: removing single rules, and using it in the designer edition for "apply to every `.tile`".
 3. **Loader and per-site permission** (done): `apply.js`, `keep.html`, registration, the badge.
-4. **Consumer interface:** the saved-sites page, short dock, tutorial. Largest; needs design decisions first.
+4. **Consumer interface** (first version done): the saved-sites page, short dock, tutorial, with the choices listed above.
 5. **Store work:** a name, a privacy statement for per-site access, listing text and screenshots for the second extension.
 
 ## Open questions

@@ -24,12 +24,14 @@ async function run(edition) {
   const context = await chromium.launchPersistentContext(profile, { headless: false, viewport: null, args: [`--disable-extensions-except=${dist}`, `--load-extension=${dist}`, "--window-size=1280,900"] });
   try {
     const worker = context.serviceWorkers()[0] || (await context.waitForEvent("serviceworker", { timeout: 15000 }));
-    await worker.evaluate(() => chrome.storage.local.set({ "dz-tour": "any", "dz-prefs": {} }));
     const page = await context.newPage();
     await page.goto(url);
     await worker.evaluate(async () => { const [tab] = await chrome.tabs.query({ url: "http://127.0.0.1/*" }); await toggle(tab); });
     await page.locator(".dz-toggle.dz-on").waitFor({ timeout: 8000 });
-    await page.keyboard.press("Escape");   // close the tutorial if it opened
+    const tourTitle = await page.locator(".dz-tour .dz-head strong").innerText();
+    const pages = edition === "designer" ? 9 : 3;
+    check(`${edition}: the first-run tutorial has ${pages} pages`, tourTitle === `Tutorial 1 / ${pages}`, tourTitle);
+    await page.keyboard.press("Escape");   // close the tutorial
     const dock = async () => (await page.locator(".dz-dock").innerText());
     const links = { find: "Find", inspector: "Inspect", compare: "Compare", preview: "Preview" };
     const head = await page.locator(".dz-head").innerText();
@@ -37,7 +39,7 @@ async function run(edition) {
     for (const [feature, text] of Object.entries(links)) {
       check(`${edition}: the ${text} link is ${wanted ? "there" : "left out"}`, new RegExp(`\\b${text}\\b`).test(head) === wanted, head.replace(/\n/g, " "));
     }
-    check(`${edition}: undo, Changes and Keys are always there`, /Changes/.test(head) && /Keys/.test(head) && /Undo/i.test(head), head.replace(/\n/g, " "));
+    check(`${edition}: undo, Changes and Keys are always there`, /changes/i.test(head) && /Keys/.test(head) && /Undo/i.test(head), head.replace(/\n/g, " "));
     check(`${edition}: the Keep link is ${wanted ? "left out" : "there"}`, /\bKeep\b/.test(head) === !wanted, head.replace(/\n/g, " "));
     await page.keyboard.press("/");
     check(`${edition}: the / key ${wanted ? "opens" : "does not open"} Find`, (await page.locator(".dz-find").count()) === (wanted ? 1 : 0));
@@ -48,7 +50,22 @@ async function run(edition) {
     check(`${edition}: the shortcut list always has undo`, /Ctrl Z/.test(keys));
     await page.keyboard.press("Escape");
     await page.locator("#h").click();
-    check(`${edition}: an element can be selected and edited either way`, /Fill/.test(await page.locator(".dz-dock").innerText()) || (await page.keyboard.press("Enter"), /Fill/.test(await page.locator(".dz-dock").innerText())));
+    await page.keyboard.press("Enter");
+    const tools = await page.locator(".dz-dock .dz-tools").innerText();
+    const has = (word) => new RegExp(`(^|\\n)${word}(\\n|$)`).test(tools);
+    for (const word of wanted ? ["Fill", "Font", "Size", "Layout", "Position", "Move", "Image"] : ["Background", "Text style", "Corners", "Edit words", "Spacing", "Delete"]) check(`${edition}: the ${word} tool is there`, has(word), tools.replace(/\n/g, " | "));
+    if (!wanted) for (const word of ["Fill", "Size", "Layout", "Position", "Move", "Image", "hover", "Hover"]) check(`${edition}: ${word} is left out`, !has(word), tools.replace(/\n/g, " | "));
+    if (!wanted) {
+      await page.keyboard.press("s");   // the Size tool's key does nothing here
+      check("consumer: the key of a tool that is left out does nothing", !/Width|Height/.test(await page.locator(".dz-dock").innerText()));
+      await page.locator(".dz-dock .dz-tools button:text-is('Delete')").click();
+      check("consumer: the Delete button takes the element off the page", (await page.locator("#h").count()) === 0);
+      await page.keyboard.press("Control+z");
+      check("consumer: and Undo brings it back", (await page.locator("#h").count()) === 1);
+      await page.locator(".dz-head button", { hasText: "My changes" }).click();
+      const panel = await page.locator(".dz-dock").innerText();
+      check("consumer: the changes panel has no export controls", !/Copy|Download|Export|Colours in the export/.test(panel), panel.replace(/\n/g, " | ").slice(0, 200));
+    }
     check(`${edition}: the manifest is named for the edition`, manifest.name === (wanted ? "SiteCleaner" : "SiteCleaner Personal"), manifest.name);
   } finally { await context.close(); }
 }
