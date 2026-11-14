@@ -1,11 +1,13 @@
 # Chrome Web Store listing (draft)
 
 Everything the developer dashboard asks for, ready to paste. What remains is for a person: a developer account (a one-time fee), the upload, and the
-review. Build the file to upload with `node scripts/build.mjs --zip` (it writes `releases/design-picker-<version>.zip`).
+review. Build the file to upload with `node scripts/build.mjs --zip` (it writes `releases/sitecleaner-<version>.zip`).
 
 **Decisions before publishing**
-- **The name.** "Design Picker" is a working name and is generic; search the store, and rename in `extension/manifest.template.json` (`name`,
-  `action.default_title`) if it collides. Do not use "VisBug" (Apache-2.0 gives no right to the name).
+- **The name.** The owner chose "SiteCleaner" (14 November 2026). Two checks remain: search the store for a clash, and weigh how it reads. "Cleaner" names are
+  most often antivirus, ad-blocking and tidy-up tools, and the store's policy on misleading names and descriptions is enforced; the listing text below says
+  plainly that this is a design and review tool, which is the mitigation. If the review objects, rename in `extension/manifest.template.json` (`name`,
+  `action.default_title`) and the strings in `src/`. Do not use "VisBug" (Apache-2.0 gives no right to the name).
 - **Where the project lives.** The privacy policy and support fields need public URLs: put the repository somewhere, then fill in the two placeholders below
   and in `store/PRIVACY.md`.
 
@@ -13,7 +15,7 @@ review. Build the file to upload with `node scripts/build.mjs --zip` (it writes 
 
 | Field | Value |
 |---|---|
-| Name | Design Picker |
+| Name | SiteCleaner |
 | Category | Developer Tools |
 | Language | English |
 | Summary (from the manifest, 132 characters at most) | Select, restyle, move and measure anything on any page, check contrast, undo it all, and hand the changes to a developer or Claude. |
@@ -24,7 +26,7 @@ review. Build the file to upload with `node scripts/build.mjs --zip` (it writes 
 
 ## Detailed description
 
-> Design Picker lets you try design changes on a live page, undo any of them, and hand over what you changed in a form a developer (or Claude) can apply.
+> SiteCleaner lets you try design changes on a live page, undo any of them, and hand over what you changed in a form a developer (or Claude) can apply.
 >
 > **Select and restyle** any element: fill, border, shadow, corner radius, text, font (colour, size, weight, line height, spacing, alignment), size (type a
 > number or drag the handles), padding and margin, flex and grid layout. Shift-click to select several elements and change them all at once, or search by
@@ -62,6 +64,33 @@ Lets a designer select, restyle, move and measure elements on a web page to try 
   It can be removed from the options page at any time.
 - **Remote code**: none. All code is in the package; nothing is fetched or evaluated at run time. Markup pasted into a page is cleaned of scripts and event handlers.
 - **Data use**: none collected, sold, transferred or used for any purpose other than the single purpose above.
+
+## Where it can be hosted
+
+- **GitHub** holds the source and can hold the built zip as a release asset (for people who install by hand: unzip, then Load unpacked). Chrome will
+  **not** install an extension from a GitHub link, and updates do not arrive by themselves that way.
+- **The Chrome Web Store** is the route for installing and updating in one click: a developer account (a one-time registration fee), the upload
+  of `releases/sitecleaner-<version>.zip`, the listing text above, and Google's review. Microsoft Edge Add-ons takes the same package, for free.
+- Self-hosting a package for ordinary users is not possible in Chrome (only inside a company, through a policy).
+
+## Real Chrome checklist (before every release; CI cannot cover it)
+
+Run `bun run build`, load `dist` at `chrome://extensions` (Developer mode, Load unpacked), then on a plain site, on github.com (strict security policy),
+and on a site with its own hover and focus styles (CSS Zen Garden is a good one):
+
+1. The shortcut turns the picker on (`chrome://extensions/shortcuts` shows the key; the options page shows it too). The toolbar button does the same.
+2. Click an element, press Enter, change a fill from the palette, read the contrast, undo with Ctrl+Z.
+3. With nothing selected, Tab selects the first element (it does not move into the panel); F6 moves into the panel and back out. Check F6 reaches
+   the page: Chrome may keep the key for itself on some systems.
+4. Hover and focus: switch the State row to hover, change the fill, move the real pointer over the element; the same with focus and the Tab key.
+5. Delete a paragraph and undo; drag with the Move tool.
+6. Reload: the Changes count is the same, and the edits are back. With **Allow all sites** on, the picker is also still on; without it, press the toolbar button.
+7. Turn the picker off and reload: it stays off, and the edits are back.
+8. Alt+Shift+E copies the changes; paste them and read them.
+9. The light, dark and auto looks (Changes panel) all read well.
+10. Screenshot, and a screen-size Preview (needs all sites).
+
+Record the Chrome version, the site and anything that differed from the test run in the release notes.
 
 ## Release checklist
 

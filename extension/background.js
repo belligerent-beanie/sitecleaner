@@ -20,7 +20,7 @@ async function toggle(tab) {
       await chrome.tabs.sendMessage(tab.id, { type: "toggle" });
     } catch (_error) {   // chrome:// pages, the Web Store, a PDF: the browser does not allow it
       chrome.action.setBadgeText({ tabId: tab.id, text: "×" });
-      chrome.action.setTitle({ tabId: tab.id, title: "The design picker cannot run on this page" });
+      chrome.action.setTitle({ tabId: tab.id, title: "The SiteCleaner cannot run on this page" });
     }
   }
 }
@@ -41,6 +41,26 @@ chrome.runtime.onInstalled.addListener(syncRestorer);
 chrome.runtime.onStartup.addListener(syncRestorer);
 chrome.permissions.onAdded.addListener(syncRestorer);
 chrome.permissions.onRemoved.addListener(syncRestorer);
+
+// ---- keeping the picker on across a reload (only while the designer has allowed all sites)
+// The picker tells the worker whenever it is turned on or off. A tab that had it on, and then loads a page of the same site again (a reload, or a
+// click on a link), gets it back on by itself. Session storage, because a service worker forgets everything when it is stopped; and gone with the tab.
+const onTabs = {
+  async all() { return (await chrome.storage.session.get("on-tabs"))["on-tabs"] || {}; },
+  async set(tabId, origin) { const all = await this.all(); all[tabId] = origin; await chrome.storage.session.set({ "on-tabs": all }); },
+  async remove(tabId) { const all = await this.all(); if (tabId in all) { delete all[tabId]; await chrome.storage.session.set({ "on-tabs": all }); } },
+};
+async function ensureOn(tabId) {
+  try { await chrome.tabs.sendMessage(tabId, { type: "ping" }); } catch (_) { await inject(tabId); }
+  await chrome.tabs.sendMessage(tabId, { type: "set", on: true });
+}
+chrome.tabs.onUpdated.addListener(async (tabId, change, tab) => {
+  if (change.status !== "complete") return;
+  const origin = (await onTabs.all())[tabId];
+  if (!origin || !(await chrome.permissions.contains(ALL_SITES))) return;
+  try { if (new URL(tab.url).origin === origin) await ensureOn(tabId); } catch (_) { /* a page that does not allow scripts */ }
+});
+chrome.tabs.onRemoved.addListener((tabId) => { onTabs.remove(tabId); });
 
 // ---- screen-size previews: a real window of that size, with the same saved edits on the page
 // What is known about each preview tab lives in session storage (a service worker is stopped and restarted whenever it is idle).
@@ -69,6 +89,10 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
   if (message.type === "capture") {   // a picture of the visible part of the tab that asked (activeTab, or the all-sites permission, allows it)
     chrome.tabs.captureVisibleTab(sender.tab.windowId, { format: "png" }).then((dataUrl) => respond({ dataUrl }), (error) => respond({ error: String((error && error.message) || error) }));
     return true;
+  }
+  if (message.type === "on") {
+    if (sender.tab) (message.on ? onTabs.set(sender.tab.id, message.origin) : onTabs.remove(sender.tab.id));
+    return false;
   }
   if (message.type === "restore") {
     if (sender.tab) inject(sender.tab.id).catch(() => { /* a page that does not allow scripts */ });

@@ -63,7 +63,7 @@
     const previewLink = h("button", { type: "button", class: "dz-link", text: "Preview", title: "See this page at phone, tablet and laptop sizes",
       onclick: () => { showPreview = !showPreview; showChanges = false; showFind = false; showKeys = false; renderDock(); } });
     const head = h("div", { class: "dz-head" },
-      h("strong", { text: selection.length > 1 ? `${selection.length} elements` : selected ? label(selected) : "UI picker" }),
+      h("strong", { text: selection.length > 1 ? `${selection.length} elements` : selected ? label(selected) : "SiteCleaner" }),
       undoLink, redoLink, findLink, inspectLink, compareLink, previewLink,
       changesLink,
       h("button", { type: "button", class: "dz-link", text: "Keys", title: "Every keyboard shortcut (?)", "aria-pressed": String(showKeys),

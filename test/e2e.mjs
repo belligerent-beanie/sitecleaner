@@ -57,6 +57,10 @@ try {
 
   const page = await context.newPage();
   await page.goto(url);
+  const settleOn = async (p) => {   // after a reload the picker may come back on by itself: wait a moment for that before deciding to turn it on
+    await p.locator(".dz-toggle.dz-on").waitFor({ timeout: 4000 }).catch(() => {});
+    if ((await p.locator(".dz-toggle").innerText()) !== "Design: on") await worker.evaluate(async () => { const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true }); await toggle(tab); });
+  };
   const activate = () => worker.evaluate(async () => { const [tab] = await chrome.tabs.query({ url: "http://127.0.0.1/*" }); await toggle(tab); });
   const css = (selector, prop) => page.evaluate(([s, p]) => getComputedStyle(document.querySelector(s))[p], [selector, prop]);
   const editsInStorage = () => worker.evaluate(async () => { const all = await chrome.storage.local.get(null); return Object.keys(all).filter((k) => k.startsWith("dz-changes:")).length; });
@@ -113,14 +117,13 @@ try {
   eq("the edits are in chrome.storage (one page)", await editsInStorage(), 1);
   eq("the page's own localStorage holds nothing of the picker's", await page.evaluate(() => Object.keys(localStorage).filter((k) => /dz|designer/i.test(k))), []);
 
-  // ---- reload: with all-sites access (this test build has it) the saved edits come back by themselves, and the picker stays off
+  // ---- reload: with all-sites access (this test build has it) the saved edits come back by themselves, and the picker stays on if it was on
   await page.reload();
   await page.waitForLoadState("load");
   await page.waitForFunction(() => getComputedStyle(document.getElementById("go")).backgroundColor === "rgb(34, 34, 34)", null, { timeout: 10000 }).catch(() => {});
   eq("after a reload the saved edits come back by themselves", await css("#go", "backgroundColor"), "rgb(34, 34, 34)");
-  eq("and the picker is there but off", await page.locator(".dz-toggle").innerText(), "Design");
-  await activate();
-  eq("the toolbar button then turns it on, with the edits still in place", [await page.locator(".dz-toggle").innerText(), await css("#go", "backgroundColor")], ["Design: on", "rgb(34, 34, 34)"]);
+  await page.locator(".dz-toggle.dz-on").waitFor({ timeout: 8000 }).catch(() => {});
+  eq("and the picker, which was on, comes back on by itself", [await page.locator(".dz-toggle").innerText(), await css("#go", "backgroundColor")], ["Design: on", "rgb(34, 34, 34)"]);
 
   // ---- a page with no saved edits is left completely alone
   const other = await context.newPage();
@@ -132,6 +135,10 @@ try {
   // ---- the toolbar toggle turns it off and on without losing anything
   await activate();
   eq("the toolbar button turns the picker off", await page.locator(".dz-toggle").innerText(), "Design");
+  await page.reload();
+  await page.waitForLoadState("load");
+  await page.waitForTimeout(2500);
+  eq("a picker turned off stays off after a reload (the edits still come back)", [await page.locator(".dz-toggle").innerText(), await css("#go", "backgroundColor")], ["Design", "rgb(34, 34, 34)"]);
   await activate();
   eq("and back on", await page.locator(".dz-toggle").innerText(), "Design: on");
 
@@ -268,7 +275,7 @@ try {
     await sp.keyboard.press("Alt+Shift+KeyP").catch(() => {});
     await worker.evaluate(async () => { const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true }); await toggle(tab); });
     await sp.locator(".dz-toggle").waitFor();
-    if ((await sp.locator(".dz-toggle").innerText()) !== "Design: on") await worker.evaluate(async () => { const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true }); await toggle(tab); });
+    await settleOn(sp);
     await sp.locator(".dz-dock .dz-head button:text-matches('Changes')").click();
     await sp.locator(".dz-dock button:text-is('Reset all')").click();
     eq("Reset all puts the structure and the text back as the page had them", [await items(), await sp.locator(".lede").innerText()], [original, "A paragraph of text to restyle."]);
@@ -376,7 +383,7 @@ try {
     eq("after a reload the placement comes back by itself", await where(), "relative 40px 25px 7");
 
     await pp.locator(".dz-toggle").waitFor();
-    if ((await pp.locator(".dz-toggle").innerText()) !== "Design: on") await worker.evaluate(async () => { const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true }); await toggle(tab); });
+    await settleOn(pp);
     await pp.locator("#go").click();
     await pp.keyboard.press("Enter");
     await pp.locator(".dz-dock button:text-is('Position')").click();
@@ -594,7 +601,7 @@ try {
     await np.waitForLoadState("load");
     await np.locator(".dz-toggle").waitFor({ timeout: 8000 });
     await np.waitForFunction(() => getComputedStyle(document.getElementById("go")).backgroundColor === "rgb(34, 34, 34)", null, { timeout: 8000 }).catch(() => {});
-    if ((await np.locator(".dz-toggle").innerText()) !== "Design: on") await worker.evaluate(async () => { const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true }); await toggle(tab); });
+    await settleOn(np);
     await np.keyboard.press("Escape");
     await np.locator(".dz-dock .dz-head button:text-matches('Changes')").click();
     eq("the choice is remembered across a reload", await np.locator(".dz-dock button.dz-active:text-is('rgb')").count(), 1);
@@ -605,7 +612,7 @@ try {
     await np.reload();
     await np.waitForLoadState("load");
     await np.locator(".dz-toggle").waitFor({ timeout: 8000 });
-    if ((await np.locator(".dz-toggle").innerText()) !== "Design: on") await worker.evaluate(async () => { const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true }); await toggle(tab); });
+    await settleOn(np);
     await np.keyboard.press("Escape");
     eq("and the look is remembered across a reload", await dockBg(), "rgb(255, 255, 255)");
     await np.locator(".dz-dock .dz-head button:text-matches('Changes')").click();
@@ -656,7 +663,7 @@ try {
     await sp.waitForTimeout(1500);
     eq("after a reload the hover edit is back without the picker", await hoverBg(), "rgb(34, 34, 34)");
     await sp.locator(".dz-toggle").waitFor({ timeout: 8000 });
-    if ((await sp.locator(".dz-toggle").innerText()) !== "Design: on") await worker.evaluate(async () => { const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true }); await toggle(tab); });
+    await settleOn(sp);
     await sp.keyboard.press("Escape");
     await sp.locator(".cta").click();
     await sp.keyboard.press("Enter");
@@ -705,7 +712,28 @@ try {
     await sp.waitForTimeout(900);
     const grey = (await bg()).match(/\d+/g).map(Number);   // the link's own transition makes the exact start colour vary: it is darker than white and still grey
     eq("arrow keys in the colour square darken the fill, and the selection stays", [grey[0] < 250 && grey[0] === grey[1] && grey[1] === grey[2], (await sp.locator(".dz-head strong").first().innerText()).startsWith("a")], [true, true]);
+    // Tab selects elements, not the picker's own controls; F6 is the way into the panel and back out
+    await sp.keyboard.press("Escape"); await sp.keyboard.press("Escape"); await sp.keyboard.press("Escape");
+    await sp.evaluate(() => { const a = document.querySelector("#design-picker-extension-root").shadowRoot.activeElement; if (a) a.blur(); document.body.focus(); });
+    await sp.keyboard.press("Tab");
+    const label = () => sp.locator(".dz-head strong").first().innerText();
+    check("Tab with nothing selected selects the first element on the page", (await label()).startsWith("main"), await label());
+    const inDock = () => sp.evaluate(() => !!document.querySelector("#design-picker-extension-root").shadowRoot.activeElement);
+    await sp.keyboard.press("F6");
+    eq("F6 moves focus into the picker's panel", await inDock(), true);
+    await sp.keyboard.press("F6");
+    eq("and F6 again moves it back to the page", await inDock(), false);
     await sp.close();
+  }
+
+  // ---- the options page shows the shortcut the browser actually assigned, and how to change it
+  {
+    const op = await context.newPage();
+    await op.goto(`chrome-extension://${new URL(worker.url()).host}/options.html`);
+    await op.waitForFunction(() => document.getElementById("shortcut").textContent !== "…", null, { timeout: 5000 });
+    check("the options page shows the picker's shortcut (or says it is not set)", /^(Alt\+Shift\+P|not set)$/.test(await op.locator("#shortcut").innerText()), await op.locator("#shortcut").innerText());
+    eq("and offers a way to change it", await op.locator("#shortcuts").count(), 1);
+    await op.close();
   }
 
   // ---- a screen-size preview opens as a real window of that size and shows the edits, without the picker

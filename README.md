@@ -1,4 +1,4 @@
-# Design Picker
+# SiteCleaner
 
 A Chrome extension for designers. Select any element on any page, restyle it, move it, measure it, check its contrast, replace its pictures,
 undo all of it, and hand what you changed to a developer (or to Claude) as a precise Markdown change list.
@@ -7,7 +7,7 @@ It stands on the ideas of [VisBug](https://github.com/GoogleChromeLabs/ProjectVi
 (archived in September 2026), and adds what VisBug never had: **everything you do is recorded**, so it can be undone, kept across reloads and
 exported. See [Where it comes from](#where-it-comes-from).
 
-*Design Picker is a working name. Check it is free on the Chrome Web Store before publishing (see `store/STORE_LISTING.md`).*
+*The name is SiteCleaner (chosen 14 November 2026). Before publishing, check it is free on the Chrome Web Store and read the note on the name in `store/STORE_LISTING.md`.*
 
 ![Restyling a heading with the live contrast readout](store/screenshots/1-restyle-with-live-contrast.png)
 
@@ -79,7 +79,7 @@ To add a feature: a new file in `src/parts/`, registered through the `keyHooks`,
 ## Test
 
     bun install                   # Playwright and axe-core
-    bun run test                  # the end-to-end suite (127 checks), then the accessibility audit of the dock
+    bun run test                  # the end-to-end suite (132 checks), then the accessibility audit of the dock
 
 Both run offline and must pass. `bun run test:e2e` and `bun run test:a11y` run one each. The suite builds the extension, loads it into Playwright's Chromium
 (branded Chrome no longer loads unpacked extensions from the command line) and drives it on a page that is nothing like a designer's own: a strict content
@@ -101,7 +101,7 @@ no saved edits and no export of what changed, and writes to the page directly; h
 ## Known limits
 
 - **Without the all-sites permission a reload turns the picker off** (the extension cannot act on a page until asked): turn it on again and the
-  saved edits come back. With the permission they return by themselves.
+  saved edits come back. With the permission they return by themselves, and the picker comes back on if it was on (for pages of the same site, in that tab).
 - **States** are hover, focus and active (not visited, focus-within or focus-visible on its own). The page's own state rules are copied from style sheets the picker can read, so a state
   that a site styles from another origin's sheet starts from the normal look. Text, pictures and moving through the page are the same in every state, so those tools
   work on the normal state. State edits are always written with `!important`, to win over the site's own rules.

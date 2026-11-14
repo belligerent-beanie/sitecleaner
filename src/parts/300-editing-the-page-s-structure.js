@@ -77,6 +77,12 @@
     if (kids.length) structureDone(kids);
   }
   function walkSiblings(back) {
+    if (!selection.length) {   // nothing selected yet: Tab picks the first element (Shift+Tab the last) instead of wandering into the picker's own controls
+      const top = [...document.body.children].filter((el) => !ours(el) && !/^(SCRIPT|STYLE|LINK|META|NOSCRIPT|TEMPLATE)$/.test(el.tagName) && el.getClientRects().length);
+      const pick = back ? top[top.length - 1] : top[0];
+      if (pick) structureDone([pick]);
+      return;
+    }
     const next = new Set();
     for (const el of selection) {
       const sibling = back ? el.previousElementSibling : el.nextElementSibling;
@@ -126,6 +132,12 @@
     structureDone(list.flatMap((op) => op.nodes.filter((node) => node.nodeType === 1)));
   }, true);
 
+  keyHooks.push((event) => {   // Tab with nothing selected: select an element, rather than let the browser walk into the picker's own controls
+    if (event.key !== "Tab" || selection.length || event.ctrlKey || event.metaKey || event.altKey || ours(eventTarget(event)) || isEditingField(eventTarget(event))) return false;
+    event.preventDefault();
+    walkSiblings(event.shiftKey);
+    return true;
+  });
   keyHooks.push((event) => {
     if (!selection.length || isEditingField(eventTarget(event))) return false;
     const mod = event.ctrlKey || event.metaKey, key = event.key;

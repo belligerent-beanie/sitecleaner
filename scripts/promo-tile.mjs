@@ -17,7 +17,7 @@ const html = `<!doctype html><meta charset="utf-8"><style>
   img { width: 104px; height: 104px; border-radius: 22px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35); }
   h1 { margin: 0 0 8px; font-size: 34px; line-height: 1.1; letter-spacing: -0.5px; }
   p { margin: 0; font-size: 16px; line-height: 1.35; color: #dfe3ff; }
-</style><img src="data:image/png;base64,${icon}" alt=""><div><h1>Design Picker</h1><p>Restyle any page, undo it all, and hand the changes over.</p></div>`;
+</style><img src="data:image/png;base64,${icon}" alt=""><div><h1>SiteCleaner</h1><p>Restyle any page, undo it all, and hand the changes over.</p></div>`;
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 440, height: 280 } });
 await page.setContent(html);

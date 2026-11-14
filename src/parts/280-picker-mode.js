@@ -101,6 +101,7 @@
   }
   function setOn(value) {
     on = value;
+    if (!host.isPreview()) host.reportOn(on);
     const method = on ? "addEventListener" : "removeEventListener";
     for (const type of STOPPED) window[method](type, swallow, true);
     window[method]("mousemove", onMove, true);

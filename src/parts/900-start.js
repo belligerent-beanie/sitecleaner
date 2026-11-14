@@ -1,6 +1,6 @@
 
   // ---------- start ----------
-  window.__designerApi = { toggle: () => setOn(!on), isOn: () => on };   // the extension's toolbar button
+  window.__designerApi = { toggle: () => setOn(!on), set: (value) => { if (!!value !== on) setOn(!!value); }, isOn: () => on };   // the extension's toolbar button
   if (PREVIEW) { startPreviewMode(); return; }   // the screen-size preview window
   window.addEventListener("keydown", onKey, true);
   window.addEventListener("scroll", refreshBoxes, { capture: true, passive: true });

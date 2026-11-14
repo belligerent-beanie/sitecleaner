@@ -1,5 +1,5 @@
 // Builds the unpacked extension: node scripts/build.mjs [--out DIR] [--test] [--zip]
-// --zip also writes releases/design-picker-<version>.zip, the file the Chrome Web Store takes.
+// --zip also writes releases/sitecleaner-<version>.zip, the file the Chrome Web Store takes.
 //
 // The picker is one script made of the files in src/parts/, joined in name order (they are slices of one closure, so they share its state);
 // its stylesheet is src/picker.css wrapped in a script (the picker draws inside a Shadow DOM and takes its CSS from there). The parts of the
@@ -121,7 +121,7 @@ function zipDirectory(dir) {
 }
 if (makeZip) {
   fs.mkdirSync(path.join(root, "releases"), { recursive: true });
-  const zipPath = path.join(root, "releases", `design-picker-${version}.zip`);
+  const zipPath = path.join(root, "releases", `sitecleaner-${version}.zip`);
   fs.writeFileSync(zipPath, zipDirectory(out));
   console.log(`Wrote ${zipPath}`);
 }

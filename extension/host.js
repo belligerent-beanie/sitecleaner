@@ -39,6 +39,7 @@
     getPref: (name) => cache.prefs[name] ?? null,
     setPref(name, value) { cache.prefs[name] = value; chrome.storage.local.set({ "dz-prefs": cache.prefs }); },
     isPreview: () => preview,
+    reportOn: (on) => { chrome.runtime.sendMessage({ type: "on", on, origin: location.origin }).catch(() => { /* no worker */ }); },
     openPreview: (width, height) => chrome.runtime.sendMessage({ type: "preview", url: location.href, width, height })
       .then((answer) => (answer && answer.error) || true),   // a string is shown to the designer as a message
     capture: () => chrome.runtime.sendMessage({ type: "capture" }).then((answer) => {
@@ -70,7 +71,11 @@
     isOwn: (node) => node === shadowHost,
   };
 
-  chrome.runtime.onMessage.addListener((message) => {
-    if (message && message.type === "toggle") ready.then(() => { if (window.__designerApi) window.__designerApi.toggle(); });
+  chrome.runtime.onMessage.addListener((message, _sender, respond) => {
+    if (!message) return false;
+    if (message.type === "ping") { respond(true); return false; }   // the worker asks whether the picker is already in the page
+    if (message.type === "toggle") ready.then(() => { if (window.__designerApi) window.__designerApi.toggle(); });
+    if (message.type === "set") ready.then(() => { if (window.__designerApi) window.__designerApi.set(!!message.on); });
+    return false;
   });
 })();

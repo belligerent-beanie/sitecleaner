@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Design Picker",
+  "name": "SiteCleaner",
   "version": "__VERSION__",
   "description": "Select, restyle, move and measure anything on any page, check contrast, undo it all, and hand the changes to a developer or Claude.",
   "minimum_chrome_version": "114",
@@ -10,7 +10,7 @@
     "128": "icons/128.png"
   },
   "action": {
-    "default_title": "Design Picker (Alt+Shift+P)",
+    "default_title": "SiteCleaner (Alt+Shift+P)",
     "default_icon": {
       "16": "icons/16.png",
       "48": "icons/48.png"
@@ -32,7 +32,7 @@
       "suggested_key": {
         "default": "Alt+Shift+P"
       },
-      "description": "Turn the design picker on or off"
+      "description": "Turn the SiteCleaner on or off"
     }
   },
   "options_ui": {

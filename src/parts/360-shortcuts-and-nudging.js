@@ -85,7 +85,7 @@
 
   // the shortcuts panel: ? opens it
   const SHORTCUTS = [
-    ["Select", [["Click", "select; Shift adds or removes"], ["↑ ↓", "parent, child"], ["Tab", "next sibling (Shift: previous)"], ["Ctrl E", "select similar (Shift: all)"],
+    ["Select", [["Click", "select; Shift adds or removes"], ["↑ ↓", "parent, child"], ["Tab", "next sibling (Shift: previous); the first element if nothing is selected"], ["F6", "move between the page and the picker's panel"], ["Ctrl E", "select similar (Shift: all)"],
                 ["Ctrl Shift Enter", "select the children"], ["/", "find by selector or words"], ["Esc", "clear, close"]]],
     ["Tools (with something selected)", [["C B D E", "fill, border, shadow, text"], ["F S P R", "font, size, spacing, radius"], ["A H", "layout, tone (hue)"], ["V L", "move, position"], ["Enter", "the tool menu"]]],
     ["Nudge, with a tool open", [["Spacing", "arrows change a side; Alt takes away; Shift ten; Ctrl ▲▼ all sides"], ["Font", "▲▼ size, ◀▶ letter spacing, Alt ▲▼ line height"], ["Size", "▶◀ width, ▼▲ height"], ["Position / Move", "arrows place or move"]]],
@@ -102,6 +102,13 @@
     }
     return panel;
   }
+  keyHooks.push((event) => {   // F6, the browser's own key for moving between parts of a window: into the panel, and back out to the page
+    if (event.key !== "F6" || event.ctrlKey || event.metaKey || event.altKey) return false;
+    event.preventDefault();
+    if (ours(eventTarget(event))) { const focused = activeEl(); if (focused) focused.blur(); }
+    else { const first = dock.querySelector("button:not(:disabled), input, select"); if (first) first.focus(); }
+    return true;
+  });
   keyHooks.push((event) => {
     if (event.key !== "?" || event.ctrlKey || event.metaKey || event.altKey || isEditingField(eventTarget(event))) return false;
     event.preventDefault();

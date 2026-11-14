@@ -2,8 +2,8 @@
   const root = h("div", { class: "dz-root", "data-designer": "" });
   const hoverBox = h("div", { class: "dz-box dz-hover", hidden: true });
   const selectBox = h("div", { class: "dz-box dz-picked", hidden: true });
-  const dock = h("div", { class: "dz-dock", role: "region", "aria-label": "UI picker", hidden: true });
-  const toggle = h("button", { class: "dz-toggle", type: "button", title: "UI picker (Alt+Shift+P); copy your changes with Alt+Shift+E", text: "Design" });
+  const dock = h("div", { class: "dz-dock", role: "region", "aria-label": "SiteCleaner", hidden: true });
+  const toggle = h("button", { class: "dz-toggle", type: "button", title: "SiteCleaner (Alt+Shift+P); copy your changes with Alt+Shift+E", text: "Design" });
   const toast = h("div", { class: "dz-toast", role: "status", "aria-live": "polite", hidden: true });
   root.append(hoverBox, selectBox, dock, toggle, toast);
 

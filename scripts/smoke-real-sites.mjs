@@ -43,7 +43,7 @@ for (const site of SITES) {
   await page.keyboard.press("Escape");
   let heading = page.locator("body");   // the first visible heading, level 1 to 3; a link only when the page has no headings at all (a skip link would be unclickable)
   for (const selector of ["h1:visible", "h2:visible", "h3:visible", "a:visible"]) { if (await page.locator(selector).count()) { heading = page.locator(selector).first(); break; } }
-  await step("select a heading (or a link) by clicking it", async () => { await heading.scrollIntoViewIfNeeded({ timeout: 6000 }); await heading.click({ timeout: 6000 }); return (await page.locator(".dz-head strong").first().innerText()) !== "UI picker"; });
+  await step("select a heading (or a link) by clicking it", async () => { await heading.scrollIntoViewIfNeeded({ timeout: 6000 }); await heading.click({ timeout: 6000 }); return (await page.locator(".dz-head strong").first().innerText()) !== "SiteCleaner"; });
   await step("restyle it (fill from the page's own colours)", async () => {
     await page.keyboard.press("Enter");
     await page.locator(".dz-dock button:text-is('Fill')").click({ timeout: 5000 });

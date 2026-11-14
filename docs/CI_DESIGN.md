@@ -8,7 +8,7 @@ The project has three kinds of check, and today a person has to remember to run 
 
 | Check | Command | Needs | Runs for | Today |
 |---|---|---|---|---|
-| End-to-end suite (127 checks) | `bun run test:e2e` | a real browser with the extension loaded | roughly 2 minutes | by hand |
+| End-to-end suite (132 checks) | `bun run test:e2e` | a real browser with the extension loaded | roughly 2 minutes | by hand |
 | Accessibility audit of the dock (41 audits, both looks) | `bun run test:a11y` | the same | roughly 1 minute | by hand |
 | Smoke test on six real sites | `bun run smoke` | the same, plus the network and live sites | roughly 3 minutes | by hand |
 
@@ -80,12 +80,16 @@ The suite has produced one flaky run so far (a test that pressed a shortcut whil
 4. Add `smoke`, nightly, report-only.
 5. Revisit in a month: how many red runs were product bugs, how many were infrastructure.
 
-## What I need from the owner
+## Decisions (owner, 14 November 2026)
 
-1. **Host:** GitHub (assumed), and the repository name. This is also the public address for the privacy policy and the store listing.
-2. **Visibility:** public or private. Private repositories get a monthly allowance of free runner minutes that depends on the plan, and the three jobs together take roughly ten minutes per run on this machine (measured by hand, not yet on a runner); public repositories are not metered.
-3. **Required check:** may `test` become mandatory for merging once it has passed 20 times in a row?
-4. **Smoke issues:** should a failing nightly smoke test open an issue, or only show red in the Actions tab?
-5. **Branded Chrome:** do you want a manual checklist in the release process for real Chrome (I would add it to `STORE_LISTING.md`), since CI cannot cover it?
+1. **Host:** GitHub. The repository exists, private, as `belligerent-beanie/design-picker` (to be renamed with the product, see below).
+2. **Visibility:** private for now. Private repositories are metered, so the cost of three jobs per run matters until the repository is made public.
+3. **Required check:** yes. `test` becomes mandatory for merging, once it has passed 20 runs in a row on the runner (rollout step 3).
+4. **Smoke issues:** a failing nightly `smoke` opens a GitHub issue (one issue, updated while it fails, closed when it passes).
+5. **Real Chrome:** a manual checklist is part of every release; it is in `store/STORE_LISTING.md`.
 
-Until these are answered, the only change that makes sense is none: the commands already work locally.
+Still to decide, none of it blocking: renaming the repository to match the product name (GitHub redirects the old address), and whether the
+branch-protection rule that makes `test` required needs a second reviewer (with one contributor, probably not).
+
+Status: approved in principle. **Not built**: rollout step 1 is done (the repository exists); step 2, the proof branch that shows the suite passes under Xvfb
+on a Linux runner, is the next piece of work, and nothing is made required before it has passed.

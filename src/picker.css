@@ -8,7 +8,7 @@
   .dz-root[data-theme="auto"] { color-scheme: light; --dz-bg: #ffffff; --dz-fg: #1b1b21; --dz-border: #8a8a98; --dz-muted: #5a5a68; --dz-field: #f1f1f5; --dz-field-hover: #e1e1e9; --dz-link: #0b57c9;
     --dz-soft: #33333d; --dz-code-bg: #f1f1f5; --dz-accent-text: #a8115a; --dz-rule: #d4d4dc; --dz-pass: #17803d; --dz-fail: #c62828; }
 }
-/* The designer's UI picker (designer.js). Everything is prefixed dz- and set explicitly, so the site's own button/input rules
+/* The designer's SiteCleaner (designer.js). Everything is prefixed dz- and set explicitly, so the site's own button/input rules
    (and the two looks) cannot change how the tool looks. It only exists for accounts marked as designers. */
 .dz-root { position: fixed; inset: 0; z-index: 2147483000; pointer-events: none; font: 13px/1.35 system-ui, -apple-system, "Segoe UI", sans-serif; color: var(--dz-fg); }
 .dz-root *, .dz-root *::before, .dz-root *::after { box-sizing: border-box; }

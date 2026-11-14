@@ -1,8 +1,8 @@
-# Design Picker: privacy policy
+# SiteCleaner: privacy policy
 
 *Last updated 14 November 2026.*
 
-**Design Picker collects no data.** Nothing about you, your browsing or the pages you work on is sent anywhere, by the extension or by anyone on its
+**SiteCleaner collects no data.** Nothing about you, your browsing or the pages you work on is sent anywhere, by the extension or by anyone on its
 behalf. It has no server, no account, no analytics and no tracking.
 
 ## What it stores, and where
