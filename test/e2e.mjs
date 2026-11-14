@@ -905,6 +905,34 @@ try {
     await xp.close();
   }
 
+  // ---- the classes panel: the page's classes with how many elements use each, where they are defined and their rules; a click selects every element
+  {
+    const cp = await context.newPage();
+    cp.on("pageerror", (error) => console.log("      [page error]", error.message));
+    await cp.goto(url + "classes");
+    await cp.bringToFront();
+    await worker.evaluate(async () => { const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true }); await toggle(tab); });
+    await cp.locator(".dz-toggle").waitFor({ timeout: 8000 });
+    await cp.keyboard.press("Escape");
+    await cp.locator(".dz-dock .dz-head button:text-is('Classes')").click();
+    const tileRow = cp.locator(".dz-class", { has: cp.locator(".dz-class-name:text-is('.tile')") });
+    eq("the panel lists the page's classes, with how many elements use each", await tileRow.locator(".dz-num").innerText(), "×5");
+    eq("and which style sheet defines it", await tileRow.locator(".dz-class-file").innerText(), "/fixture.css");
+    const names = await cp.locator(".dz-class-name").allInnerTexts();
+    check("classes with generated names are left out, the page's own are there", names.includes(".card") && names.includes(".tile") && !names.some((n) => /a1b2c3d/.test(n)), names.join(" "));
+    check("the most used come first", names[0] === ".tile", names.join(" "));
+    await tileRow.locator("button:text-is('Rules')").click();
+    const rule = await tileRow.locator(".dz-class-rule").innerText();
+    check("Rules shows the rule and its file", rule.includes("/fixture.css") && /\.tile \{[^}]*background/.test(rule), rule);
+    await cp.locator(".dz-class-filter").fill("til");
+    eq("the filter narrows the list", await cp.locator(".dz-class-name").allInnerTexts(), [".tile"]);
+    await cp.locator(".dz-class-name:text-is('.tile')").click();
+    eq("clicking a class selects every element that has it", await cp.locator(".dz-head strong").first().innerText(), "5 elements");
+    await cp.keyboard.press("Escape");
+    eq("Esc closes the list and keeps the selection", [await cp.locator(".dz-classes").count(), await cp.locator(".dz-head strong").first().innerText()], [0, "5 elements"]);
+    await cp.close();
+  }
+
   // ---- the options page shows the shortcut the browser actually assigned, and how to change it
   {
     const op = await context.newPage();

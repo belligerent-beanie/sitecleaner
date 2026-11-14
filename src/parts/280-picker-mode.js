@@ -8,6 +8,7 @@
     showPreview = false;
     showFind = false;
     showKeys = false;
+    showClasses = false;
     renderDock();
     refreshBoxes();
   }
@@ -46,7 +47,7 @@
     for (const hook of keyHooks) if (hook(event)) return;
     if (event.key === "/" && !event.ctrlKey && !event.metaKey && !event.altKey && !isEditingField(eventTarget(event))) {   // find
       event.preventDefault();
-      showFind = true; showChanges = false; showPreview = false; showKeys = false;
+      showFind = true; showChanges = false; showPreview = false; showKeys = false; showClasses = false;
       renderDock();
       return;
     }
@@ -74,6 +75,7 @@
     if (event.key === "Escape") {
       event.preventDefault();
       if (showKeys) showKeys = false;
+      else if (showClasses) showClasses = false;
       else if (showFind) showFind = false;
       else if (showPreview) showPreview = false;
       else if (showChanges) showChanges = false;
@@ -105,7 +107,7 @@
     const method = on ? "addEventListener" : "removeEventListener";
     for (const type of STOPPED) window[method](type, swallow, true);
     window[method]("mousemove", onMove, true);
-    if (!on) { for (const hook of offHooks) hook(); inspecting = false; renderInspect(null); hovered = null; setSelection([]); climbed = []; menuOpen = false; tool = null; showChanges = false; tourStep = null; }
+    if (!on) { for (const hook of offHooks) hook(); inspecting = false; renderInspect(null); hovered = null; setSelection([]); climbed = []; menuOpen = false; tool = null; showChanges = false; showClasses = false; tourStep = null; }
     else {
       if (!host.tourSeen()) tourStep = 0;   // the first time on this browser
     }

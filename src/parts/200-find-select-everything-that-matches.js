@@ -22,7 +22,7 @@
       count.textContent = input.value.trim() ? `${matches.length} found${matches.length >= FIND_LIMIT ? ` (the first ${FIND_LIMIT})` : ""}` : "Selects every match. Try .card, button, img:not([alt]), or words from the page.";
       refreshBoxes();
     };
-    const useThem = () => { if (!selection.length) return; showFind = false; menuOpen = true; renderDock(); refreshBoxes(); };
+    const useThem = () => { if (!selection.length) return; showFind = false; showClasses = false; menuOpen = true; renderDock(); refreshBoxes(); };
     input.addEventListener("input", update);
     input.addEventListener("keydown", (event) => { if (event.key === "Enter") { event.preventDefault(); useThem(); } });
     return h("div", { class: "dz-panel" }, input, count,

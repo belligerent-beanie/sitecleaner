@@ -63,7 +63,7 @@ try {
     await page.locator(".dz-states button:text-is('normal')").click();
     await page.locator(".dz-dock button:text-is('Fill')").click();
     await page.locator(".dz-chip").first().click();
-    for (const link of ["Changes", "Keys", "Find", "Preview"]) {
+    for (const link of ["Changes", "Keys", "Find", "Preview", "Classes"]) {
       const button = page.locator(`.dz-dock .dz-head button:text-matches('^${link}')`);
       await button.click();
       await audit(`${look}: the ${link} panel`);

@@ -163,3 +163,13 @@
 /* Gridlines through the selection */
 .dz-gridlines { position: fixed; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
 .dz-gridline { stroke: #ff5ca8; stroke-opacity: 0.6; stroke-width: 1; stroke-dasharray: 5 4; }
+
+/* The classes panel */
+.dz-class-filter { width: 100% !important; }
+.dz-class-unused { gap: 6px; font-size: 12px; }
+.dz-class { padding: 4px 0; border-top: 1px solid var(--dz-rule); }
+.dz-class-row { display: flex; align-items: center; gap: 8px; }
+.dz-class-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; font: 12px ui-monospace, Consolas, monospace !important; }
+.dz-class-name:disabled { opacity: 0.5; text-decoration: none !important; cursor: default !important; }
+.dz-class-file { margin: 0 0 2px; font-size: 11px; overflow-wrap: anywhere; }
+.dz-class-rule { margin-top: 4px; max-height: 120px; }
