@@ -19,6 +19,7 @@
           color: colourText(cs.color),
           "font-size": cs.fontSize,
           "font-weight": cs.fontWeight,
+          "font-style": cs.fontStyle === "oblique" ? "italic" : cs.fontStyle,
           "line-height": lineHeightOf(cs),
           "letter-spacing": cs.letterSpacing === "normal" ? "normal" : cs.letterSpacing,
           "text-align": alignOf(cs),

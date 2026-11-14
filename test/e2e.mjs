@@ -731,6 +731,58 @@ try {
     await sp.close();
   }
 
+  // ---- the label on the selected element, and bold and italic (buttons and Ctrl+B, Ctrl+I) in the Font tool
+  {
+    const bp = await context.newPage();
+    bp.on("pageerror", (error) => console.log("      [page error]", error.message));
+    await bp.goto(url + "bold");
+    await bp.bringToFront();
+    await worker.evaluate(async () => { const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true }); await toggle(tab); });
+    await bp.locator(".dz-toggle").waitFor({ timeout: 8000 });
+    await bp.keyboard.press("Escape");
+    const look = () => bp.evaluate(() => { const c = getComputedStyle(document.querySelector(".cta")); return [c.fontWeight, c.fontStyle].join(" "); });
+    const labelText = () => bp.locator(".dz-selabel").innerText();
+    eq("with nothing selected there is no label on the page", await bp.locator(".dz-selabel").isHidden(), true);
+    await bp.locator(".cta").click();
+    check("selecting an element puts a label with its name and size next to it", /^a\.cta\s+\d+ × \d+$/.test(await labelText()), await labelText());
+    const where = await bp.evaluate(() => { const l = document.querySelector("#design-picker-extension-root").shadowRoot.querySelector(".dz-selabel").getBoundingClientRect(), t = document.querySelector(".cta").getBoundingClientRect(); return { labelBottom: l.bottom, linkTop: t.top, labelLeft: l.left, linkLeft: t.left }; });
+    check("and the label sits just above the element", where.labelBottom <= where.linkTop + 1 && where.linkTop - where.labelBottom < 8, JSON.stringify(where));
+    await bp.keyboard.press("f");
+    eq("the link starts regular and upright", await look(), "400 normal");
+    await bp.locator(".dz-bold").click();
+    eq("the Bold button makes it bold", [await look(), await bp.locator(".dz-bold").getAttribute("aria-pressed")], ["700 normal", "true"]);
+    await bp.locator(".dz-bold").click();
+    eq("and again takes it away", [await look(), await bp.locator(".dz-bold").getAttribute("aria-pressed")], ["400 normal", "false"]);
+    await bp.locator(".dz-italic").click();
+    eq("the Italic button makes it italic", [await look(), await bp.locator(".dz-italic").getAttribute("aria-pressed")], ["400 italic", "true"]);
+    await bp.keyboard.press("Control+b");
+    eq("Ctrl+B toggles bold from the keyboard", await look(), "700 italic");
+    await bp.keyboard.press("Control+i");
+    eq("Ctrl+I toggles italic from the keyboard", await look(), "700 normal");
+    await bp.waitForTimeout(1500);   // edits of one kind within 1.2 s are one undo step: let this one stand alone
+    await bp.locator(".dz-italic").click();
+    await bp.locator(".dz-dock .dz-head button:text-matches('Changes')").click();
+    const exported = await bp.locator(".dz-preview").innerText();
+    check("the export has both, as before and after", /font-weight: 400 → 700/.test(exported) && /font-style: normal → italic/.test(exported), JSON.stringify(exported));
+    await bp.keyboard.press("Escape");
+    await bp.evaluate(() => { const a = document.querySelector("#design-picker-extension-root").shadowRoot.activeElement; if (a) a.blur(); });
+    await bp.keyboard.press("Control+z");
+    eq("undo takes the italic away again, and only that", await look(), "700 normal");
+    await bp.keyboard.press("Control+Shift+z");
+    eq("and redo puts it back", await look(), "700 italic");
+    // out of view, the label stays at the edge and points the way
+    await bp.evaluate(() => { const spacer = document.createElement("div"); spacer.id = "spacer"; spacer.style.height = "3000px"; document.body.append(spacer); window.scrollTo(0, 2500); });
+    await bp.waitForTimeout(300);
+    check("scrolled out of view, the label stays on screen and points up at it", (await labelText()).startsWith("↑"), await labelText());
+    await bp.evaluate(() => { document.getElementById("spacer").remove(); window.scrollTo(0, 0); });
+    // and the edits survive a reload without the picker's help
+    await bp.reload();
+    await bp.waitForLoadState("load");
+    await bp.waitForTimeout(2000);
+    eq("after a reload bold and italic come back by themselves", await look(), "700 italic");
+    await bp.close();
+  }
+
   // ---- the options page shows the shortcut the browser actually assigned, and how to change it
   {
     const op = await context.newPage();

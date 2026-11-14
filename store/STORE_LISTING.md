@@ -28,7 +28,7 @@ review. Build the file to upload with `node scripts/build.mjs --zip` (it writes 
 
 > SiteCleaner lets you try design changes on a live page, undo any of them, and hand over what you changed in a form a developer (or Claude) can apply.
 >
-> **Select and restyle** any element: fill, border, shadow, corner radius, text, font (colour, size, weight, line height, spacing, alignment), size (type a
+> **Select and restyle** any element: fill, border, shadow, corner radius, text, font (colour, size, weight, bold and italic, line height, spacing, alignment), size (type a
 > number or drag the handles), padding and margin, flex and grid layout. Shift-click to select several elements and change them all at once, or search by
 > CSS selector to select every match. Shift the hue, saturation and brightness of a whole selection together. Copy one element's look and paste it onto others.
 >
