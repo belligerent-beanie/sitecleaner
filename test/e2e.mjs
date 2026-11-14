@@ -690,7 +690,7 @@ try {
     await sp.mouse.down();
     await sp.waitForTimeout(600);
     const pressed = await bg();
-    const held = await sp.evaluate(() => ({ active: document.querySelector(".cta").matches(":active"), hover: document.querySelector(".cta").matches(":hover"), rules: [...document.adoptedStyleSheets].flatMap((sheet) => [...sheet.cssRules].map((r) => r.cssText)).filter((t) => /active/.test(t)).slice(0, 3) }));
+    const held = await sp.evaluate(([x, y]) => ({ box: [x, y], under: (() => { const e = document.elementFromPoint(x, y); return e ? e.tagName + "." + e.className + "#" + e.id : null; })(), viewport: [innerWidth, innerHeight], active: document.querySelector(".cta").matches(":active"), hover: document.querySelector(".cta").matches(":hover"), rules: [...document.adoptedStyleSheets].flatMap((sheet) => [...sheet.cssRules].map((r) => r.cssText)).filter((t) => /active/.test(t)).slice(0, 3) }), [box.x + 6, box.y + 6]);
     if (pressed !== "rgb(34, 34, 34)") console.log("      [diagnostic] while held:", JSON.stringify(held));
     await sp.mouse.up();
     await sp.mouse.move(2, 2);
