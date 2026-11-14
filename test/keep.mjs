@@ -15,8 +15,9 @@ const check = (name, ok, detail = "") => { console.log(`${ok ? "PASS" : "FAIL"} 
 
 const CSS = ".tile { background: #eeeeee; } main .tile { color: #111111; padding: 4px; } .hide { display: none; }";
 const PAGES = {
-  "/": `<!doctype html><title>site</title><style>${CSS}</style><main><div class="tile">one</div><div class="tile">two</div><div class="tile">three</div></main>`,
-  "/other": `<!doctype html><title>other</title><style>${CSS}</style><main><div class="tile">one</div><div class="tile">two</div><div class="tile">three</div></main>`,
+  "/": `<!doctype html><title>site</title><style>${CSS}</style><main><div class="tile">one</div><div class="tile">two</div><div class="tile">three</div><p id="gone-el">Delete me</p><p id="words">Original words</p></main>`,
+  "/other": `<!doctype html><title>other</title><style>${CSS}</style><main><div class="tile">one</div><div class="tile">two</div><div class="tile">three</div><p id="gone-el">Delete me</p><p id="words">Original words</p></main>`,
+  "/changed-words": `<!doctype html><title>moved on</title><style>${CSS}</style><main><div class="tile">one</div><p id="gone-el">Delete me</p><p id="words">Something else entirely</p></main>`,
   "/gone": `<!doctype html><title>changed</title><style>${CSS}</style><main><p>the site was redesigned</p></main>`,
 };
 const server = http.createServer((req, res) => { res.setHeader("content-type", "text/html"); res.end(PAGES[req.url.split("?")[0]] || PAGES["/"]); });
@@ -86,6 +87,29 @@ try {
   await page.locator(".dz-head button:text-is('Keep')").click();
   await page.waitForTimeout(500);
   check("keeping the same changes again does not duplicate rules", ((await entry()) || {}).rules.length === 1);
+
+  // ---- deleting an element and retyping text are kept too
+  await page.keyboard.press("Escape"); await page.keyboard.press("Escape"); await page.keyboard.press("Escape");
+  await page.locator("#gone-el").click();
+  await page.keyboard.press("Delete");
+  await page.locator("#words").dblclick();
+  await page.keyboard.press("Control+A");
+  await page.keyboard.type("Brand new words");
+  await page.keyboard.press("Escape");
+  await page.locator(".dz-head button:text-is('Keep')").click();
+  await page.waitForFunction(() => /Kept on/.test(document.getElementById("design-picker-extension-root").shadowRoot.textContent), null, { timeout: 8000 });
+  const more = await entry();
+  check("deleting an element is kept as a rule that hides it", more.rules.some((r) => r.b === "p#gone-el" && /display:none !important/.test(r.d)), JSON.stringify(more.rules));
+  check("retyped text is kept with what it replaced", more.rules.some((r) => r.k === "text" && r.from === "Original words" && r.to === "Brand new words"), JSON.stringify(more.rules));
+  const again = await context.newPage();
+  await again.goto(base + "/other");
+  check("on another page the deleted element is hidden", (await again.evaluate(() => getComputedStyle(document.getElementById("gone-el")).display)) === "none");
+  await again.waitForFunction(() => document.getElementById("words").textContent === "Brand new words", null, { timeout: 4000 }).catch(() => {});
+  check("and the retyped text is there", (await again.evaluate(() => document.getElementById("words").textContent)) === "Brand new words");
+  const moved = await context.newPage();
+  await moved.goto(base + "/changed-words");
+  await moved.waitForTimeout(600);
+  check("text the page has since changed is left alone", (await moved.evaluate(() => document.getElementById("words").textContent)) === "Something else entirely");
 
   // ---- what the worker will accept
   const rejected = await worker.evaluate(async () => (validRules([{ s: "a", b: "a", d: "color:red;}body{display:none" }]) ? "accepted" : "rejected"));

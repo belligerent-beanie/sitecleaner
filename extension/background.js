@@ -161,8 +161,10 @@ async function saveSite(origin, rules) {
   await syncSite(origin);
   return list.length;
 }
-const validRules = (rules) => Array.isArray(rules) && rules.length > 0 && rules.length <= 2000
-  && rules.every((r) => r && typeof r.s === "string" && typeof r.b === "string" && typeof r.d === "string" && r.s.length < 2000 && r.d.length < 4000 && !/[{}]/.test(r.s + r.b + r.d));
+const validRule = (r) => !!r && typeof r.s === "string" && typeof r.b === "string" && r.s.length < 2000 && r.b.length < 2000
+  && (r.k === "text" ? typeof r.from === "string" && typeof r.to === "string" && r.from.length < 5000 && r.to.length < 5000
+    : r.k === undefined && typeof r.d === "string" && r.d.length < 4000 && !/[{}]/.test(r.s + r.b + r.d));   // braces would let a rule close itself and start another
+const validRules = (rules) => Array.isArray(rules) && rules.length > 0 && rules.length <= 2000 && rules.every(validRule);
 const skippedNote = (skipped) => {
   const left = skipped ? (skipped.text || 0) + (skipped.structure || 0) + (skipped.notOnPage || 0) : 0;
   return left ? ` (${left} ${left === 1 ? "change" : "changes"} that are not styles were left out)` : "";

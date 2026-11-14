@@ -71,7 +71,7 @@ If a saved selector matches nothing (the site changed), the loader marks the sit
   what must match something), and the declarations.
 - **Always `!important`.** An inline style beats every site rule that is not `!important`, whatever its specificity; a sheet rule does not. So every kept declaration is `!important`. The one case
   this does not reproduce is a site `!important` rule of higher specificity, which also beats an `!important` sheet rule (an inline `!important` would win). Rare, and left alone for now.
-- **Left out and counted:** text edits, structure changes (delete, move, group...) and edits of elements that are not on the page. The Keep message says how many.
+- **Also kept:** deleting an element (a rule that hides it) and retyped text (the loader puts it back only while the element still says what it said before, and follows pages that redraw). **Left out and counted:** moving, duplicating, grouping, pasting, replacing pictures, and edits of elements that are not on the page: they rebuild the page structure, which a loader cannot do safely on a page that redraws itself. The Keep message says how many.
 - **Keeping again adds.** Rules merge by selector: a rule made again replaces the old one, the others stay. Removing one rule is not possible yet; "Forget" in the options page removes the whole site.
 - **The permission window** (`keep.html`) opens only when the site has not been allowed yet. The worker names the site from the tab that asked, and refuses rules with braces in them.
 - **The loader** (`apply.js`) is registered per origin, only while the site is switched on *and* its permission is still granted, and re-checked at start-up and whenever a permission is removed.
