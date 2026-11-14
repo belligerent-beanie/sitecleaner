@@ -11,21 +11,23 @@ Every released version, and everything that is waiting for one. Newest first. Da
 
 ## Unreleased
 
-Both are merged into `main` and neither is in a release yet. Neither bumps the version, so the numbers are suggestions. A release is made on request (`bun run share`).
+Nothing: everything merged is in 0.4.0.
 
-| Pull request | Branch | What | State | Tests | Suggested version |
-|---|---|---|---|---|---|
-| [#9](https://github.com/belligerent-beanie/sitecleaner/pull/9) | `editions-and-performance` | 14 patches: performance, a minified build, the consumer edition | **merged into `main`** (14 Nov 2026), not released | 172 of 172, plus editions, keep and access checks, and two audits clean | 0.4.0 (a second edition and a changed build are more than a patch) |
-| [#7](https://github.com/belligerent-beanie/sitecleaner/pull/7) | `classes-panel` | The classes panel, in the designer edition only | **merged into `main`** (14 Nov 2026, after #9), not released | 188 of 188, plus editions, keep and access checks, and two audits clean | goes with #9 in the next release |
+## 0.4.0 (2026-11-14)
 
-The two touched the same code (the dock header, key handling, shortcuts, the accessibility script). The conflicts were resolved when #7 took `main` after #9 merged (CI green on Linux, then merged): the classes link is now one of the designer edition's feature switches (`has("classes")`, off in the consumer edition), and every panel closes the others, including the consumer edition's "Easier to read" and the first-Keep note.
+[Release](https://github.com/belligerent-beanie/sitecleaner/releases/tag/v0.4.0) · PRs [#9](https://github.com/belligerent-beanie/sitecleaner/pull/9), [#7](https://github.com/belligerent-beanie/sitecleaner/pull/7), and the pull request that made this release
 
-### Performance, a minified build and the consumer edition (#9, merged)
+**Two extensions now.** **SiteCleaner** (the designer edition, as before) and **SiteCleaner Personal** (the consumer edition, an early version; its name is a placeholder). Each has its own zip for people with its own plain-language install instructions: `SiteCleaner-0.4.0-share.zip` and `SiteCleaner-Personal-0.4.0-share.zip`, built by `bun run release:build`. The release also carries the designer edition's Web Store package, `sitecleaner-0.4.0.zip`.
+
+- The designer edition gains the classes panel and the performance and build changes below. Its tutorial mentions the classes panel and opens once more for everyone who saw an older one (`TUTORIAL_VERSION` is 0.4.0).
+- Version number: this release bumps `package.json` to 0.4.0.
+
+### Performance, a minified build and the consumer edition (#9)
 
 - **Performance:** outlines redraw once per frame and only while the picker is on; saving no longer recomputes every edited element's selector on every edit (the patch message gives the old cost as about 50 s for 300 edited elements on a 20,000-element page; the names are now worked out again only after the page has changed); `bun run profile` times the heavy operations.
 - **Minified build:** the picker goes from 218 KB to 111 KB (61 KB to 37 KB gzipped) with esbuild, a new dev dependency; `--no-minify` keeps readable files.
 - **Two editions** from the same files. The designer edition is the default build, as before. `--edition consumer` builds a separate extension (name `SiteCleaner Personal` is a placeholder) that keeps changes per site as CSS rules applied by a small loader before the page paints, asks permission one site at a time, keeps deleted elements and retyped text, shows what is kept with a switch and a Remove for each rule, flags stale rules with a Re-pick, watermarks screenshots as edited, and has an **Easier to read** preset. It asks for one more permission (`contextMenus`) than the designer edition. Design: `docs/EDITIONS.md`.
-- Open before this can ship: a real name, a Web Store listing and privacy policy for the second extension, and the consumer edition's open questions in `docs/EDITIONS.md`.
+- Still open for the consumer edition: a real name, a Web Store listing and privacy policy, and the open questions in `docs/EDITIONS.md`. Not tried by a person: the per-site permission window, the right-click menu click, and the touch sizes.
 
 ### Classes panel (#7)
 
@@ -33,7 +35,7 @@ The two touched the same code (the dock header, key handling, shortcuts, the acc
 - Reads inside `@media`, `@supports`, `@layer`, `@container` and nested rules. Classes the elements have but whose rules cannot be read (a style sheet from another site, or a script) are listed too and say so. Measured on real sites: Wikipedia 215 classes in use, GitHub 371, Tailwind's site 702, Bootstrap's site 151; counts matched an independent count on seven sites.
 - The compact export's `from:` lookup reads inside `@layer` as well.
 - The tutorial's nine page numbers share one row (fixes a cosmetic fault in 0.3.1: the "9" sat alone on a second line).
-- Designer edition only. Not yet in the tutorial: the panel is not described there, and the tutorial version is not bumped for one sentence; add it with the next tutorial change.
+- Designer edition only. Described on page 2 of the tutorial.
 
 ## 0.3.1 (2026-11-14)
 

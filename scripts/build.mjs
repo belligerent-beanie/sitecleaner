@@ -159,21 +159,26 @@ if (makeZip) {
   console.log(`Wrote ${zipPath}`);
 }
 
+// What goes in the zip for people, per edition. (File names differ by more than case: on Windows "SiteCleaner-x.zip" and "sitecleaner-x.zip" are the same file.)
+const SHARE = {
+  designer: { folder: "SiteCleaner", readme: "SHARE_README.txt", skill: true },
+  consumer: { folder: "SiteCleaner-Personal", readme: "SHARE_README_PERSONAL.txt", skill: false },
+};
 if (makeShare) {
   if (test) throw new Error("--share makes the zip for people, which must be the real build: not with --test");
-  if (editionName !== "designer") throw new Error("--share is only for the designer edition");
+  const share = SHARE[editionName];   // each edition has its own folder name, instructions and zip name
   const stage = fs.mkdtempSync(path.join(os.tmpdir(), "sitecleaner-share-"));
-  const top = path.join(stage, `SiteCleaner-${version}`);
+  const top = path.join(stage, `${share.folder}-${version}`);
   fs.mkdirSync(top, { recursive: true });
   fs.cpSync(out, path.join(top, "extension"), { recursive: true });
-  const instructions = fs.readFileSync(path.join(root, "store", "SHARE_README.txt"), "utf8").replace(/__VERSION__/g, version).replace(/\r?\n/g, "\r\n");   // CRLF: opens cleanly in Notepad
+  const instructions = fs.readFileSync(path.join(root, "store", share.readme), "utf8").replace(/__VERSION__/g, version).replace(/\r?\n/g, "\r\n");   // CRLF: opens cleanly in Notepad
   fs.writeFileSync(path.join(top, "README - START HERE.txt"), instructions);
   for (const file of ["LICENSE", "NOTICE"]) fs.copyFileSync(path.join(root, file), path.join(top, file));
   fs.mkdirSync(path.join(top, "third_party", "visbug"), { recursive: true });
   for (const file of ["LICENSE", "README.md"]) fs.copyFileSync(path.join(root, "third_party", "visbug", file), path.join(top, "third_party", "visbug", file));
-  fs.cpSync(path.join(root, "skills", "sitecleaner-apply"), path.join(top, "for-AI", "sitecleaner-apply"), { recursive: true });
+  if (share.skill) fs.cpSync(path.join(root, "skills", "sitecleaner-apply"), path.join(top, "for-AI", "sitecleaner-apply"), { recursive: true });   // the skill reads the designer edition's change lists
   fs.mkdirSync(path.join(root, "releases"), { recursive: true });
-  const sharePath = path.join(root, "releases", `SiteCleaner-${version}-share.zip`);
+  const sharePath = path.join(root, "releases", `${share.folder}-${version}-share.zip`);
   fs.writeFileSync(sharePath, zipDirectory(stage));
   fs.rmSync(stage, { recursive: true, force: true });
   console.log(`Wrote ${sharePath}`);

@@ -58,7 +58,9 @@ USE IT
 
  3. Click an element on the page to select it. Shift-click adds more. Press
     Enter to open the tools (Fill, Border, Font, Size, Spacing and more), or
-    press a letter: C fill, B border, F font, S size, P spacing.
+    press a letter: C fill, B border, F font, S size, P spacing. The
+    "Classes" link lists the page's classes: click one to select every
+    element that has it.
     Press ? at any time to see every shortcut.
 
  4. Change things. Ctrl+Z undoes (Ctrl+Shift+Z redoes). Hold the \ key to
