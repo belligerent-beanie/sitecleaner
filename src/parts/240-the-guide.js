@@ -86,7 +86,7 @@
                     onclick: () => pasteLook(targets()) }),
       h("button", { type: "button", class: "dz-menu-button", text: "Screenshot", disabled: !host.capture, title: host.capture ? "Save a PNG of the selected elements, or of the page if nothing is selected (Alt+Shift+S)" : "Screenshots need the Chrome extension",
                     onclick: () => takeScreenshot() }));
-    const tools = () => h("div", { class: "dz-tools" }, h("div", { class: "dz-menu" },
+    const tools = () => h("div", { class: "dz-tools" }, stateRow(), h("div", { class: "dz-menu" },
       menuButton("fill", "Fill"), menuButton("border", "Border"), menuButton("shadow", "Shadow"), menuButton("radius", "Radius"), menuButton("tone", "Tone"),
       menuButton("text", "Text"), menuButton("font", "Font"), menuButton("image", "Image"),
       menuButton("size", "Size"), menuButton("spacing", "Spacing"), menuButton("layout", "Layout"), menuButton("position", "Position"), menuButton("move", "Move")), lookRow());
@@ -123,7 +123,8 @@
     refreshBoxes();
   }
   function menuButton(name, text) {
-    const blocked = name === "text" && selected ? (selection.length > 1 ? "Text edits one element at a time" : textBlocked(selected)) : "";
+    const blocked = layer !== "normal" && (name === "text" || name === "move" || name === "image") ? "Text, pictures and moving through the page are the same in every state: switch to normal to use them"
+      : name === "text" && selected ? (selection.length > 1 ? "Text edits one element at a time" : textBlocked(selected)) : "";
     return h("button", {
       type: "button", class: "dz-menu-button" + (tool === name ? " dz-active" : ""), text, disabled: !!blocked,
       title: blocked || undefined, "aria-pressed": tool === name ? "true" : "false",

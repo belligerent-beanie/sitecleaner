@@ -21,7 +21,11 @@
   /** One text block per changed element: its selector (and a snippet of its text to confirm it), then each before → after. */
   function exportBlocks() {
     const blocks = [];
-    for (const [element, rec] of [...changes.entries(), ...pending.map((item) => [null, item])]) {
+    const entries = [
+      ...layers.normal.entries(), ...pending.map((item) => [null, item]),
+      ...STATES.flatMap((state) => [...layers[state].entries(), ...pendingStates[state].map((item) => [null, item])].map(([element, rec]) => [element, rec, state])),
+    ];
+    for (const [element, rec, state] of entries) {
       if (element && !element.isConnected) continue;   // removed from the page: its style edits are moot
       const lines = [];
       for (const prop of ["background-color", "color", "font-size", "font-weight", "line-height", "letter-spacing", "text-align", "border", "border-radius", "box-shadow", "padding", "margin", "width", "height", "display", "flex-direction", "flex-wrap", "justify-content", "align-items", "justify-items", "gap", "opacity", "position", "top", "left", "z-index", "background-image"]) {
@@ -29,13 +33,14 @@
         const say = COLOUR_PROPS.includes(prop) ? (value) => colourIn(String(value)) : (value) => String(value);
         if (after !== undefined && after !== rec.before[prop]) lines.push(`  ${prop}: ${shorten(say(rec.before[prop]), 110)} → ${shorten(say(after), 110)}`);
       }
+      const contrastNow = () => (state ? withLayer(state, () => forcedRead(element, () => contrastInfo(element))) : contrastInfo(element));
       if (element && document.contains(element) && rec.before.contrast && rec.after && (rec.after["background-color"] !== undefined || rec.after.color !== undefined)) {
-        const info = contrastInfo(element);
+        const info = contrastNow();
         if (contrastLabel(info) !== rec.before.contrast) lines.push(`  contrast: ${rec.before.contrast} → ${contrastLabel(info)}${info.unknown ? "" : ` (WCAG AA ${info.aa ? "pass" : "fail"}, APCA Lc ${Math.round(info.apca)})`}`);
       }
       if (rec.text && rec.text.after !== rec.text.before) lines.push(`  text: ${JSON.stringify(rec.text.before)} → ${JSON.stringify(rec.text.after)}`);
       if (!lines.length) continue;   // changed and changed back: nothing to hand over
-      blocks.push([rec.selector + (rec.snippet ? `  (${JSON.stringify(rec.snippet)})` : ""), ...lines].join("\n"));
+      blocks.push([rec.selector + (state ? `:${state}` : "") + (rec.snippet ? `  (${JSON.stringify(rec.snippet)})` : ""), ...lines].join("\n"));
     }
     return blocks;
   }
@@ -46,11 +51,13 @@
     const structure = structureLines();
     if (!blocks.length && !structure.length) return "";
     const sized = blocks.some((block) => /^  (width|height):/m.test(block));
+    const stated = blocks.some((block) => /^.*:(hover|focus)(  \(|$)/m.test(block));
     return [
       "# UI changes from the designer picker",
       `Page: ${location.origin + location.pathname}`,
       `Viewport: ${window.innerWidth}×${window.innerHeight} · ${new Date().toISOString().slice(0, 10)}`,
       "Each block is one element: its selector (with a snippet of its text to confirm it), then before → after. Apply these in the source code.",
+      ...(stated ? ["A selector ending in :hover or :focus is a state: write those properties in a rule for that state, not on the element. The \"before\" is how the state looks on the page now (the page's own :hover or :focus rules included)."] : []),
       ...(sized ? ["Width and height are fixed pixel sizes set in this window: when applying them keep the layout working on smaller screens (min-width, percentages or clamp())."] : []),
       "",
       blocks.join("\n\n"),

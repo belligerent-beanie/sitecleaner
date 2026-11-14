@@ -12,7 +12,7 @@
       if (unique(byId, element)) return tag + byId;
     }
     for (const attr of element.attributes) {
-      if (!attr.name.startsWith("data-") || attr.name === "data-designer" || !attr.value || attr.value.length > 40) continue;
+      if (!attr.name.startsWith("data-") || attr.name.startsWith("data-designer") || !attr.value || attr.value.length > 40) continue;
       const byData = `${tag}[${attr.name}="${attr.value.replace(/(["\\])/g, "\\$1")}"]`;
       if (unique(byData, element)) return byData;
     }

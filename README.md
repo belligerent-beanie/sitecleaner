@@ -18,7 +18,9 @@ that matches a CSS selector (or some words). Walk the page with ↑ parent, ↓ 
 
 **Style.** Fill, border, shadow, corner radius, tone (shift the hue, saturation and brightness of a whole selection together); text, font
 (colour, size, weight, line height, letter spacing, alignment); size (type it, or drag the handles), padding and margin, flex and grid layout,
-opacity. Copy one element's look and paste it onto others. Every colour picker lists the colours already on the page, with the names of the
+opacity. Copy one element's look and paste it onto others. **Hover and focus:** the State switch above the tools (normal, hover, focus) points every tool at
+that state: the selected elements are shown in it while you edit, starting from the look the site's own `:hover` or `:focus` rules give them, and the
+change is written as a rule for the state, undone, saved and exported like any other. Every colour picker lists the colours already on the page, with the names of the
 site's CSS variables.
 
 **Check as you go.** Fill and Font show the contrast against what is behind the text: WCAG 2 (AA and AAA) and APCA. The inspector (`I`)
@@ -75,7 +77,7 @@ To add a feature: a new file in `src/parts/`, registered through the `keyHooks`,
 ## Test
 
     bun install                   # Playwright, for the tests
-    node test/e2e.mjs             # 107 checks in a real browser
+    node test/e2e.mjs             # 122 checks in a real browser
 
 It builds the extension, loads it into Playwright's Chromium (branded Chrome no longer loads unpacked extensions from the command line), and
 drives it on a page that is nothing like a designer's own: a strict content security policy, generated class names, its own CSS variables. It covers
@@ -95,7 +97,9 @@ no saved edits and no export of what changed, and writes to the page directly; h
 
 - **Without the all-sites permission a reload turns the picker off** (the extension cannot act on a page until asked): turn it on again and the
   saved edits come back. With the permission they return by themselves.
-- **Hover and focus states** cannot be edited yet: each state needs its own rule, and undo, compare, reload and export have to learn about states.
+- **States** are hover and focus only (not active, visited or focus-within). The page's own state rules are copied from style sheets the picker can read, so a state
+  that a site styles from another origin's sheet starts from the normal look. Text, pictures and moving through the page are the same in every state, so those tools
+  work on the normal state. State edits are always written with `!important`, to win over the site's own rules.
 - **Replaced pictures** that are large (over about 300 KB) are not kept across a reload, and a page whose security policy forbids `data:` images
   cannot show a replaced local file (the change is still recorded and exported).
 - **Cross-origin iframes** are separate documents the picker does not reach; **closed shadow roots** on a page cannot be selected into.

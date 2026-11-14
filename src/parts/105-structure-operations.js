@@ -80,6 +80,7 @@
   /** Perform structural changes as one step; each is {desc, redo, undo}. */
   function doOps(list, applied = false) {   // applied: they have been run already, one after another (each planned on the page the last left)
     if (!list.length) return;
+    ensureNormal();
     if (comparing) setCompare(false);
     if (!applied) for (const op of list) op.redo();
     ops.push(...list);

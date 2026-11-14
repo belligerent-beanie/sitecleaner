@@ -22,19 +22,23 @@
     return { ...rec, props: new Map([...rec.props].map(([k, v]) => [k, { ...v }])), text: rec.text ? { ...rec.text } : null,
              before: { ...rec.before }, after: rec.after ? { ...rec.after } : undefined };
   }
-  function snapshotOf(element) {
+  function snapshotIn(element, which) {
     const style = {};
-    for (const prop of MANAGED) style[prop] = [element.style.getPropertyValue(prop), element.style.getPropertyPriority(prop)];
-    return { element, style, text: element.children.length ? null : element.textContent, rec: cloneRec(changes.get(element)) };
+    const source = peekStyle(element, which);
+    for (const prop of MANAGED) style[prop] = source ? [source.getPropertyValue(prop), source.getPropertyPriority(prop)] : ["", ""];
+    return { element, layer: which, style, text: which !== "normal" || element.children.length ? null : element.textContent, rec: cloneRec(layers[which].get(element)) };
   }
+  const snapshotOf = (element) => snapshotIn(element, layer);
   function putSnapshotBack(snap) {
     const element = snap.element;
     if (!document.contains(element)) return;
-    for (const [prop, [value, priority]] of Object.entries(snap.style)) {
-      if (value) element.style.setProperty(prop, value, priority); else element.style.removeProperty(prop);
+    const which = snap.layer || "normal";
+    const style = Object.values(snap.style).some(([value]) => value) ? styleOf(element, which) : peekStyle(element, which);   // no rule to make just to clear it
+    if (style) for (const [prop, [value, priority]] of Object.entries(snap.style)) {
+      if (value) style.setProperty(prop, value, priority); else style.removeProperty(prop);
     }
     if (snap.text !== null && !element.children.length && element.textContent !== snap.text) element.textContent = snap.text;
-    if (snap.rec) changes.set(element, snap.rec); else changes.delete(element);
+    if (snap.rec) layers[which].set(element, snap.rec); else layers[which].delete(element);
   }
   function showHistory() {
     if (undoLink) undoLink.disabled = !undoStack.length;
@@ -62,7 +66,7 @@
     const entry = from.pop();
     if (!entry) return;
     const next = { ...entry };   // what the step becomes on the other stack: the state as it is now, to come back to
-    if (entry.snaps) { next.snaps = entry.snaps.map((snap) => snapshotOf(snap.element)); entry.snaps.forEach(putSnapshotBack); }
+    if (entry.snaps) { next.snaps = entry.snaps.map((snap) => snapshotIn(snap.element, snap.layer || "normal")); entry.snaps.forEach(putSnapshotBack); }
     if (entry.pending) { next.pending = [...pending]; pending = entry.pending; }
     if (entry.pendingOps) { next.pendingOps = [...pendingOps]; pendingOps = entry.pendingOps; }
     if (entry.ops) {   // structural changes: undo them newest first, or do them again oldest first; a Reset all step is the other way round

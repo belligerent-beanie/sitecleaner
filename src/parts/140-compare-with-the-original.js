@@ -7,7 +7,8 @@
     if (want === !!comparing) return;
     if (want) {
       comparing = [];
-      for (const [element, rec] of changes) {
+      stateSheet.disabled = true;
+      for (const [element, rec] of layers.normal) {
         if (!document.contains(element)) continue;
         const stash = [];
         for (const [prop, original] of rec.props) {
@@ -26,6 +27,7 @@
         if (text !== null && !element.children.length) element.textContent = text;
       }
       comparing = null;
+      stateSheet.disabled = false;
     }
     compareBadge.hidden = !comparing;
     refreshBoxes();

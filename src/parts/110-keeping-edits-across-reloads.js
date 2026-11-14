@@ -17,11 +17,18 @@
   function save() {
     if (PREVIEW) return;
     try {
-      const live = [...changes.entries()].filter(([element]) => element.isConnected);   // what was removed from the page cannot come back
-      for (const [element, rec] of live) rec.selector = selectorFor(element);            // named by the page as it is now, structure changes included
-      const edits = [...live.map(([, rec]) => saved(rec)), ...pending].filter(hasChange);
+      retargetRules();
+      const listFor = (map, waiting) => {
+        const live = [...map.entries()].filter(([element]) => element.isConnected);   // what was removed from the page cannot come back
+        for (const [element, rec] of live) rec.selector = selectorFor(element);       // named by the page as it is now, structure changes included
+        return [...live.map(([, rec]) => saved(rec)), ...waiting].filter(hasChange);
+      };
+      const edits = listFor(layers.normal, pending);
+      const states = {};
+      for (const state of STATES) states[state] = listFor(layers[state], pendingStates[state]);
       const structure = [...ops.map((op) => op.desc), ...pendingOps];
-      host.writeEdits(STORE_KEY, edits.length || structure.length ? JSON.stringify({ v: 2, edits, ops: structure }) : null);
+      const anyState = STATES.some((state) => states[state].length);
+      host.writeEdits(STORE_KEY, edits.length || structure.length || anyState ? JSON.stringify(anyState ? { v: 3, edits, ops: structure, states } : { v: 2, edits, ops: structure }) : null);
     } catch (_) { /* the edits still work in this tab */ }
   }
   function restore() {
@@ -30,10 +37,15 @@
     const edits = Array.isArray(raw) ? raw : raw && Array.isArray(raw.edits) ? raw.edits : [];
     pending = edits.filter((item) => item && typeof item.selector === "string" && item.before && hasChange(item));
     pendingOps = raw && Array.isArray(raw.ops) ? raw.ops.filter((d) => d && typeof d.type === "string") : [];
-    if (!pending.length && !pendingOps.length) return;
+    for (const state of STATES) {
+      const list = raw && raw.states && Array.isArray(raw.states[state]) ? raw.states[state] : [];
+      pendingStates[state] = list.filter((item) => item && typeof item.selector === "string" && item.before && hasChange(item));
+    }
+    if (!anyPending()) return;
+    buildMirror();
     putBack();
     let tries = 0;   // the page may build the element later: look again every second for half a minute
-    const timer = setInterval(() => { if ((!pending.length && !pendingOps.length) || ++tries > 30) clearInterval(timer); else putBack(); }, 1000);
+    const timer = setInterval(() => { if (!anyPending() || ++tries > 30) clearInterval(timer); else putBack(); }, 1000);
   }
   function putBack() {
     restoring = true;
@@ -43,8 +55,9 @@
     const leftOps = [];   // structure first, in the order it was done: the style edits are named by the page as it ended up
     for (const d of pendingOps) { try { if (!replayOp(d)) leftOps.push(d); } catch (_) { leftOps.push(d); } }
     pendingOps = leftOps;
+    const restoreList = (list) => {
     const left = [];
-    for (const item of pending) {
+    for (const item of list) {
       let element = null;
       try { element = document.querySelector(item.selector); } catch (_) { /* a selector the browser rejects */ }
       if (!element || ours(element) || changes.has(element)) { left.push(item); continue; }
@@ -93,7 +106,10 @@
         if (rec.text && item.text) rec.text.before = item.text.before;
       }
     }
-    pending = left;
+    return left;
+    };
+    pending = restoreList(pending);
+    for (const state of STATES) pendingStates[state] = withLayer(state, () => restoreList(pendingStates[state]));
     showCount();
     save();
   }
@@ -165,10 +181,11 @@
     const rec = changes.get(element);
     if (!rec) return;
     checkpoint("size-clear", element);
+    const style = styleOf(element);
     for (const axis of ["width", "height"]) {
       const original = rec.props.get(axis);
       if (!original) continue;
-      if (original.value) element.style.setProperty(axis, original.value, original.priority); else element.style.removeProperty(axis);
+      if (original.value) style.setProperty(axis, original.value, original.priority); else style.removeProperty(axis);
       rec.props.delete(axis);
       if (rec.after) delete rec.after[axis];
     }
@@ -176,6 +193,7 @@
     edited();
   }
   function applyText(element, text) {
+    ensureNormal();
     checkpoint("text", element);
     const rec = record(element);
     if (!rec.text) rec.text = { before: element.textContent, after: element.textContent };
@@ -187,9 +205,10 @@
     const rec = changes.get(element);
     if (!rec) return;
     if (!bulk) pushStep([snapshotOf(element)], false);
+    const style = styleOf(element);
     for (const [prop, original] of rec.props) {
-      if (original.value) element.style.setProperty(prop, original.value, original.priority);
-      else element.style.removeProperty(prop);
+      if (original.value) style.setProperty(prop, original.value, original.priority);
+      else style.removeProperty(prop);
     }
     if (rec.text) element.textContent = rec.text.before;
     changes.delete(element);
@@ -204,8 +223,9 @@
     renderDock();
   }
   function resetAll() {
-    if (changes.size || pending.length || ops.length || pendingOps.length) {   // one step puts all of it back
-      undoStack.push({ snaps: [...changes.keys()].map(snapshotOf), pending: [...pending], pendingOps: [...pendingOps], ops: [...ops], inverted: true });
+    const everything = () => Object.keys(layers).flatMap((which) => [...layers[which].keys()].map((element) => snapshotIn(element, which)));
+    if (Object.values(layers).some((map) => map.size) || anyPending() || ops.length) {   // one step puts all of it back
+      undoStack.push({ snaps: everything(), pending: [...pending], pendingOps: [...pendingOps], ops: [...ops], inverted: true });   // saved state edits that were waiting are not brought back by undo (rare)
       if (undoStack.length > MAX_STEPS) undoStack.shift();
       redoStack.length = 0;
       showHistory();
@@ -214,8 +234,9 @@
     ops.length = 0;
     pendingOps = [];
     bulk++;
-    try { for (const element of [...changes.keys()]) resetElement(element); } finally { bulk--; }
+    try { for (const which of Object.keys(layers)) withLayer(which, () => { for (const element of [...changes.keys()]) resetElement(element); }); } finally { bulk--; }
     pending = [];
+    pendingStates = { hover: [], focus: [] };
     save();
     exported = true;
     renderDock();

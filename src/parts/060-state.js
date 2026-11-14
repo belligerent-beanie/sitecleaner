@@ -15,7 +15,11 @@
   let toastTimer = 0;
   let changesLink = null;      // the "Changes (n)" button in the dock, kept so its count can change without rebuilding the dock
   let exported = true;         // false while there are edits that were not copied or downloaded
-  const changes = new Map();   // element -> {selector, tag, snippet, props: Map(prop -> {before, after, original}), text}
+  // Edits are kept in layers: "normal" (the element as it is) and one per state (:hover, :focus). `changes` is the layer being edited.
+  const STATES = ["hover", "focus"];
+  const layers = { normal: new Map(), hover: new Map(), focus: new Map() };   // layer -> element -> {selector, tag, snippet, props: Map(prop -> {before, after, original}), text}
+  let layer = "normal";
+  let changes = layers.normal;
   // Features register with these instead of editing the handlers below.
   const pageEventHooks = [];   // (event) => true to take over a click, pointer or double-click on the page (it is not swallowed)
   const keyHooks = [];         // (event) => true if the key was used (checked while the picker is on, after undo and redo)

@@ -24,9 +24,9 @@ const PAGE = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>
 <body><main class="css-1x2y3z"><h1 class="title">Hello there</h1><p class="lede">A paragraph of text to restyle.</p>
 <button id="go" class="btn-a1b2c3d">Go</button><div class="card"><span class="muted">Muted words</span></div>
 <ul class="items"><li>One</li><li>Two</li><li>Three</li></ul>
-<img id="pic" class="hero-img" alt="Logo" src="/pic.png" srcset="/pic.png 1x, /pic2.png 2x"><div class="banner">Banner</div></main><dialog id="modal"><p class="in-modal">A modal dialog</p><button id="shut">Close</button></dialog><script src="/fixture.js"></script></body></html>`;
+<img id="pic" class="hero-img" alt="Logo" src="/pic.png" srcset="/pic.png 1x, /pic2.png 2x"><div class="banner">Banner</div></main><a class="cta" href="#cta">Visit</a><dialog id="modal"><p class="in-modal">A modal dialog</p><button id="shut">Close</button></dialog><script src="/fixture.js"></script></body></html>`;
 const CSS = `:root { --brand: #3366cc; --ink: #222222; } body { margin: 0; font: 16px system-ui; color: var(--ink); background: #ffffff; }
-main { padding: 24px; } .btn-a1b2c3d { background: var(--brand); color: #ffffff; border: 0; padding: 8px 16px; } .card { background: #eeeeee; padding: 12px; margin-top: 16px; }
+main { padding: 24px; } .btn-a1b2c3d { background: var(--brand); color: #ffffff; border: 0; padding: 8px 16px; } .card { background: #eeeeee; padding: 12px; margin-top: 16px; } .cta { display: inline-block; color: #0000ee; background: #ffffff; padding: 4px 8px; transition: background-color 0.4s; } .cta:hover { background: #ffee00; }
 .muted { color: #999999; } .hero-img { display: block; width: 120px; height: 60px; } .banner { height: 50px; background: url(/pic.png) center / cover; }`;
 const server = http.createServer((req, res) => {
   if (req.url.startsWith("/pic")) {
@@ -477,7 +477,7 @@ try {
     await kp.locator(".dz-toggle").waitFor({ timeout: 8000 });
     await kp.keyboard.press("Escape");
     const card = (prop) => kp.evaluate((p) => getComputedStyle(document.querySelector(".card"))[p], prop);
-    const tool = () => kp.evaluate(() => { const a = document.querySelector("#design-picker-extension-root").shadowRoot.querySelector(".dz-menu-button.dz-active"); return a ? a.textContent : ""; });
+    const tool = () => kp.evaluate(() => { const a = document.querySelector("#design-picker-extension-root").shadowRoot.querySelector(".dz-tools > .dz-menu:not(.dz-states) .dz-menu-button.dz-active"); return a ? a.textContent : ""; });
     const undoKey = async () => { await kp.evaluate(() => { const a = document.querySelector("#design-picker-extension-root").shadowRoot.activeElement; if (a) a.blur(); }); await kp.keyboard.press("Control+z"); };
 
     await kp.locator(".card").click({ position: { x: 3, y: 3 } });
@@ -598,7 +598,72 @@ try {
     await np.keyboard.press("Escape");
     await np.locator(".dz-dock .dz-head button:text-matches('Changes')").click();
     eq("the choice is remembered across a reload", await np.locator(".dz-dock button.dz-active:text-is('rgb')").count(), 1);
+    await np.locator(".dz-dock button:text-is('hex')").click();   // the choice is kept for the browser: leave the default for the sections that follow
     await np.close();
+  }
+
+  // ---- hover and focus states: edited while shown, written as a rule for the state, undoable, exported, kept across a reload
+  {
+    const sp = await context.newPage();
+    sp.on("pageerror", (error) => console.log("      [page error]", error.message));
+    await sp.goto(url + "states");
+    await sp.bringToFront();
+    await worker.evaluate(async () => { const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true }); await toggle(tab); });
+    await sp.locator(".dz-toggle").waitFor({ timeout: 8000 });
+    await sp.keyboard.press("Escape");
+    const bg = () => sp.evaluate(() => getComputedStyle(document.querySelector(".cta")).backgroundColor);
+    const hoverBg = async () => { await sp.mouse.move(2, 2); await sp.locator(".cta").hover(); await sp.waitForTimeout(600); const value = await bg(); await sp.mouse.move(2, 2); await sp.waitForTimeout(600); return value; };
+    eq("the page's own hover look is yellow, and the link is white at rest", [await hoverBg(), await bg()], ["rgb(255, 238, 0)", "rgb(255, 255, 255)"]);
+    await sp.locator(".cta").click();
+    await sp.keyboard.press("Enter");
+    await sp.locator(".dz-states button:text-is('hover')").click();
+    await sp.waitForTimeout(600);
+    eq("choosing the hover state shows the page's own hover look on the selected element", await bg(), "rgb(255, 238, 0)");
+    await sp.locator(".dz-dock button:text-is('Fill')").click();
+    await sp.locator(".dz-chip[title*='--ink']").click();
+    await sp.waitForTimeout(600);
+    eq("a fill in the hover state shows at once", await bg(), "rgb(34, 34, 34)");
+    await sp.locator(".dz-states button:text-is('normal')").click();
+    await sp.waitForTimeout(600);
+    eq("back in the normal state the link is as it was", await bg(), "rgb(255, 255, 255)");
+    eq("the real pointer over it now gets the designer's hover fill", await hoverBg(), "rgb(34, 34, 34)");
+    eq("the element's own style attribute was never touched", await sp.evaluate(() => document.querySelector(".cta").getAttribute("style")), null);
+    await sp.locator(".dz-dock .dz-head button:text-matches('Changes')").click();
+    const exported = await sp.locator(".dz-preview").innerText();
+    check("the export names the state and starts from the page's hover look", /a\.cta:hover[^\n]*\n\s+background-color: #ffee00 → #222222/.test(exported) && exported.includes("A selector ending in :hover"), JSON.stringify(exported));
+    await sp.keyboard.press("Escape");
+    await sp.keyboard.press("Control+z");
+    eq("undo takes the hover edit away again", await hoverBg(), "rgb(255, 238, 0)");
+    await sp.keyboard.press("Control+Shift+z");
+    eq("and redo brings it back", await hoverBg(), "rgb(34, 34, 34)");
+    await sp.reload();
+    await sp.waitForLoadState("load");
+    await sp.waitForTimeout(1500);
+    eq("after a reload the hover edit is back without the picker", await hoverBg(), "rgb(34, 34, 34)");
+    await sp.locator(".dz-toggle").waitFor({ timeout: 8000 });
+    if ((await sp.locator(".dz-toggle").innerText()) !== "Design: on") await worker.evaluate(async () => { const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true }); await toggle(tab); });
+    await sp.keyboard.press("Escape");
+    await sp.locator(".cta").click();
+    await sp.keyboard.press("Enter");
+    await sp.locator(".dz-states button:text-is('focus')").click();
+    await sp.locator(".dz-dock button:text-is('Fill')").click();
+    await sp.locator(".dz-chip[title*='--ink']").click();
+    await sp.locator(".dz-states button:text-is('normal')").click();
+    await sp.evaluate(() => document.querySelector(".cta").focus());
+    await sp.waitForTimeout(600);
+    eq("a focus edit applies when the link has focus", await bg(), "rgb(34, 34, 34)");
+    await sp.evaluate(() => document.querySelector(".cta").blur());
+    await sp.waitForTimeout(600);
+    eq("and not when it has not", await bg(), "rgb(255, 255, 255)");
+    await sp.keyboard.press("Escape");
+    await sp.locator(".dz-dock .dz-head button:text-matches('Changes')").click();
+    check("Changes lists the hover and the focus edits", (await sp.locator(".dz-change code").allInnerTexts()).join("|").includes("a.cta:hover") && (await sp.locator(".dz-change code").allInnerTexts()).join("|").includes("a.cta:focus"), (await sp.locator(".dz-change code").allInnerTexts()).join("|"));
+    await sp.locator(".dz-dock button:text-is('Reset all')").click();
+    await sp.waitForTimeout(300);
+    eq("Reset all puts both states back", [await hoverBg(), await bg()], ["rgb(255, 238, 0)", "rgb(255, 255, 255)"]);
+    await sp.keyboard.press("Control+z");
+    eq("and one undo brings both back", await hoverBg(), "rgb(34, 34, 34)");
+    await sp.close();
   }
 
   // ---- a screen-size preview opens as a real window of that size and shows the edits, without the picker
@@ -612,7 +677,7 @@ try {
   await popup.close();
 } catch (error) {
   failed = true;
-  console.log("FAIL  the test stopped:", error.message);
+  console.log("FAIL  the test stopped:", error.message, String(error.stack || "").split(/\r?\n/).filter((l) => l.includes("e2e.mjs")).slice(0, 2).join(" "));
 } finally {
   await context.close();
   server.close();

@@ -141,3 +141,6 @@
 .dz-head { cursor: grab; }
 .dz-head button { cursor: pointer; }
 .dz-margin, .dz-padding { background: none !important; outline: none !important; }
+
+/* Which state is being edited */
+.dz-states { align-items: center; }

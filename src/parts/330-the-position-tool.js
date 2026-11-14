@@ -22,10 +22,11 @@
     const rec = changes.get(element);
     if (!rec) return;
     checkpoint("position-clear", element);
+    const style = styleOf(element);
     for (const prop of POSITION_PROPS) {
       const original = rec.props.get(prop);
       if (!original) continue;
-      if (original.value) element.style.setProperty(prop, original.value, original.priority); else element.style.removeProperty(prop);
+      if (original.value) style.setProperty(prop, original.value, original.priority); else style.removeProperty(prop);
       rec.props.delete(prop);
       if (rec.after) delete rec.after[prop];
     }
