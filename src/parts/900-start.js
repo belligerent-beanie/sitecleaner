@@ -13,6 +13,7 @@
   };
   window.addEventListener("scroll", scheduleRefresh, { capture: true, passive: true });
   window.addEventListener("resize", scheduleRefresh);
+  if (host.kept) host.kept.onChange(() => { showCount(); if (on && showChanges) renderDock(); });   // kept from another tab, or removed in this panel
   toggle.addEventListener("click", () => setOn(!on));
   host.mount(root);
   restore();

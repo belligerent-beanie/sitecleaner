@@ -9,12 +9,13 @@
   // Replaced by scripts/build.mjs with the edition being built (the designer edition when this file is used as it stands).
   const EDITION = /*edition*/ { name: "designer", features: {} } /*end*/;
   const key = "dz-changes:" + location.origin + location.pathname;
-  const cache = { edits: null, tour: null, prefs: {} };   // tour: the version of the tutorial last seen (older builds stored "done")
+  const siteKey = "site:" + location.origin;   // what was kept for this site (see "kept sites" in background.js)
+  const cache = { edits: null, tour: null, prefs: {}, kept: null };   // tour: the version of the tutorial last seen (older builds stored "done")
   let preview = false;
 
   // designer.js waits for this before it starts, so its reads of saved edits can stay synchronous.
   const ready = Promise.all([
-    chrome.storage.local.get([key, "dz-tour", "dz-prefs"]).then((stored) => { cache.edits = stored[key] ?? null; cache.tour = stored["dz-tour"] ?? null; cache.prefs = stored["dz-prefs"] || {}; }),
+    chrome.storage.local.get([key, "dz-tour", "dz-prefs", siteKey]).then((stored) => { cache.kept = stored[siteKey] ?? null; cache.edits = stored[key] ?? null; cache.tour = stored["dz-tour"] ?? null; cache.prefs = stored["dz-prefs"] || {}; }),
     chrome.runtime.sendMessage({ type: "who" }).then((answer) => { preview = !!(answer && answer.preview); }).catch(() => { /* no worker: not a preview */ }),
   ]);
 
@@ -46,6 +47,12 @@
     reportOn: (on) => { chrome.runtime.sendMessage({ type: "on", on, origin: location.origin }).catch(() => { /* no worker */ }); },
     openPreview: (width, height) => chrome.runtime.sendMessage({ type: "preview", url: location.href, width, height })
       .then((answer) => (answer && answer.error) || true),   // a string is shown to the designer as a message
+    kept: {   // the rules kept for this site: read, switched on or off, removed one by one (the worker does the writing)
+      get: () => cache.kept,
+      onChange(callback) { chrome.storage.onChanged.addListener((changes, area) => { if (area === "local" && changes[siteKey]) { cache.kept = changes[siteKey].newValue ?? null; callback(); } }); },
+      remove: (rule) => chrome.runtime.sendMessage({ type: "keep-remove", s: rule }),
+      setEnabled: (enabled) => chrome.runtime.sendMessage({ type: "keep-enable", enabled }),
+    },
     keep: (sheet) => chrome.runtime.sendMessage({ type: "keep", rules: sheet.rules, skipped: sheet.skipped }),   // the worker names the site itself, from the tab
     capture: () => chrome.runtime.sendMessage({ type: "capture" }).then((answer) => {
       if (answer && answer.dataUrl) return answer.dataUrl;

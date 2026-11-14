@@ -54,3 +54,10 @@
     if (!sheet.rules.length) { showToast("Nothing to keep yet: change a style first."); return; }
     host.keep(sheet).then((answer) => showToast((answer && answer.message) || "Could not keep the changes."), () => showToast("Could not keep the changes."));
   }
+  /** One kept rule, in words a person can read in a list. */
+  function describeKept(rule) {
+    if (rule.k === "text") return `Text “${shorten(rule.from.trim(), 22)}” → “${shorten(rule.to.trim(), 22)}”`;
+    if (/^display:\s*none/.test(rule.d)) return `Hidden: ${shorten(rule.b, 40)}`;
+    const what = rule.d.split(";").map((part) => part.replace(/\s*!important\s*$/i, "").replace(":", " ")).slice(0, 3).join(", ");
+    return `${shorten(rule.s, 36)}: ${shorten(what, 48)}`;
+  }

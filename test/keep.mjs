@@ -111,6 +111,29 @@ try {
   await moved.waitForTimeout(600);
   check("text the page has since changed is left alone", (await moved.evaluate(() => document.getElementById("words").textContent)) === "Something else entirely");
 
+  // ---- the Changes panel lists what is kept, and rules can be removed one by one
+  await page.locator(".dz-head button", { hasText: "Changes" }).click();
+  const rows = page.locator(".dz-kept .dz-change");
+  check("the panel lists every kept rule", (await rows.count()) === (await entry()).rules.length, String(await rows.count()));
+  check("a rule is described in words", (await page.locator(".dz-kept").innerText()).includes("Brand new words") && /Hidden: /.test(await page.locator(".dz-kept").innerText()));
+  const before = (await entry()).rules.length;
+  await rows.filter({ hasText: "Brand new words" }).locator("button", { hasText: "Remove" }).click();
+  for (let i = 0; i < 20 && ((await entry()) || {}).rules.length === before; i++) await page.waitForTimeout(150);
+  const afterRemove = await entry();
+  check("Remove takes that one rule away and keeps the others", afterRemove.rules.length === before - 1 && !afterRemove.rules.some((r) => r.k === "text") && afterRemove.rules.some((r) => /display:none/.test(r.d || "")));
+  check("the panel follows", (await page.locator(".dz-kept .dz-change").count()) === before - 1);
+  const reverted = await context.newPage();
+  await reverted.goto(base + "/other");
+  check("on the site the removed rule no longer applies, the others still do", (await reverted.evaluate(() => document.getElementById("words").textContent)) === "Original words" && (await tileColour(reverted)) === "rgb(204, 51, 51)");
+  await page.locator(".dz-kept input[type=checkbox]").uncheck();
+  for (let i = 0; i < 20 && (await registered()) === 1; i++) await page.waitForTimeout(150);
+  check("the switch in the panel turns the site's changes off", (await registered()) === 0 && (await entry()).enabled === false);
+  await page.locator(".dz-kept input[type=checkbox]").check();
+  for (let i = 0; i < 20 && (await registered()) === 0; i++) await page.waitForTimeout(150);
+  check("and on again", (await registered()) === 1);
+  while ((await page.locator(".dz-kept .dz-change").count()) > 0) { await page.locator(".dz-kept .dz-change button", { hasText: "Remove" }).first().click(); await page.waitForTimeout(300); }
+  check("removing the last rule forgets the site and unregisters the loader", (await entry()) === null && (await registered()) === 0);
+
   // ---- what the worker will accept
   const rejected = await worker.evaluate(async () => (validRules([{ s: "a", b: "a", d: "color:red;}body{display:none" }]) ? "accepted" : "rejected"));
   check("a rule with braces in it is refused", rejected === "rejected");

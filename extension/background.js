@@ -208,6 +208,23 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
     })().then(respond, (error) => respond({ message: String((error && error.message) || error) }));
     return true;
   }
+  if (message.type === "keep-remove" || message.type === "keep-enable") {   // from the picker: take one rule away, or switch the site's changes off or on
+    (async () => {
+      const origin = sender.tab && webOrigin(sender.tab.url);
+      const key = origin && SITE_PREFIX + origin;
+      const entry = key && (await chrome.storage.local.get(key))[key];
+      if (!entry) return { ok: false };
+      if (message.type === "keep-enable") await chrome.storage.local.set({ [key]: { ...entry, enabled: !!message.enabled } });
+      else {
+        const rules = entry.rules.filter((rule) => rule.s !== message.s);
+        if (rules.length) await chrome.storage.local.set({ [key]: { ...entry, rules, stale: (entry.stale || []).filter((b) => rules.some((rule) => rule.b === b)) } });
+        else await chrome.storage.local.remove(key);   // the last rule: the site is no longer kept
+      }
+      await syncSite(origin);
+      return { ok: true };
+    })().then(respond, () => respond({ ok: false }));
+    return true;
+  }
   if (message.type === "keep-cancel") { pendingKeeps.remove(message.token); return false; }
   if (message.type === "site-sync" && typeof message.origin === "string") {   // from the options page: a site was switched on or off, or forgotten
     syncSite(message.origin).then(() => respond({ ok: true }), () => respond({ ok: false }));
