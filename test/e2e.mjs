@@ -115,6 +115,9 @@ try {
   check("holding backslash shows the original while held (before the edit: the page's blue)", held === "rgb(51, 102, 204)", held);
 
   // ---- the edits are kept by the extension, out of the page's reach
+  // writes wait for a pause in the edits (a session of N edits used to write N times N bytes), so look for them after a moment
+  await page.waitForFunction(() => true);
+  for (let i = 0; i < 40 && (await editsInStorage()) < 1; i++) await page.waitForTimeout(100);
   eq("the edits are in chrome.storage (one page)", await editsInStorage(), 1);
   eq("the page's own localStorage holds nothing of the picker's", await page.evaluate(() => Object.keys(localStorage).filter((k) => /dz|designer/i.test(k))), []);
 

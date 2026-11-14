@@ -13,6 +13,28 @@
   const cache = { edits: null, tour: null, prefs: {}, kept: null };   // tour: the version of the tutorial last seen (older builds stored "done")
   let preview = false;
 
+  // Writing the session to storage: see writeEdits below.
+  const WRITE_DELAY = 400;
+  let writeTimer = null;
+  let dirty = false;
+  let warnedFull = false;
+  const isFull = (error) => /quota/i.test(String((error && error.message) || error));
+  const FULL_MESSAGE = "The browser's storage for this extension is full, so your latest changes are not saved for next time. They still work in this tab. Copy them with Export, then remove sites you no longer need under the extension's Options.";
+  function flushEdits() {
+    clearTimeout(writeTimer);
+    if (!dirty) return;
+    dirty = false;
+    const value = cache.edits;
+    const done = value === null ? chrome.storage.local.remove(key) : chrome.storage.local.set({ [key]: value });
+    done.then(() => { warnedFull = false; }, (error) => {
+      if (!window.__designerHost || !window.__designerHost.onSaveFailed) return;
+      if (isFull(error)) { if (!warnedFull) { warnedFull = true; window.__designerHost.onSaveFailed(FULL_MESSAGE); } }   // once, not on every edit
+      else window.__designerHost.onSaveFailed("Your latest changes could not be saved for next time (they still work in this tab).");
+    });
+  }
+  addEventListener("pagehide", flushEdits);
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") flushEdits(); });
+
   // designer.js waits for this before it starts, so its reads of saved edits can stay synchronous.
   const ready = Promise.all([
     chrome.storage.local.get([key, "dz-tour", "dz-prefs", siteKey]).then((stored) => { cache.kept = stored[siteKey] ?? null; cache.edits = stored[key] ?? null; cache.tour = stored["dz-tour"] ?? null; cache.prefs = stored["dz-prefs"] || {}; }),
@@ -30,10 +52,16 @@
     features: EDITION.features,
     storageKey: () => key,
     readEdits: () => cache.edits,
+    // Every edit saves the whole session. Writing it to storage each time made a session of N edits write N times N bytes (394 MB for
+    // 1,000 edits), so the write waits until the edits pause (and happens at once when the page is hidden or closed). What this tab
+    // reads back is always the latest, because it comes from `cache`.
     writeEdits(_key, value) {
       cache.edits = value;
-      if (value === null) chrome.storage.local.remove(key); else chrome.storage.local.set({ [key]: value });
+      dirty = true;
+      clearTimeout(writeTimer);
+      writeTimer = setTimeout(flushEdits, WRITE_DELAY);
     },
+    flushEdits() { flushEdits(); },
     onEditsChanged(_key, callback) {   // a preview window hears about edits made in the page it mirrors
       chrome.storage.onChanged.addListener((changes, area) => { if (area === "local" && changes[key]) callback(); });
     },

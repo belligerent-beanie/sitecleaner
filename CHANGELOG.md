@@ -11,7 +11,11 @@ Every released version, and everything that is waiting for one. Newest first. Da
 
 ## Unreleased
 
-Nothing: everything merged is in 0.4.0.
+Changes in waiting (from the scaling tests, `scripts/scale.mjs`):
+
+- **Edits are written to storage once they pause**, not on every edit. Every edit used to save the whole session, so a session of N edits wrote N times N bytes (394 MB for 1,000 edits). Writing now waits 0.4 s for a pause and also happens when the page is hidden or closed.
+- **A full store says so in plain words.** Keep, and the automatic saving of a session, now show "The browser's storage for this extension is full…" with what to do, instead of the browser's "Resource::kQuotaBytes quota exceeded".
+- **Start-up is faster with many kept sites.** The extension looks at what is registered once and registers, updates and removes loaders in batches, instead of one round trip per site (82 s for 1,000 sites before).
 
 ## 0.4.0 (2026-11-14)
 
