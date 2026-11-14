@@ -69,6 +69,7 @@ First version, built from the choices below. **These are my choices, made so the
   offers "Switch off my changes on <site>" (the consumer edition asks for the `contextMenus` permission for this; the designer edition does not); a kept rule that matches nothing on the last page visited
   is marked "⚠" in My changes with **Re-pick** (click the element it should apply to; a state such as :hover stays on the end, and retyped text is matched against what that element says now);
   the first time anything is kept the My changes panel opens with a note on where it goes from there; and on touch screens (`pointer: coarse`) the buttons grow to 40 px.
+- **Screenshots say they are of an edited page** (consumer edition only, `watermark` in its features): a dark strip under the picture reads "Edited with SiteCleaner · not the original page", and faint tiles of the same words run across the picture, so cropping the strip off does not make it pass. Edit words plus a screenshot could otherwise fake a changed price or message. The designer edition's pictures stay clean, for handoffs and bug reports.
 - **Not done:** the touch sizes are untested on a real device (Chrome on Android does not run Web Store extensions, so this only matters for browsers that do); the context-menu *click* is not exercised by
   the tests (the action it runs is); the dock is still the designer's layout, not a bottom sheet.
 

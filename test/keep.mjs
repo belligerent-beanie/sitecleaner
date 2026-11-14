@@ -178,6 +178,28 @@ try {
   await options.reload();
   check("with nothing kept, the options page explains how to start", await options.locator("#empty").isVisible());
 
+  // ---- a screenshot of an edited page says so
+  const shotPage = await context.newPage();
+  await shotPage.goto(base + "/shot");
+  await worker.evaluate(async () => { const [tab] = await chrome.tabs.query({ url: "http://127.0.0.1/shot" }); await toggle(tab); });
+  await shotPage.locator(".dz-toggle.dz-on").waitFor({ timeout: 8000 });
+  await shotPage.keyboard.press("Escape");
+  await shotPage.locator(".tile").nth(0).click();
+  const box = await shotPage.locator(".tile").nth(0).boundingBox();
+  const dpr = await shotPage.evaluate(() => devicePixelRatio);
+  await shotPage.keyboard.press("Enter");
+  const [shot] = await Promise.all([shotPage.waitForEvent("download", { timeout: 15000 }), shotPage.locator(".dz-dock button:text-is('Screenshot')").click()]);
+  const bytes = fs.readFileSync(await shot.path());
+  const read = await shotPage.evaluate(async (list) => {
+    const bitmap = await createImageBitmap(new Blob([new Uint8Array(list)], { type: "image/png" }));
+    const canvas = document.createElement("canvas"); canvas.width = bitmap.width; canvas.height = bitmap.height;
+    const c = canvas.getContext("2d"); c.drawImage(bitmap, 0, 0);
+    const px = (x, y) => [...c.getImageData(x, y, 1, 1).data];
+    return { width: bitmap.width, height: bitmap.height, bottom: px(Math.floor(bitmap.width / 2), bitmap.height - 2), edge: px(2, bitmap.height - 2) };
+  }, [...bytes]);
+  check("the picture is taller than the element by a strip that says it is edited", read.height > Math.round(box.height * dpr) + 10 && Math.abs(read.width - Math.round(box.width * dpr)) <= 2, JSON.stringify({ read, box, dpr }));
+  check("the strip is dark, so it reads on any page", read.edge[0] < 40 && read.edge[1] < 40 && read.edge[2] < 40 && read.edge[3] === 255, JSON.stringify(read.edge));
+
   // ---- what the worker will accept
   const rejected = await worker.evaluate(async () => (validRules([{ s: "a", b: "a", d: "color:red;}body{display:none" }]) ? "accepted" : "rejected"));
   check("a rule with braces in it is refused", rejected === "rejected");

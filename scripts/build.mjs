@@ -33,7 +33,7 @@ const EDITIONS = {
   consumer: { name: "SiteCleaner Personal", dir: "dist-consumer", zip: "sitecleaner-personal",   // the name is a placeholder: check it before publishing
     features: { find: false, inspector: false, compare: false, preview: false, measure: false, export: false,
       size: false, layout: false, position: false, move: false, image: false, states: false, structure: false,   // tools whose changes cannot be kept (or are for designers)
-      plain: true },   // keep is on; plain: everyday words, a short tutorial, a Delete button
+      plain: true, watermark: true },   // keep is on; watermark: pictures say they are of an edited page; plain: everyday words, a short tutorial, a Delete button
     permissions: ["contextMenus"],   // right-click the toolbar icon to switch a site's changes off or on
     description: "Make any website look the way you like: change colours and text, undo anything, and keep your changes." },
 };
