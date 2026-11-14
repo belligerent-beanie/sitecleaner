@@ -92,3 +92,30 @@ Still to decide, not blocking: whether the branch-protection rule that makes `te
 
 Status: approved in principle. **Not built**: rollout step 1 is done (the repository exists); step 2, the proof branch that shows the suite passes under Xvfb
 on a Linux runner, is the next piece of work, and nothing is made required before it has passed.
+
+## Result of the proof (14 November 2026, branch `ci-proof`)
+
+The suite and the accessibility audit **pass on `ubuntu-latest` under Xvfb**: 132 of 132 checks and 41 audits with no violations. Twenty runs of the
+same commit, as 20 parallel jobs (`bun run test` under `xvfb-run`): **20 passed, 0 failed.** Each job took 87 to 131 seconds, 102 on average, including the
+browser install, so a run costs roughly two runner-minutes. (Twenty parallel jobs of one commit measure flakiness within a commit; they are not twenty
+successive commits.)
+
+The first runs on the runner were not green. Three failures, each a fault in a test and not in the extension, and each fixed on this branch:
+
+| Failure on Linux | Cause | Fix |
+|---|---|---|
+| Choosing an image file did not show the new source yet | the file is read asynchronously; Windows was just fast enough | the test waits for the new source |
+| The `:active` check saw white while the button was held | the runner's taller window put the "Design: on" tab over the point the test pressed; the press turned the picker off, which also caused the next timeout | the test presses the right end of the link and waits for the colour transition to settle |
+| A later click timed out | a consequence of the previous one | none needed |
+
+What it shows, and what it does not: the Windows-only suite is not Windows-specific, an extension loads and is driven in Playwright's Chromium on Linux, and
+the tests' dependence on window size and timing was real. It does not replace a run in branded Chrome (the checklist in `store/STORE_LISTING.md`).
+
+On failure the job uploads the console output, and a screenshot of each open page plus what the dock said (`test-artifacts/`).
+
+### Not done yet (rollout steps 3 and 4)
+
+- The workflow still triggers only on the `ci-proof` branch. For real use it must run on pull requests and on `main`; the test fixes above live only on this
+  branch until it is merged.
+- Making `test` a required check is a repository setting. On a private repository, GitHub's free plan may not offer branch protection; this has not been tried.
+- The `package` job (zip as an artifact) and the nightly `smoke` job that opens an issue are not written.
