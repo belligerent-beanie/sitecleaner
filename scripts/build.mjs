@@ -6,6 +6,7 @@
 // The picker is one script made of the files in src/parts/, joined in name order (they are slices of one closure, so they share its state);
 // its stylesheet is src/picker.css wrapped in a script (the picker draws inside a Shadow DOM and takes its CSS from there). The parts of the
 // extension that are not the picker (host.js, background.js, restore.js, the options page) live in extension/.
+// Minified with esbuild (a dev dependency, used only here: nothing it makes depends on it) unless --no-minify, which keeps the readable files for debugging. Without esbuild installed the build says so and stays readable.
 // --test grants host access up front (and so also the all-sites permission previews need), so the end-to-end test can drive the extension without a human clicking the toolbar.
 import fs from "node:fs";
 import path from "node:path";
@@ -20,16 +21,20 @@ const args = process.argv.slice(2);
 const test = args.includes("--test");
 const makeZip = args.includes("--zip");
 const makeShare = args.includes("--share");
+const wantMinify = !args.includes("--no-minify");
+let esbuild = null;
+if (wantMinify) { try { esbuild = await import("esbuild"); } catch (_) { console.warn("esbuild is not installed (bun install): building without minifying."); } }
+const shrink = (code, loader) => (esbuild ? esbuild.transformSync(code, { loader, minify: true, target: "chrome114", legalComments: "none" }).code : code);
 const out = path.resolve(args.includes("--out") ? args[args.indexOf("--out") + 1] : path.join(root, "dist"));
 const version = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8")).version;
 
 fs.rmSync(out, { recursive: true, force: true });
 fs.mkdirSync(path.join(out, "icons"), { recursive: true });
 
-// ---- the picker, unchanged
+// ---- the picker (minified unless --no-minify)
 const parts = fs.readdirSync(path.join(root, "src", "parts")).filter((name) => name.endsWith(".js")).sort();
-fs.writeFileSync(path.join(out, "designer.js"), parts.map((name) => fs.readFileSync(path.join(root, "src", "parts", name), "utf8")).join("\n"));
-const css = fs.readFileSync(path.join(root, "src", "picker.css"), "utf8");
+fs.writeFileSync(path.join(out, "designer.js"), shrink(parts.map((name) => fs.readFileSync(path.join(root, "src", "parts", name), "utf8")).join("\n"), "js"));
+const css = shrink(fs.readFileSync(path.join(root, "src", "picker.css"), "utf8"), "css");
 fs.writeFileSync(path.join(out, "designer-css.js"), `window.__designerCss = ${JSON.stringify(css)};\n`);
 
 // ---- the extension's own files
