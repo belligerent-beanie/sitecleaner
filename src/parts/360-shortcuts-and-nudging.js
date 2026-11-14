@@ -8,7 +8,7 @@
   keyHooks.push((event) => {
     if (!selection.length || event.ctrlKey || event.metaKey || event.altKey || event.repeat || isEditingField(eventTarget(event))) return false;
     const name = TOOL_KEYS[event.key.toLowerCase()];
-    if (!name) return false;
+    if (!name || !has(name)) return false;   // a tool an edition leaves out is not opened by its letter
     event.preventDefault();
     if (name === "text" && (selection.length > 1 || textBlocked(selected))) { showToast(selection.length > 1 ? "Text edits one element at a time." : textBlocked(selected) + "."); return true; }
     menuOpen = true;
@@ -94,16 +94,24 @@
     ["See", [["I", "inspect on hover"], [";", "gridlines through the selection, on or off"], ["hold M", "measure distances"], ["hold G", "alignment guides"], ["hold \\", "the original"], ["Alt Shift S", "screenshot"]]],
     ["Hand off", [["Alt Shift E", "copy the changes as Markdown"], ["Alt Shift P", "picker on and off"], ["?", "this list"]]],
   ];
+  const SHORTCUT_FEATURE = { "/": "find", "I": "inspector", ";": "measure", "hold M": "measure", "hold G": "measure", "hold \\": "compare", "Alt Shift E": "export", "Ctrl D": "structure", "Ctrl C X V": "structure", "Ctrl G": "structure" };   // the shortcuts an edition can switch off
+  const PLAIN_TOOL_ROWS = [["C B D E", "background, border, shadow, edit words"], ["F P R H", "text style, spacing, corners, colour mood"], ["Enter", "the tool menu"]];
+  /** The rows of one section; the plain interface lists only the tools it has. */
+  function shownRows(title, rows) {
+    if (!plain()) return rows;
+    if (title.startsWith("Tools")) return PLAIN_TOOL_ROWS;
+    return rows.filter(([keys]) => !/^(Size|Position \/ Move)$/.test(keys) && !/^(Ctrl D|Ctrl C X V|Ctrl G)$/.test(keys));
+  }
   function keysPanel() {
     const panel = h("div", { class: "dz-panel dz-keys" });
     for (const [title, rows] of SHORTCUTS) {
       panel.append(h("strong", { class: "dz-keys-title", text: title }));
-      for (const [keys, what] of rows) panel.append(h("div", { class: "dz-keys-row" }, h("kbd", { text: keys }), h("span", { text: what })));
+      for (const [keys, what] of shownRows(title, rows).filter(([keys]) => has(SHORTCUT_FEATURE[keys] || ""))) panel.append(h("div", { class: "dz-keys-row" }, h("kbd", { text: keys }), h("span", { text: what })));
     }
     return panel;
   }
   keyHooks.push((event) => {   // ; turns the gridlines on or off
-    if (event.key !== ";" || event.ctrlKey || event.metaKey || event.altKey || isEditingField(eventTarget(event))) return false;
+    if (event.key !== ";" || !has("measure") || event.ctrlKey || event.metaKey || event.altKey || isEditingField(eventTarget(event))) return false;
     event.preventDefault();
     setGridlines(!gridOn());
     return true;
@@ -128,7 +136,7 @@
     if (event.key !== "?" || event.ctrlKey || event.metaKey || event.altKey || isEditingField(eventTarget(event))) return false;
     event.preventDefault();
     showKeys = !showKeys;
-    showChanges = false; showPreview = false; showFind = false; showClasses = false;
+    showChanges = false; showAccess = false; showPreview = false; showFind = false; showClasses = false;
     renderDock();
     return true;
   });

@@ -2,7 +2,7 @@
   // The tutorial: opened on the first run (and once after an update that changes it), and by the Tutorial button at the top of the panel at any time.
   // A page may have an `action`: a button that closes the tutorial and opens what the page is about.
   const TUTORIAL_VERSION = "0.3.1";   // change it when the tutorial changes enough to show it once more to people who have seen the last one
-  const TOUR = [
+  const FULL_TOUR = [
     { title: "Welcome", lines: [
       "SiteCleaner lets you try changes on any page and then hand them over. Nothing touches the real site: it all happens in this tab, and Ctrl+Z undoes it.",
       "Turn it on with the toolbar icon or Alt+Shift+P. The Tutorial button at the top of this panel brings these pages back whenever you like."] },
@@ -26,15 +26,28 @@
     { title: "Hand it over", lines: [
       "Alt+Shift+E copies the changes for an AI or a developer. Elements that share a class are one entry: \"×5\" means all five changed (so change the class), \"2 of 5\" that only two did. \"from:\" names the rule that defines the property now.",
       "Changes shows what the list costs, and switches between Compact and Detailed (every element, with before and after)."],
-      action: { label: "Open Changes", run: () => { showChanges = true; } } },
+      action: { label: "Open Changes", run: () => { showChanges = true; showAccess = false; } } },
     { title: "Keep your work", lines: [
       "Ctrl+Z undoes, Ctrl+Shift+Z redoes, Reset all puts the page back. Your changes are kept per page and come back after a reload.",
       "In the extension's Options, \"Allow all sites\" also turns the picker back on by itself after a reload. The Changes panel sets the look of this panel: light, dark or automatic."] },
     { title: "Every shortcut", lines: [
       "? (or Keys) lists every shortcut, grouped.",
       "The Tutorial button at the top of this panel shows these pages again, at any time."],
-      action: { label: "Open Keys", run: () => { showKeys = true; } } },
+      action: { label: "Open Keys", run: () => { showKeys = true; showAccess = false; } } },
   ];
+  const PLAIN_TOUR = [
+    { title: "Welcome", lines: [
+      "Click anything on a page to change how it looks: colours, text, spacing, corners. Nothing touches the real site, and Undo takes anything back.",
+      "Turn this on with the toolbar icon. The Tutorial button at the top of this panel shows these pages again."] },
+    { title: "Change things", lines: [
+      "Click an element, then choose what to change: Background, Text style, Corners and so on. Shift-click picks several at once, so one change covers them all.",
+      "Edit words changes what it says (double-clicking text does too), and Delete takes it off the page. You see every change as you make it."] },
+    { title: "Keep it", lines: [
+      "Press Keep and your changes are there every time you visit this site. The first time, your browser asks to allow the extension on that one site, and only that one.",
+      "My changes lists what you have kept, with a switch to turn it off and a Remove for each change. The extension's options list all your sites."],
+      action: { label: "Open My changes", run: () => { showChanges = true; showAccess = false; } } },
+  ];
+  const TOUR = plain() ? PLAIN_TOUR : FULL_TOUR;
   function endTour() {
     tourStep = null;
     host.markTourSeen(TUTORIAL_VERSION);
@@ -66,13 +79,14 @@
     dock.replaceChildren();
     sizeSync = null;   // the Size panel, if it is open, sets this again when it is built
     dock.hidden = !on;
-    toggle.textContent = on ? "Design: on" : "Design";
+    const word = plain() ? "Edit" : "Design";
+    toggle.textContent = on ? `${word}: on` : word;
     toggle.classList.toggle("dz-on", on);
     if (!on) return;
     updateHandles();
     if (tourStep !== null) { dock.append(tourPanel()); return; }
 
-    changesLink = h("button", { type: "button", class: "dz-link", text: `Changes (${changeCount()})`, onclick: () => { showChanges = !showChanges; showPreview = false; showFind = false; showKeys = false; showClasses = false; renderDock(); } });
+    changesLink = h("button", { type: "button", class: "dz-link", text: `${say("changes", "Changes")} (${changeCount()})`, onclick: () => { showChanges = !showChanges; showAccess = false; showClasses = false; showPreview = false; showFind = false; showKeys = false; renderDock(); } });
     undoLink = h("button", { type: "button", class: "dz-link", text: "Undo", title: "Undo (Ctrl+Z)", onclick: undo });
     redoLink = h("button", { type: "button", class: "dz-link", text: "Redo", title: "Redo (Ctrl+Shift+Z or Ctrl+Y)", onclick: redo });
     showHistory();
@@ -82,44 +96,50 @@
     compareLink.addEventListener("pointerdown", (event) => { event.preventDefault(); setCompare(true); });
     for (const type of ["pointerup", "pointerleave", "pointercancel"]) compareLink.addEventListener(type, () => setCompare(false));
     const findLink = h("button", { type: "button", class: "dz-link", text: "Find", title: "Select everything that matches a CSS selector or some words (/)",
-      onclick: () => { showFind = !showFind; showChanges = false; showPreview = false; showKeys = false; showClasses = false; renderDock(); } });
+      onclick: () => { showFind = !showFind; showChanges = false; showAccess = false; showPreview = false; showKeys = false; showClasses = false; renderDock(); } });
     const classesLink = h("button", { type: "button", class: "dz-link", text: "Classes", title: "The classes the page defines: how many elements use each, where, and the rules", "aria-pressed": String(showClasses),
-      onclick: () => { showClasses = !showClasses; showFind = false; showChanges = false; showPreview = false; showKeys = false; renderDock(); } });
+      onclick: () => { showClasses = !showClasses; showFind = false; showAccess = false; showChanges = false; showPreview = false; showKeys = false; renderDock(); } });
     const previewLink = h("button", { type: "button", class: "dz-link", text: "Preview", title: "See this page at phone, tablet and laptop sizes",
-      onclick: () => { showPreview = !showPreview; showChanges = false; showFind = false; showKeys = false; showClasses = false; renderDock(); } });
+      onclick: () => { showPreview = !showPreview; showChanges = false; showAccess = false; showFind = false; showKeys = false; showClasses = false; renderDock(); } });
     const head = h("div", { class: "dz-head" },
       h("strong", { text: selection.length > 1 ? `${selection.length} elements` : selected ? label(selected) : "SiteCleaner" }),
       h("button", { type: "button", class: "dz-menu-button dz-tutorial", text: "Tutorial", title: "A short tutorial: what SiteCleaner can do, and how", onclick: () => { tourStep = 0; renderDock(); } }),
-      undoLink, redoLink, findLink, classesLink, inspectLink, compareLink, previewLink,
+      undoLink, redoLink,
+      has("keep") && host.keep && h("button", { type: "button", class: "dz-link dz-keep", text: "Keep", title: "Keep these changes on this site, so they are there every time you visit", onclick: keepOnSite }),
+      has("find") && findLink, has("classes") && classesLink, has("inspector") && inspectLink, has("compare") && compareLink, has("preview") && previewLink,
+      host.features && host.features.access === true && h("button", { type: "button", class: "dz-link", text: "Easier to read", title: "Bigger text, clearer links, calmer pages: kept for this site if you like", "aria-pressed": String(showAccess),
+        onclick: () => { if (showAccess) { showAccess = false; renderDock(); } else openAccess(); } }),
       changesLink,
       h("button", { type: "button", class: "dz-link", text: "Keys", title: "Every keyboard shortcut (?)", "aria-pressed": String(showKeys),
-                    onclick: () => { showKeys = !showKeys; showChanges = false; showPreview = false; showFind = false; showClasses = false; renderDock(); } }),
+                    onclick: () => { showKeys = !showKeys; showChanges = false; showAccess = false; showPreview = false; showFind = false; showClasses = false; renderDock(); } }),
       h("button", { type: "button", class: "dz-link", text: "Off", title: "Turn picker mode off", onclick: () => setOn(false) }));
     dock.append(head);
 
+    if (showAccess && has("access")) { dock.append(accessPanel()); return; }
     if (showPreview) { dock.append(previewPanel()); return; }
     if (showKeys) { dock.append(keysPanel()); return; }
     if (showClasses) { dock.append(classesPanel()); return; }
     if (showFind) { const panel = findPanel(); dock.append(panel); panel.querySelector(".dz-find").focus(); return; }   // focus at once: keys typed straight after / must land in the field
     if (showChanges) { dock.append(changesPanel()); return; }
     if (!selected) {
-      dock.append(h("p", { class: "dz-hint", text: "Click any element to select it; Shift-click adds more. ↑ parent, ↓ child, Enter for the tools, Esc to clear. / to find, hold M to measure or G for alignment guides, I to inspect. Alt+Shift+E copies your changes." }));
+      dock.append(h("p", { class: "dz-hint", text: plain() ? "Click anything on the page to change it. Shift-click picks several. Press Keep when you like it." : "Click any element to select it; Shift-click adds more. ↑ parent, ↓ child, Enter for the tools, Esc to clear." + (has("find") ? " / to find." : "") + (has("measure") ? " Hold M to measure or G for alignment guides." : "") + (has("inspector") ? " I to inspect." : "") + (has("export") ? " Alt+Shift+E copies your changes." : "") }));
       return;
     }
     const lookRow = () => h("div", { class: "dz-menu dz-look" },
       h("button", { type: "button", class: "dz-menu-button", text: "Copy look", title: "Copy this element's fill, type, border, corners, shadow and padding (Alt+Shift+C)", onclick: () => copyLook(selected) }),
       h("button", { type: "button", class: "dz-menu-button", text: "Paste look", disabled: !copiedLook, title: copiedLook ? `Paste the look of ${copiedLook.from} (Alt+Shift+V)` : "Copy an element's look first",
                     onclick: () => pasteLook(targets()) }),
-      h("button", { type: "button", class: "dz-menu-button" + (gridOn() ? " dz-active" : ""), text: "Gridlines", "aria-pressed": String(gridOn()),
+      has("measure") && h("button", { type: "button", class: "dz-menu-button" + (gridOn() ? " dz-active" : ""), text: "Gridlines", "aria-pressed": String(gridOn()),
                     title: "Draw lines through the edges of the selection, across the page (;)", onclick: () => setGridlines(!gridOn()) }),
       h("button", { type: "button", class: "dz-menu-button", text: "Screenshot", disabled: !host.capture, title: host.capture ? "Save a PNG of the selected elements, or of the page if nothing is selected (Alt+Shift+S)" : "Screenshots need the Chrome extension",
                     onclick: () => takeScreenshot() }));
-    const tools = () => h("div", { class: "dz-tools" }, stateRow(), h("div", { class: "dz-menu" },
-      menuButton("fill", "Fill"), menuButton("border", "Border"), menuButton("shadow", "Shadow"), menuButton("radius", "Radius"), menuButton("tone", "Tone"),
-      menuButton("text", "Text"), menuButton("font", "Font"), menuButton("image", "Image"),
-      menuButton("size", "Size"), menuButton("spacing", "Spacing"), menuButton("layout", "Layout"), menuButton("position", "Position"), menuButton("move", "Move")), lookRow());
+    const tools = () => h("div", { class: "dz-tools" }, has("states") && stateRow(), h("div", { class: "dz-menu" },
+      menuButton("fill", say("fill", "Fill")), menuButton("border", say("border", "Border")), menuButton("shadow", say("shadow", "Shadow")), menuButton("radius", say("radius", "Radius")), menuButton("tone", say("tone", "Tone")),
+      menuButton("text", say("text", "Text")), menuButton("font", say("font", "Font")), has("image") && menuButton("image", "Image"),
+      has("size") && menuButton("size", "Size"), menuButton("spacing", say("spacing", "Spacing")), has("layout") && menuButton("layout", "Layout"), has("position") && menuButton("position", "Position"), has("move") && menuButton("move", "Move"),
+      plain() && h("button", { type: "button", class: "dz-menu-button", text: "Delete", title: "Remove this from the page (the Delete key). Kept like any other change.", onclick: removeSelected })), lookRow());
     if (!menuOpen && !tool) {
-      dock.append(h("p", { class: "dz-hint", text: "Press Enter, or choose a tool." }), tools());
+      dock.append(h("p", { class: "dz-hint", text: plain() ? "Choose what to change." : "Press Enter, or choose a tool." }), tools());
       return;
     }
     dock.append(tools());

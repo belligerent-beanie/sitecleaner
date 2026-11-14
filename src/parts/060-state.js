@@ -7,6 +7,7 @@
   let menuOpen = false;
   let tool = null;             // "fill" | "border" | "shadow" | "text" | "font" | "size" | "spacing" | "radius" | "layout" | "tone" | "move" | "position" | "image" | null
   let showChanges = false;
+  let showAccess = false;   // the easier-to-read settings (consumer edition)
   let showPreview = false;    // the screen-size preview panel
   let showFind = false;       // the find-by-selector panel
   let showKeys = false;       // the shortcuts panel

@@ -23,6 +23,15 @@
       return true;
     },
     capture: null,   // () => a promise of a PNG data URL of the visible tab: only the extension can
+    features: {},   // {name: false} turns a feature off: find, inspector, compare, preview, measure, export, keep (all on unless an edition says otherwise)
+    kept: null,   // {get, onChange, remove, setEnabled, repick}: what is kept for this site (the extension's consumer edition)
+    keep: null,   // (sheet) => a promise of {message}: keep the edits on this site (the extension's consumer edition)
     mount(root) { document.body.append(root); },
     isOwn: () => false,   // a node outside the root that is still the picker's (the extension's shadow host)
   }, pre || {});
+  /** Is this feature part of this edition of the picker? Everything is, unless the host switched it off (see the editions in scripts/build.mjs). */
+  const has = (name) => !host.features || host.features[name] !== false;
+  /** The plainer interface of the consumer edition: everyday words for the tools, a short tutorial, a Delete button. Off unless the edition switches it on. */
+  const plain = () => !!(host.features && host.features.plain);
+  const PLAIN_LABELS = { fill: "Background", border: "Border", shadow: "Shadow", radius: "Corners", tone: "Colour mood", text: "Edit words", font: "Text style", spacing: "Spacing", changes: "My changes" };
+  const say = (key, fallback) => (plain() && PLAIN_LABELS[key]) || fallback;

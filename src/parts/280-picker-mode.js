@@ -4,7 +4,7 @@
     if (add && selection.includes(element)) setSelection(selection.filter((el) => el !== element));
     else setSelection(add ? [...selection, element] : [element]);
     if (!add) { closeTool(); menuOpen = false; }   // adding more keeps the tool that is open
-    showChanges = false;
+    showChanges = false; showAccess = false;
     showPreview = false;
     showFind = false;
     showKeys = false;
@@ -18,7 +18,10 @@
     for (const hook of pageEventHooks) if (hook(event)) return;
     event.preventDefault();
     event.stopImmediatePropagation();
-    if (event.type === "click") { climbed = []; select(eventTarget(event), event.shiftKey); }
+    if (event.type === "click") {
+      if (repicking) { const rule = repicking; repicking = null; finishRepick(rule, eventTarget(event)); renderDock(); return; }
+      climbed = []; select(eventTarget(event), event.shiftKey);
+    }
   }
   function onMove(event) {
     if (ours(eventTarget(event))) { hovered = null; } else { hovered = eventTarget(event) === document.documentElement ? null : eventTarget(event); }
@@ -26,7 +29,7 @@
   }
   function onKey(event) {
     if (event.altKey && event.shiftKey && event.code === "KeyP") { event.preventDefault(); setOn(!on); return; }
-    if (event.altKey && event.shiftKey && event.code === "KeyE") { event.preventDefault(); copyChanges(); return; }   // works with the picker off too
+    if (event.altKey && event.shiftKey && event.code === "KeyE" && has("export")) { event.preventDefault(); copyChanges(); return; }   // works with the picker off too
     if (!on) return;
     if (event.altKey && event.shiftKey && (event.code === "KeyC" || event.code === "KeyV") && selected) {
       event.preventDefault();
@@ -45,28 +48,28 @@
       return;
     }
     for (const hook of keyHooks) if (hook(event)) return;
-    if (event.key === "/" && !event.ctrlKey && !event.metaKey && !event.altKey && !isEditingField(eventTarget(event))) {   // find
+    if (event.key === "/" && has("find") && !event.ctrlKey && !event.metaKey && !event.altKey && !isEditingField(eventTarget(event))) {   // find
       event.preventDefault();
-      showFind = true; showChanges = false; showPreview = false; showKeys = false; showClasses = false;
+      showFind = true; showChanges = false; showAccess = false; showPreview = false; showKeys = false; showClasses = false;
       renderDock();
       return;
     }
-    if (event.key.toLowerCase() === "g" && !event.ctrlKey && !event.metaKey && !event.altKey && selected && !isEditingField(eventTarget(event))) {   // hold for guides
+    if (event.key.toLowerCase() === "g" && has("measure") && !event.ctrlKey && !event.metaKey && !event.altKey && selected && !isEditingField(eventTarget(event))) {   // hold for guides
       event.preventDefault();
       if (!event.repeat) { guiding = true; renderGuides(); }
       return;
     }
-    if (event.key.toLowerCase() === "i" && !event.ctrlKey && !event.metaKey && !event.altKey && !isEditingField(eventTarget(event))) {   // toggle the inspector
+    if (event.key.toLowerCase() === "i" && has("inspector") && !event.ctrlKey && !event.metaKey && !event.altKey && !isEditingField(eventTarget(event))) {   // toggle the inspector
       event.preventDefault();
       if (!event.repeat) { setInspect(!inspecting); renderDock(); }
       return;
     }
-    if (event.key.toLowerCase() === "m" && !event.ctrlKey && !event.metaKey && !event.altKey && selected && !isEditingField(eventTarget(event))) {   // hold to measure
+    if (event.key.toLowerCase() === "m" && has("measure") && !event.ctrlKey && !event.metaKey && !event.altKey && selected && !isEditingField(eventTarget(event))) {   // hold to measure
       event.preventDefault();
       if (!event.repeat) { measuring = true; renderMeasure(); }
       return;
     }
-    if (event.key === "\\" && !event.ctrlKey && !event.metaKey && !event.altKey && !isEditingField(eventTarget(event))) {   // hold to compare
+    if (event.key === "\\" && has("compare") && !event.ctrlKey && !event.metaKey && !event.altKey && !isEditingField(eventTarget(event))) {   // hold to compare
       event.preventDefault();
       if (!event.repeat) setCompare(true);
       return;
@@ -74,7 +77,9 @@
     const typing = ours(eventTarget(event)) && (/^(INPUT|TEXTAREA|SELECT)$/.test(eventTarget(event).tagName) || isEditingField(eventTarget(event)));
     if (event.key === "Escape") {
       event.preventDefault();
-      if (showKeys) showKeys = false;
+      if (repicking) { repicking = null; showToast("Cancelled."); }
+      else if (showAccess) showAccess = false;
+      else if (showKeys) showKeys = false;
       else if (showClasses) showClasses = false;
       else if (showFind) showFind = false;
       else if (showPreview) showPreview = false;
@@ -101,13 +106,16 @@
       renderDock();
     }
   }
+  let pollTimer = null;
   function setOn(value) {
     on = value;
     if (!host.isPreview()) host.reportOn(on);
     const method = on ? "addEventListener" : "removeEventListener";
     for (const type of STOPPED) window[method](type, swallow, true);
     window[method]("mousemove", onMove, true);
-    if (!on) { for (const hook of offHooks) hook(); inspecting = false; renderInspect(null); hovered = null; setSelection([]); climbed = []; menuOpen = false; tool = null; showChanges = false; showClasses = false; tourStep = null; }
+    clearInterval(pollTimer);   // the page may move things around (the board does): poll for it only while the picker is on
+    pollTimer = on ? setInterval(() => { if (selected) refreshBoxes(); }, 500) : null;
+    if (!on) { repicking = null; keptIntro = false; for (const hook of offHooks) hook(); inspecting = false; renderInspect(null); hovered = null; setSelection([]); climbed = []; menuOpen = false; tool = null; showChanges = false; showClasses = false; showAccess = false; tourStep = null; }
     else {
       if (!host.tourSeen(TUTORIAL_VERSION)) tourStep = 0;   // the first time on this browser, and once after an update that changes the tutorial
     }

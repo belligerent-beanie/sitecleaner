@@ -97,6 +97,7 @@
   let clipboardHtml = "";
   const clipboardIsOurs = (event) => on && selection.length && !isEditingField(eventTarget(event)) && !String(window.getSelection()).length;
   document.addEventListener("copy", (event) => {
+    if (!has("structure")) return;
     if (!clipboardIsOurs(event)) return;
     const first = structural(selection)[0];
     if (!first) return;
@@ -107,6 +108,7 @@
     showToast(`Copied ${label(first)}. Select another element and paste it into that.`);
   }, true);
   document.addEventListener("cut", (event) => {
+    if (!has("structure")) return;
     if (!clipboardIsOurs(event)) return;
     const first = structural(selection)[0];
     if (!first) return;
@@ -119,6 +121,7 @@
     structureDone(after ? [after] : []);
   }, true);
   document.addEventListener("paste", (event) => {
+    if (!has("structure")) return;
     if (!clipboardIsOurs(event)) return;
     const picture = [...(event.clipboardData.files || [])].find((file) => /^image\//.test(file.type));
     if (picture && imageTargetsOf(selection).length) { event.preventDefault(); swapFromFiles([picture], imageTargetsOf(selection)); return; }
@@ -146,8 +149,8 @@
       if (event.altKey) clearSelectedEdits(); else removeSelected();
       return true;
     }
-    if (mod && !event.altKey && key.toLowerCase() === "d") { event.preventDefault(); duplicateSelected(); return true; }
-    if (mod && !event.altKey && key.toLowerCase() === "g") { event.preventDefault(); if (event.shiftKey) ungroupSelected(); else groupSelected(); return true; }
+    if (mod && !event.altKey && has("structure") && key.toLowerCase() === "d") { event.preventDefault(); duplicateSelected(); return true; }
+    if (mod && !event.altKey && has("structure") && key.toLowerCase() === "g") { event.preventDefault(); if (event.shiftKey) ungroupSelected(); else groupSelected(); return true; }
     if (mod && !event.altKey && key.toLowerCase() === "e") { event.preventDefault(); selectSimilar(event.shiftKey); return true; }
     if (mod && event.shiftKey && key === "Enter") { event.preventDefault(); selectChildren(); return true; }
     if (key === "Tab" && !mod && !event.altKey && !ours(eventTarget(event))) { event.preventDefault(); walkSiblings(event.shiftKey); return true; }

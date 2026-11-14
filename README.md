@@ -16,7 +16,7 @@ exported. See [Where it comes from](#where-it-comes-from).
 **Tutorial.** The first time (and once after an update that changes it), a nine-page tutorial opens in the panel. The **Tutorial** button at the top of
 the panel opens it again at any time; page numbers jump to a page, and some pages have a button that opens what they describe.
 
-**Classes.** The Classes link lists the classes the page's style sheets define, most used first: how many elements have each, which file defines it, and its rules
+**Classes** (designer edition). The Classes link lists the classes the page's style sheets define, most used first: how many elements have each, which file defines it, and its rules
 ("Rules"); a click selects every element that has the class. It reads a page with thousands of rules in about a second or less, looks inside `@media`, `@layer` and the
 other grouping rules, and also lists classes the elements have whose rules it cannot read (a style sheet from another site, or a script): those say so.
 
@@ -64,6 +64,16 @@ Press `?` in the picker for every shortcut.
     # Chrome: chrome://extensions > Developer mode > Load unpacked > dist
 
 Then click the toolbar icon, or press **Alt+Shift+P**, on any page.
+
+## Two editions
+
+The same files build two extensions. `node scripts/build.mjs` makes the **designer edition** (everything above, in `dist/`); `node scripts/build.mjs --edition consumer`
+(`bun run build:consumer`) makes the **consumer edition** in `dist-consumer/`, which leaves out the tools for handing work to a developer: Find, Inspect, Compare,
+Preview, measuring and gridlines, and the Markdown export. An edition is a name, a description and a list of features it leaves out, kept in `scripts/build.mjs`; the picker
+asks `has("find")` and the like (`src/parts/010-where-it-runs.js`), and everything is on unless the host switches it off. The two are separate extensions, each with its own storage.
+`bun run test:editions` checks that each one has what it should. The consumer edition also has **Keep** in the dock: it saves the session's style edits as CSS rules for the site, asks once for
+permission for that site alone, and a small loader (`extension/apply.js`) puts them back before the page paints, with no picker; the options page lists kept sites to switch off or forget
+(`bun run test:keep`). Its dock uses everyday words and a shorter tool list, with a three-page tutorial and a "My sites" options page, and each kept change can be removed on its own or, once the site has changed, re-pointed at another element. Right-click the toolbar icon to switch a site's changes off or on. **Easier to read** (consumer edition) is a settings panel for accessibility, kept per site like the rules: text size, a smallest size, spacing, a plain font, underlined links, a strong focus outline, calm motion, bigger buttons, low-contrast text fixed, a highlight under the pointer and dark mode (`extension/readable.js`, `bun run test:access`). The consumer edition's name is a placeholder, and its interface is a first version: see `docs/EDITIONS.md`.
 
 ## Permissions and privacy
 
