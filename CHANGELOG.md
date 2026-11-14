@@ -30,7 +30,7 @@ None of this is in a release. Neither pull request bumps the version, so the num
 
 ### Performance, a minified build and the consumer edition (#9)
 
-- **Performance:** outlines redraw once per frame and only while the picker is on; saving no longer recomputes every edited element's selector (300 edited elements on a 20,000-element page went from about 50 s to a small fraction of that); `bun run profile` times the heavy operations.
+- **Performance:** outlines redraw once per frame and only while the picker is on; saving no longer recomputes every edited element's selector on every edit (the patch message gives the old cost as about 50 s for 300 edited elements on a 20,000-element page; the names are now worked out again only after the page has changed); `bun run profile` times the heavy operations.
 - **Minified build:** the picker goes from 218 KB to 111 KB (61 KB to 37 KB gzipped) with esbuild, a new dev dependency; `--no-minify` keeps readable files.
 - **Two editions** from the same files. The designer edition is the default build, as before. `--edition consumer` builds a separate extension (name `SiteCleaner Personal` is a placeholder) that keeps changes per site as CSS rules applied by a small loader before the page paints, asks permission one site at a time, keeps deleted elements and retyped text, shows what is kept with a switch and a Remove for each rule, flags stale rules with a Re-pick, watermarks screenshots as edited, and has an **Easier to read** preset. It asks for one more permission (`contextMenus`) than the designer edition. Design: `docs/EDITIONS.md`.
 - Open before this can ship: a real name, a Web Store listing and privacy policy for the second extension, and the consumer edition's open questions in `docs/EDITIONS.md`.
