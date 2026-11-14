@@ -61,6 +61,15 @@ Press `?` in the picker for every shortcut.
 
 Then click the toolbar icon, or press **Alt+Shift+P**, on any page.
 
+## Two editions
+
+The same files build two extensions. `node scripts/build.mjs` makes the **designer edition** (everything above, in `dist/`); `node scripts/build.mjs --edition consumer`
+(`bun run build:consumer`) makes the **consumer edition** in `dist-consumer/`, which leaves out the tools for handing work to a developer: Find, Inspect, Compare,
+Preview, measuring and gridlines, and the Markdown export. An edition is a name, a description and a list of features it leaves out, kept in `scripts/build.mjs`; the picker
+asks `has("find")` and the like (`src/parts/010-where-it-runs.js`), and everything is on unless the host switches it off. The two are separate extensions, each with its own storage.
+`bun run test:editions` checks that each one has what it should. The consumer edition's name is a placeholder, and it does not yet have its own permissions model, simple tutorial or
+saved-sites page: see `docs/EDITIONS.md`.
+
 ## Permissions and privacy
 
 `activeTab`, `scripting` and `storage`. The picker runs only on the tab you click it on. Access to **every site is optional** (the options page):
