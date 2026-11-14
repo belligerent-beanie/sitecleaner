@@ -17,7 +17,8 @@ exported. See [Where it comes from](#where-it-comes-from).
 the panel opens it again at any time; page numbers jump to a page, and some pages have a button that opens what they describe.
 
 **Classes.** The Classes link lists the classes the page's style sheets define, most used first: how many elements have each, which file defines it, and its rules
-("Rules"); a click selects every element that has the class. It reads a page with thousands of rules in well under a second.
+("Rules"); a click selects every element that has the class. It reads a page with thousands of rules in about a second or less, looks inside `@media`, `@layer` and the
+other grouping rules, and also lists classes the elements have whose rules it cannot read (a style sheet from another site, or a script): those say so.
 
 **Select.** Click an element; a label with its name and size appears next to it (and stays at the edge of the window, pointing the way, when it is scrolled out of view). Shift-click adds or removes elements and the tools then change all of them at once. `/` finds everything
 that matches a CSS selector (or some words). Walk the page with ↑ parent, ↓ child, Tab siblings; Ctrl+E selects the similar ones.
@@ -95,7 +96,7 @@ To add a feature: a new file in `src/parts/`, registered through the `keyHooks`,
 ## Test
 
     bun install                   # Playwright and axe-core
-    bun run test                  # the end-to-end suite (181 checks), then the accessibility audit of the dock
+    bun run test                  # the end-to-end suite (188 checks), then the accessibility audit of the dock
 
 Both run offline and must pass. `bun run test:e2e` and `bun run test:a11y` run one each. The suite builds the extension, loads it into Playwright's Chromium
 (branded Chrome no longer loads unpacked extensions from the command line) and drives it on a page that is nothing like a designer's own: a strict content

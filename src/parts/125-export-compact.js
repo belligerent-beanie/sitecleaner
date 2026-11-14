@@ -107,8 +107,8 @@
                 if (!current || spec >= current.spec) found.set(prop, { spec, where: `${file} ${part.trim()}` });
               }
             }
-          } else if (rule.cssRules && (rule.type === 12 || (rule.type === 4 && window.matchMedia(rule.media.mediaText).matches))) {
-            visit(rule.cssRules, file);   // @supports, and @media that applies in this window
+          } else if (rule.cssRules && !(rule.media && !window.matchMedia(rule.media.mediaText).matches) && !/Container|Scope|Keyframes|FontFace|Page/.test(rule.constructor.name)) {
+            visit(rule.cssRules, file);   // @supports, @layer, and @media that applies in this window (@container is not worked out here)
           }
         } catch (_) { /* a rule the browser will not let us read */ }
       }
