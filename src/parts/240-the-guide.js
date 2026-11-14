@@ -1,42 +1,65 @@
-  // ---------- the guide ----------
+  // ---------- the tutorial ----------
+  // The tutorial: opened on the first run (and once after an update that changes it), and by the Tutorial button at the top of the panel at any time.
+  // A page may have an `action`: a button that closes the tutorial and opens what the page is about.
+  const TUTORIAL_VERSION = "0.3.1";   // change it when the tutorial changes enough to show it once more to people who have seen the last one
   const TOUR = [
+    { title: "Welcome", lines: [
+      "SiteCleaner lets you try changes on any page and then hand them over. Nothing touches the real site: it all happens in this tab, and Ctrl+Z undoes it.",
+      "Turn it on with the toolbar icon or Alt+Shift+P. The Tutorial button at the top of this panel brings these pages back whenever you like."] },
     { title: "Select", lines: [
-      "Alt+Shift+P turns the picker on and off. While it is on, clicking selects an element; the click does not reach the page.",
-      "Shift-click adds elements (or takes them out) and the tools then change all of them. / finds everything that matches a selector or some words. ↑ ↓ go to the parent and child, Tab to the next sibling, Esc clears."] },
+      "Click an element: a label shows its name and size. Shift-click adds more, and the tools then change all of them.",
+      "↑ ↓ go to the parent and child, Tab to the next sibling (or the first element, if nothing is selected). / finds everything that matches a selector or some words. F6 moves between the page and this panel. Esc clears."],
+      action: { label: "Try Find", run: () => { showFind = true; } } },
     { title: "Style", lines: [
-      "Enter (or a letter: C fill, B border, D shadow, F font, S size, P spacing, R radius, A layout, H tone) opens a tool. The page changes at once, in this tab only.",
-      "Fill and Font show the contrast against what is behind the text, WCAG and APCA. With a tool open, the arrow keys nudge: Shift for ten, Alt the other way."] },
+      "Press Enter, or a letter: C fill, B border, D shadow, E text, F font, S size, P spacing, R radius, A layout, H tone. The page changes at once.",
+      "Fill and Font show the contrast against the background (WCAG and APCA). In Font, B and I (or Ctrl+B and Ctrl+I) switch bold and italic. With a tool open, the arrow keys nudge a value: Shift for ten."] },
+    { title: "Hover and focus", lines: [
+      "The State buttons (normal, hover, focus, active) point every tool at that state. The element is shown in it while you edit, starting from the site's own look for it.",
+      "They are exported as :hover, :focus and :active rules."] },
     { title: "Edit the page itself", lines: [
-      "Delete removes elements, Ctrl+D duplicates, Ctrl+C / X / V copy, cut and paste them, Ctrl+G groups. Double-click text to retype it. Drop an image file on a picture to replace it.",
-      "V moves elements through the page (arrows, or drag a sibling to reorder them). L places them anywhere. Everything here is undone with Ctrl+Z like the rest."] },
+      "Delete removes, Ctrl+D duplicates, Ctrl+C / X / V copy, cut and paste, Ctrl+G groups. Double-click text to retype it. Drop an image file on a picture to replace it.",
+      "V moves elements through the page (arrows, or drag a sibling), L places them anywhere. All of it is undone with Ctrl+Z."] },
     { title: "Look closely", lines: [
-      "I inspects whatever is under the pointer: size, type, colours, contrast, and the name a screen reader would give it. Hold M to measure distances, G to see what lines up, \\ to see the original.",
-      "Preview opens the page at phone, tablet and laptop sizes. Alt+Shift+S saves a screenshot of the selection."] },
+      "I inspects whatever is under the pointer: size, type, colours, contrast and its accessible name. Hold M to measure distances, G to see what lines up, and the backslash key to see the original.",
+      "The Gridlines button (or ;) draws lines through the selection's edges. Preview shows the page at phone, tablet and laptop sizes; Alt+Shift+S saves a screenshot."],
+      action: { label: "Gridlines on or off", run: () => setGridlines(!gridOn()) } },
     { title: "Hand it over", lines: [
-      "Alt+Shift+E copies every change as Markdown: style changes with before and after, and the structure changes in order. Paste it to a developer, or to Claude, who can make the same changes in the code.",
-      "\"Changes\" lists them with Copy, Download and Reset all. They are kept in this browser, through reloads, until you reset them."] },
+      "Alt+Shift+E copies the changes for an AI or a developer. Elements that share a class are one entry: \"×5\" means all five changed (so change the class), \"2 of 5\" that only two did. \"from:\" names the rule that defines the property now.",
+      "Changes shows what the list costs, and switches between Compact and Detailed (every element, with before and after)."],
+      action: { label: "Open Changes", run: () => { showChanges = true; } } },
+    { title: "Keep your work", lines: [
+      "Ctrl+Z undoes, Ctrl+Shift+Z redoes, Reset all puts the page back. Your changes are kept per page and come back after a reload.",
+      "In the extension's Options, \"Allow all sites\" also turns the picker back on by itself after a reload. The Changes panel sets the look of this panel: light, dark or automatic."] },
     { title: "Every shortcut", lines: [
       "? (or Keys) lists every shortcut, grouped.",
-      "Guide, at any time, shows these pages again."] },
+      "The Tutorial button at the top of this panel shows these pages again, at any time."],
+      action: { label: "Open Keys", run: () => { showKeys = true; } } },
   ];
   function endTour() {
     tourStep = null;
-    host.markTourSeen();
+    host.markTourSeen(TUTORIAL_VERSION);
     renderDock();
   }
   function tourPanel() {
     const page = TOUR[tourStep];
     const last = tourStep === TOUR.length - 1;
+    const goTo = (n) => { tourStep = n; renderDock(); };
     return h("div", { class: "dz-tour" },
       h("div", { class: "dz-head" },
-        h("strong", { text: `Guide ${tourStep + 1} / ${TOUR.length}` }),
-        h("button", { type: "button", class: "dz-link", text: "Skip", onclick: endTour })),
+        h("strong", { text: `Tutorial ${tourStep + 1} / ${TOUR.length}` }),
+        h("button", { type: "button", class: "dz-link", text: "Close", title: "Close the tutorial (Esc)", onclick: endTour })),
       h("p", { class: "dz-tour-title", text: page.title }),
       ...page.lines.map((line) => h("p", { class: "dz-hint", text: line })),
+      ...(page.action ? [h("div", { class: "dz-menu" },
+        h("button", { type: "button", class: "dz-menu-button", text: page.action.label, title: "Closes the tutorial and shows it",
+                      onclick: () => { endTour(); page.action.run(); renderDock(); refreshBoxes(); } }))] : []),
+      h("div", { class: "dz-menu dz-tour-steps", role: "group", "aria-label": "Tutorial pages" },
+        ...TOUR.map((entry, i) => h("button", { type: "button", class: "dz-menu-button dz-step" + (i === tourStep ? " dz-active" : ""), text: String(i + 1),
+          title: entry.title, "aria-label": `Page ${i + 1}: ${entry.title}`, "aria-current": i === tourStep ? "step" : "false", onclick: () => goTo(i) }))),
       h("div", { class: "dz-menu" },
-        h("button", { type: "button", class: "dz-menu-button", text: "Back", disabled: tourStep === 0, onclick: () => { tourStep -= 1; renderDock(); } }),
+        h("button", { type: "button", class: "dz-menu-button", text: "Back", disabled: tourStep === 0, onclick: () => goTo(tourStep - 1) }),
         h("button", { type: "button", class: "dz-menu-button dz-active", text: last ? "Done" : "Next",
-                      onclick: () => { if (last) endTour(); else { tourStep += 1; renderDock(); } } })));
+                      onclick: () => { if (last) endTour(); else goTo(tourStep + 1); } })));
   }
 
   function renderDock() {
@@ -64,11 +87,11 @@
       onclick: () => { showPreview = !showPreview; showChanges = false; showFind = false; showKeys = false; renderDock(); } });
     const head = h("div", { class: "dz-head" },
       h("strong", { text: selection.length > 1 ? `${selection.length} elements` : selected ? label(selected) : "SiteCleaner" }),
+      h("button", { type: "button", class: "dz-menu-button dz-tutorial", text: "Tutorial", title: "A short tutorial: what SiteCleaner can do, and how", onclick: () => { tourStep = 0; renderDock(); } }),
       undoLink, redoLink, findLink, inspectLink, compareLink, previewLink,
       changesLink,
       h("button", { type: "button", class: "dz-link", text: "Keys", title: "Every keyboard shortcut (?)", "aria-pressed": String(showKeys),
                     onclick: () => { showKeys = !showKeys; showChanges = false; showPreview = false; showFind = false; renderDock(); } }),
-      h("button", { type: "button", class: "dz-link", text: "Guide", title: "How the picker works", onclick: () => { tourStep = 0; renderDock(); } }),
       h("button", { type: "button", class: "dz-link", text: "Off", title: "Turn picker mode off", onclick: () => setOn(false) }));
     dock.append(head);
 

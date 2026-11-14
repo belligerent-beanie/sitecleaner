@@ -7,8 +7,8 @@
     readEdits(key) { try { return localStorage.getItem(key); } catch (_) { return null; } },
     writeEdits(key, value) { try { if (value === null) localStorage.removeItem(key); else localStorage.setItem(key, value); } catch (_) { /* full or blocked: edits still work in this tab */ } },
     onEditsChanged(key, callback) { window.addEventListener("storage", (event) => { if (event.key === key || event.key === null) callback(); }); },
-    tourSeen() { try { return localStorage.getItem("alchemy-designer-tour") === "done"; } catch (_) { return false; } },
-    markTourSeen() { try { localStorage.setItem("alchemy-designer-tour", "done"); } catch (_) { /* shows again next time */ } },
+    tourSeen(version) { try { return localStorage.getItem("alchemy-designer-tour") === version; } catch (_) { return false; } },   // the tutorial is shown again when its version changes
+    markTourSeen(version) { try { localStorage.setItem("alchemy-designer-tour", version); } catch (_) { /* shows again next time */ } },
     getPref(name) { try { return localStorage.getItem("design-picker-pref:" + name); } catch (_) { return null; } },   // a setting that outlives the page
     setPref(name, value) { try { localStorage.setItem("design-picker-pref:" + name, value); } catch (_) { /* not remembered */ } },
     reportOn() {},   // (on) => the picker was turned on or off: the extension remembers it for this tab

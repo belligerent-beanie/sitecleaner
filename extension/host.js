@@ -7,12 +7,12 @@
   window.__designerHostInstalled = true;
 
   const key = "dz-changes:" + location.origin + location.pathname;
-  const cache = { edits: null, tour: false, prefs: {} };
+  const cache = { edits: null, tour: null, prefs: {} };   // tour: the version of the tutorial last seen (older builds stored "done")
   let preview = false;
 
   // designer.js waits for this before it starts, so its reads of saved edits can stay synchronous.
   const ready = Promise.all([
-    chrome.storage.local.get([key, "dz-tour", "dz-prefs"]).then((stored) => { cache.edits = stored[key] ?? null; cache.tour = stored["dz-tour"] === "done"; cache.prefs = stored["dz-prefs"] || {}; }),
+    chrome.storage.local.get([key, "dz-tour", "dz-prefs"]).then((stored) => { cache.edits = stored[key] ?? null; cache.tour = stored["dz-tour"] ?? null; cache.prefs = stored["dz-prefs"] || {}; }),
     chrome.runtime.sendMessage({ type: "who" }).then((answer) => { preview = !!(answer && answer.preview); }).catch(() => { /* no worker: not a preview */ }),
   ]);
 
@@ -32,8 +32,8 @@
     onEditsChanged(_key, callback) {   // a preview window hears about edits made in the page it mirrors
       chrome.storage.onChanged.addListener((changes, area) => { if (area === "local" && changes[key]) callback(); });
     },
-    tourSeen: () => cache.tour,
-    markTourSeen() { cache.tour = true; chrome.storage.local.set({ "dz-tour": "done" }); },
+    tourSeen: (version) => cache.tour === version,
+    markTourSeen(version) { cache.tour = version; chrome.storage.local.set({ "dz-tour": version }); },
     patches: null,
     takeGuide: () => false,
     getPref: (name) => cache.prefs[name] ?? null,
