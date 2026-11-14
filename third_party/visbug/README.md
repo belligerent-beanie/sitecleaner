@@ -23,6 +23,6 @@ it was adapted from, and it is listed below. All of them have been modified.
 
 ## Not derived from VisBug
 
-`src/parts/350-screenshot.js` (screenshots of the selection or the page) is this product's own work: VisBug lists a screenshot tool but ships only
+`src/parts/125-export-compact.js` (the compact export, shared-class grouping and the `from:` lookup) and the `skills/` folder are this product's own work: VisBug has no export. Likewise `src/parts/350-screenshot.js` (screenshots of the selection or the page) is this product's own work: VisBug lists a screenshot tool but ships only
 `alert('Coming Soon!')`. The same goes for the picker's foundation (recording, undo, saved edits, the Markdown export, the host adapter), the
 contrast, APCA, find, tone, guides, layout, font, size, spacing, radius and shadow panels, and the Chrome extension around it.

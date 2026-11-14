@@ -18,6 +18,7 @@
       .replace(/#[0-9a-f]{6}\b/gi, (hex) => { const [r, g, b] = parseHex(hex); return mode === "rgb" ? `rgb(${r}, ${g}, ${b})` : hslText(r, g, b); })
       .replace(/rgba\((\d+), (\d+), (\d+), ([\d.]+)\)/g, (all, r, g, b, a) => (mode === "rgb" ? all : hslText(+r, +g, +b, a)));
   };
+  const EXPORT_PROPS = ["background-color", "color", "font-size", "font-weight", "font-style", "line-height", "letter-spacing", "text-align", "border", "border-radius", "box-shadow", "padding", "margin", "width", "height", "display", "flex-direction", "flex-wrap", "justify-content", "align-items", "justify-items", "gap", "opacity", "position", "top", "left", "z-index", "background-image"];
   /** One text block per changed element: its selector (and a snippet of its text to confirm it), then each before → after. */
   function exportBlocks() {
     const blocks = [];
@@ -28,7 +29,7 @@
     for (const [element, rec, state] of entries) {
       if (element && !element.isConnected) continue;   // removed from the page: its style edits are moot
       const lines = [];
-      for (const prop of ["background-color", "color", "font-size", "font-weight", "font-style", "line-height", "letter-spacing", "text-align", "border", "border-radius", "box-shadow", "padding", "margin", "width", "height", "display", "flex-direction", "flex-wrap", "justify-content", "align-items", "justify-items", "gap", "opacity", "position", "top", "left", "z-index", "background-image"]) {
+      for (const prop of EXPORT_PROPS) {
         const after = rec.after && rec.after[prop];
         const say = COLOUR_PROPS.includes(prop) ? (value) => colourIn(String(value)) : (value) => String(value);
         if (after !== undefined && after !== rec.before[prop]) lines.push(`  ${prop}: ${shorten(say(rec.before[prop]), 110)} → ${shorten(say(after), 110)}`);
@@ -46,7 +47,7 @@
   }
   /** What gets copied or downloaded: a short heading that tells whoever reads it (a developer or Claude) what it is, then the blocks.
    *  It is meant to be pasted into a chat with Claude, who can then make the same changes in the source files. */
-  function exportMarkdown() {
+  function exportDetailed() {
     const blocks = exportBlocks();
     const structure = structureLines();
     if (!blocks.length && !structure.length) return "";

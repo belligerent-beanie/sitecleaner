@@ -38,8 +38,14 @@
     panel.append(h("div", { class: "dz-menu" }, h("span", { class: "dz-hint", text: "Colours in the export:" }),
       ...NOTATIONS.map((name) => h("button", { type: "button", class: "dz-menu-button" + (notation() === name ? " dz-active" : ""), text: name, "aria-pressed": String(notation() === name),
         title: `Write colours as ${name}`, onclick: () => { host.setPref("colours", name); renderDock(); } }))));
+    panel.append(h("div", { class: "dz-menu" }, h("span", { class: "dz-hint", text: "Export:" }),
+      ...EXPORT_MODES.map((name) => h("button", { type: "button", class: "dz-menu-button" + (exportMode() === name ? " dz-active" : ""), text: name, "aria-pressed": String(exportMode() === name),
+        title: name === "compact" ? "Fewest tokens: no before values, elements that share edits or a class are one entry, and where the property is defined now"
+          : "Every element on its own, with before and after values and contrast", onclick: () => { host.setPref("export", name); renderDock(); } }))));
     const copy = h("button", { type: "button", class: "dz-menu-button", text: "Copy", title: "Alt+Shift+E", onclick: copyChanges });
-    panel.append(h("pre", { class: "dz-preview", tabindex: "0", role: "region", "aria-label": "The changes as they will be copied", text: exportMarkdown() || "(nothing differs from the original)" }),
+    const exportText = exportMarkdown();
+    panel.append(h("pre", { class: "dz-preview", tabindex: "0", role: "region", "aria-label": "The changes as they will be copied", text: exportText || "(nothing differs from the original)" }),
+      h("p", { class: "dz-hint dz-tokens", text: `${exportText.length} characters, about ${Math.round(exportText.length / 4)} tokens` }),
       h("div", { class: "dz-menu" }, copy,
         h("button", { type: "button", class: "dz-menu-button", text: "Download", onclick: () => showToast(`Downloaded ${downloadExport()}.`) }),
         h("button", { type: "button", class: "dz-menu-button", text: "Reset all", onclick: resetAll })));

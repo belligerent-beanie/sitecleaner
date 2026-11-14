@@ -1,7 +1,7 @@
 # SiteCleaner
 
 A Chrome extension for designers. Select any element on any page, restyle it, move it, measure it, check its contrast, replace its pictures,
-undo all of it, and hand what you changed to a developer (or to Claude) as a precise Markdown change list.
+undo all of it, and hand what you changed to a developer (or to Claude) as a compact Markdown change list.
 
 It stands on the ideas of [VisBug](https://github.com/GoogleChromeLabs/ProjectVisBug), the Apache-2.0 editor from Google Chrome Labs
 (archived in September 2026), and adds what VisBug never had: **everything you do is recorded**, so it can be undone, kept across reloads and
@@ -35,8 +35,18 @@ the page (arrow keys, or drag a sibling to reorder), or place them anywhere. Dro
 **Undo everything.** One history for all of it: Ctrl+Z and Ctrl+Shift+Z, a slider drag or a run of key presses being a single step. Reset all
 puts the page back, in one step you can undo.
 
-**Hand it over.** `Alt+Shift+E` copies a Markdown change list: for each element its selector, then before and after for every property (with what
-the change did to the contrast), then the structure changes in the order they were made. Paste it into a chat with Claude, or give it to a developer.
+**Hand it over.** `Alt+Shift+E` copies the changes as Markdown, written for an AI or a developer who will make them in the source files. The
+default **compact** list costs few tokens and says what the source needs to know:
+- **Elements are not treated as separate.** Elements that received the same edits are one entry, named by what they share: `.tile ×5` means all five
+  elements with that class changed alike (so it is a change to the class's rule), while `2 of 5 .tile` says only two of the five did (so: the rule, or a
+  variant?). Shared structure counts too (`.titleline > a ×30`).
+- **Where to make the change.** `from: /css/site.css .tile` names the style sheet rule that defines the property now.
+- **No before values and no boilerplate**: one line of legend, then the new values. Contrast is mentioned only when it fails WCAG AA.
+- On a real page (Hacker News, thirty headline links restyled) the compact list is about 87 tokens against 1,746 for the detailed one.
+
+The Changes panel shows what the list costs, and switches to **detailed**: every element on its own, before and after for every property, contrast, and the
+structure changes. [`skills/sitecleaner-apply`](skills/sitecleaner-apply/SKILL.md) is a skill (plain markdown: it works as a Claude Code skill, or pasted into
+any AI tool's rules) that teaches an AI how to read a list and apply it to a project: find the right rule, class change or variant, tokens, states, report.
 `Alt+Shift+S` saves a screenshot of the selection. Preview opens the page, with your edits, in a window of phone, tablet or laptop size.
 
 Press `?` in the picker for every shortcut.
@@ -79,7 +89,7 @@ To add a feature: a new file in `src/parts/`, registered through the `keyHooks`,
 ## Test
 
     bun install                   # Playwright and axe-core
-    bun run test                  # the end-to-end suite (153 checks), then the accessibility audit of the dock
+    bun run test                  # the end-to-end suite (163 checks), then the accessibility audit of the dock
 
 Both run offline and must pass. `bun run test:e2e` and `bun run test:a11y` run one each. The suite builds the extension, loads it into Playwright's Chromium
 (branded Chrome no longer loads unpacked extensions from the command line) and drives it on a page that is nothing like a designer's own: a strict content

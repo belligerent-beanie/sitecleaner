@@ -45,8 +45,9 @@ review. Build the file to upload with `node scripts/build.mjs --zip` (it writes 
 > **Work safely.** One undo and redo for everything, down to a whole drag or a run of key presses being a single step. Edits are kept per page and come back
 > after a reload. Preview your edits at phone, tablet and laptop sizes in a real browser window. Save a screenshot of the selection.
 >
-> **Hand it off.** Copy every change as Markdown: the selector, then before and after for each property, what the change did to the contrast, and the structure
-> changes in order. Paste it to a developer or into a chat with Claude.
+> **Hand it off.** Copy the changes as a compact Markdown list written for an AI or a developer: elements that share a class are one entry (all of them, or "2 of 5"),
+> each with the style sheet rule that defines the property today, and with no before-values or boilerplate, so it costs few tokens. A detailed list, with before and after
+> for every property, is one click away. Paste it to a developer or into a chat with Claude.
 >
 > Private by design: no account, no servers, no analytics. Your edits stay in your browser. Open source (Apache-2.0), standing on the ideas of VisBug.
 
