@@ -82,14 +82,13 @@ The suite has produced one flaky run so far (a test that pressed a shortcut whil
 
 ## Decisions (owner, 14 November 2026)
 
-1. **Host:** GitHub. The repository exists, private, as `belligerent-beanie/design-picker` (to be renamed with the product, see below).
+1. **Host:** GitHub. The repository exists, private, as `belligerent-beanie/sitecleaner` (renamed from `design-picker` on 14 November 2026; GitHub redirects the old address).
 2. **Visibility:** private for now. Private repositories are metered, so the cost of three jobs per run matters until the repository is made public.
 3. **Required check:** yes. `test` becomes mandatory for merging, once it has passed 20 runs in a row on the runner (rollout step 3).
 4. **Smoke issues:** a failing nightly `smoke` opens a GitHub issue (one issue, updated while it fails, closed when it passes).
 5. **Real Chrome:** a manual checklist is part of every release; it is in `store/STORE_LISTING.md`.
 
-Still to decide, none of it blocking: renaming the repository to match the product name (GitHub redirects the old address), and whether the
-branch-protection rule that makes `test` required needs a second reviewer (with one contributor, probably not).
+Still to decide, not blocking: whether the branch-protection rule that makes `test` required needs a second reviewer (with one contributor, probably not).
 
 Status: approved in principle. **Not built**: rollout step 1 is done (the repository exists); step 2, the proof branch that shows the suite passes under Xvfb
 on a Linux runner, is the next piece of work, and nothing is made required before it has passed.
