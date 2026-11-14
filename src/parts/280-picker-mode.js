@@ -99,12 +99,15 @@
       renderDock();
     }
   }
+  let pollTimer = null;
   function setOn(value) {
     on = value;
     if (!host.isPreview()) host.reportOn(on);
     const method = on ? "addEventListener" : "removeEventListener";
     for (const type of STOPPED) window[method](type, swallow, true);
     window[method]("mousemove", onMove, true);
+    clearInterval(pollTimer);   // the page may move things around (the board does): poll for it only while the picker is on
+    pollTimer = on ? setInterval(() => { if (selected) refreshBoxes(); }, 500) : null;
     if (!on) { for (const hook of offHooks) hook(); inspecting = false; renderInspect(null); hovered = null; setSelection([]); climbed = []; menuOpen = false; tool = null; showChanges = false; tourStep = null; }
     else {
       if (!host.tourSeen(TUTORIAL_VERSION)) tourStep = 0;   // the first time on this browser, and once after an update that changes the tutorial
