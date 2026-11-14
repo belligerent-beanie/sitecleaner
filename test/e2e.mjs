@@ -412,6 +412,7 @@ try {
     await ip.locator(".dz-dock button:text-is('Image')").click();
     check("the Image tool says what it will replace", /replace the picture of/.test(await ip.locator(".dz-dock .dz-note").innerText()), await ip.locator(".dz-dock .dz-note").innerText());
     await ip.locator(".dz-file").setInputFiles({ name: "logo-new.png", mimeType: "image/png", buffer: png });
+    await ip.waitForFunction(() => document.getElementById("pic").getAttribute("src").startsWith("data:"), null, { timeout: 5000 }).catch(() => {});   // the file is read asynchronously
     eq("choosing a file replaced the image's source and dropped its srcset (which would hide the new one)", await img(), "data:image/png false");
     await undoKey();
     eq("one Ctrl+Z put back the source and the srcset", await img(), "/pic.png true");
@@ -689,6 +690,8 @@ try {
     await sp.mouse.down();
     await sp.waitForTimeout(600);
     const pressed = await bg();
+    const held = await sp.evaluate(() => ({ active: document.querySelector(".cta").matches(":active"), hover: document.querySelector(".cta").matches(":hover"), rules: [...document.adoptedStyleSheets].flatMap((sheet) => [...sheet.cssRules].map((r) => r.cssText)).filter((t) => /active/.test(t)).slice(0, 3) }));
+    if (pressed !== "rgb(34, 34, 34)") console.log("      [diagnostic] while held:", JSON.stringify(held));
     await sp.mouse.up();
     await sp.mouse.move(2, 2);
     await sp.waitForTimeout(600);
@@ -747,6 +750,15 @@ try {
   await popup.close();
 } catch (error) {
   failed = true;
+  if (process.env.CI) {   // evidence for whoever reads the run: a picture of each open page, and what the dock says
+    fs.mkdirSync("test-artifacts", { recursive: true });
+    let n = 0;
+    for (const open of context.pages()) {
+      n++;
+      try { await open.screenshot({ path: `test-artifacts/page-${n}.png` }); } catch (_) { /* a closed page */ }
+      try { console.log(`      [diagnostic] page ${n} ${open.url()}: dock says`, JSON.stringify(await open.evaluate(() => { const h = document.getElementById("design-picker-extension-root"); return h ? h.shadowRoot.querySelector(".dz-dock").innerText.slice(0, 160) : "(no picker)"; }))); } catch (_) { /* no picker there */ }
+    }
+  }
   console.log("FAIL  the test stopped:", error.message, String(error.stack || "").split(/\r?\n/).filter((l) => l.includes("e2e.mjs")).slice(0, 2).join(" "));
 } finally {
   await context.close();

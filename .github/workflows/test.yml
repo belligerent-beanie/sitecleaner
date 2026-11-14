@@ -52,5 +52,7 @@ jobs:
         if: always()
         with:
           name: output-${{ matrix.run }}
-          path: test-output.txt
+          path: |
+            test-output.txt
+            test-artifacts/
           retention-days: 14
