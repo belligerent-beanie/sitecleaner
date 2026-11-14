@@ -52,8 +52,9 @@ USE IT
 ------
  1. Open any ordinary web page.
 
- 2. Click the SiteCleaner icon, or press Alt+Shift+P. A small panel appears
-    (the first time, a short guide; press Esc to skip it).
+ 2. Click the SiteCleaner icon, or press Alt+Shift+P. A small panel appears,
+    with a nine-page tutorial the first time (press Esc to close it). The
+    "Tutorial" button at the top of the panel opens it again whenever you like.
 
  3. Click an element on the page to select it. Shift-click adds more. Press
     Enter to open the tools (Fill, Border, Font, Size, Spacing and more), or

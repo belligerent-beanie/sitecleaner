@@ -107,7 +107,7 @@
     window[method]("mousemove", onMove, true);
     if (!on) { for (const hook of offHooks) hook(); inspecting = false; renderInspect(null); hovered = null; setSelection([]); climbed = []; menuOpen = false; tool = null; showChanges = false; tourStep = null; }
     else {
-      if (!host.tourSeen()) tourStep = 0;   // the first time on this browser
+      if (!host.tourSeen(TUTORIAL_VERSION)) tourStep = 0;   // the first time on this browser, and once after an update that changes the tutorial
     }
     renderDock();
     refreshBoxes();

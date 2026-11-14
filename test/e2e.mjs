@@ -76,7 +76,7 @@ try {
   const toggleBox = await page.locator(".dz-toggle").boundingBox();
   check("its styles applied despite the page's content security policy (the tab sits on the left edge)", toggleBox && toggleBox.x < 4 && toggleBox.height > 40, JSON.stringify(toggleBox));
   eq("the picker is on", await page.locator(".dz-toggle").innerText(), "Design: on");
-  check("the first-time guide opened", (await page.locator(".dz-dock").innerText()).match(/Guide 1 \/ \d+/) !== null);
+  check("the first-time tutorial opened", (await page.locator(".dz-dock").innerText()).match(/Tutorial 1 \/ \d+/) !== null);
   await page.keyboard.press("Escape");
   check("no Patches link (those belong to the game's server)", !(await page.locator(".dz-dock .dz-head").innerText()).includes("Patches"));
 
@@ -903,6 +903,40 @@ try {
     await changes().click();
     await xp.locator(".dz-dock button:text-is('Reset all')").click();
     await xp.close();
+  }
+
+  // ---- the tutorial: shown once per version, a button at any time, nine pages, page numbers to jump to, and buttons that open what a page is about
+  {
+    const tp = await context.newPage();
+    tp.on("pageerror", (error) => console.log("      [page error]", error.message));
+    await worker.evaluate(() => chrome.storage.local.set({ "dz-tour": "done" }));   // what the builds before 0.3.1 stored: it must not count as having seen this tutorial
+    await tp.goto(url + "tutorial");
+    await tp.bringToFront();
+    await worker.evaluate(async () => { const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true }); await toggle(tab); });
+    await tp.locator(".dz-toggle").waitFor({ timeout: 8000 });
+    const header = () => tp.locator(".dz-tour .dz-head strong").innerText();
+    eq("the first time with this version, and after an older build's guide, the tutorial opens", await header(), "Tutorial 1 / 9");
+    await tp.locator(".dz-tour button:text-is('Close')").click();
+    eq("closing it leaves the panel", await tp.locator(".dz-tour").count(), 0);
+    await tp.locator(".dz-dock button:text-is('Off')").click();
+    await worker.evaluate(async () => { const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true }); await toggle(tab); });
+    await tp.locator(".dz-dock").waitFor();
+    eq("and it does not open again by itself", await tp.locator(".dz-tour").count(), 0);
+    await tp.locator(".dz-dock .dz-tutorial").click();
+    eq("the Tutorial button opens it at any point", await header(), "Tutorial 1 / 9");
+    await tp.locator(".dz-tour button:text-is('Next')").click();
+    eq("Next turns the page", await header(), "Tutorial 2 / 9");
+    await tp.locator(".dz-step:text-is('7')").click();
+    eq("the page numbers jump to a page", [await header(), await tp.locator(".dz-tour-title").innerText(), await tp.locator(".dz-step.dz-active").getAttribute("aria-current")], ["Tutorial 7 / 9", "Hand it over", "step"]);
+    await tp.keyboard.press("ArrowRight");
+    eq("the arrow keys turn pages too", await header(), "Tutorial 8 / 9");
+    await tp.locator(".dz-step:text-is('7')").click();
+    await tp.locator(".dz-tour button:text-is('Open Changes')").click();
+    check("a page's button closes the tutorial and opens what it describes", (await tp.locator(".dz-tour").count()) === 0 && (await tp.locator(".dz-dock").innerText()).includes("No changes yet"), await tp.locator(".dz-dock").innerText());
+    await tp.locator(".dz-dock .dz-tutorial").click();
+    await tp.keyboard.press("Escape");
+    eq("Esc closes it", await tp.locator(".dz-tour").count(), 0);
+    await tp.close();
   }
 
   // ---- the options page shows the shortcut the browser actually assigned, and how to change it
