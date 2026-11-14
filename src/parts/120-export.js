@@ -51,13 +51,13 @@
     const structure = structureLines();
     if (!blocks.length && !structure.length) return "";
     const sized = blocks.some((block) => /^  (width|height):/m.test(block));
-    const stated = blocks.some((block) => /^.*:(hover|focus)(  \(|$)/m.test(block));
+    const stated = blocks.some((block) => /^.*:(hover|focus|active)(  \(|$)/m.test(block));
     return [
       "# UI changes from the designer picker",
       `Page: ${location.origin + location.pathname}`,
       `Viewport: ${window.innerWidth}×${window.innerHeight} · ${new Date().toISOString().slice(0, 10)}`,
       "Each block is one element: its selector (with a snippet of its text to confirm it), then before → after. Apply these in the source code.",
-      ...(stated ? ["A selector ending in :hover or :focus is a state: write those properties in a rule for that state, not on the element. The \"before\" is how the state looks on the page now (the page's own :hover or :focus rules included)."] : []),
+      ...(stated ? ["A selector ending in :hover, :focus or :active is a state: write those properties in a rule for that state, not on the element. The \"before\" is how the state looks on the page now (the page's own rules for it included)."] : []),
       ...(sized ? ["Width and height are fixed pixel sizes set in this window: when applying them keep the layout working on smaller screens (min-width, percentages or clamp())."] : []),
       "",
       blocks.join("\n\n"),

@@ -236,7 +236,7 @@
     bulk++;
     try { for (const which of Object.keys(layers)) withLayer(which, () => { for (const element of [...changes.keys()]) resetElement(element); }); } finally { bulk--; }
     pending = [];
-    pendingStates = { hover: [], focus: [] };
+    pendingStates = { hover: [], focus: [], active: [] };
     save();
     exported = true;
     renderDock();

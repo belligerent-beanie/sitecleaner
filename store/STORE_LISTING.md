@@ -30,8 +30,8 @@ review. Build the file to upload with `node scripts/build.mjs --zip` (it writes 
 > number or drag the handles), padding and margin, flex and grid layout. Shift-click to select several elements and change them all at once, or search by
 > CSS selector to select every match. Shift the hue, saturation and brightness of a whole selection together. Copy one element's look and paste it onto others.
 >
-> **Hover and focus.** Switch a tool to the hover or focus state and restyle it there, starting from the look the site already gives it. The change is exported as a
-> `:hover` or `:focus` rule.
+> **Hover and focus.** Switch a tool to the hover, focus or active state and restyle it there, starting from the look the site already gives it. The change is exported as a
+> `:hover`, `:focus` or `:active` rule.
 >
 > **Edit the page itself.** Delete, duplicate, copy, cut, paste and group elements. Double-click text to retype it. Move elements through the page with the
 > arrow keys or by dragging, or place them anywhere. Drop an image file on a picture to replace it.
@@ -65,7 +65,7 @@ Lets a designer select, restyle, move and measure elements on a web page to try 
 
 ## Release checklist
 
-1. `node test/e2e.mjs` passes (122 checks).
+1. `node test/e2e.mjs` passes (123 checks).
 2. Bump `version` in `package.json`; `node scripts/build.mjs --zip`.
 3. Fill in the name decision and the two URLs above; make the 440 × 280 promo tile.
 4. Upload the zip; paste the fields above; add the screenshots; submit.

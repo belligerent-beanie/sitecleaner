@@ -16,8 +16,8 @@
   let changesLink = null;      // the "Changes (n)" button in the dock, kept so its count can change without rebuilding the dock
   let exported = true;         // false while there are edits that were not copied or downloaded
   // Edits are kept in layers: "normal" (the element as it is) and one per state (:hover, :focus). `changes` is the layer being edited.
-  const STATES = ["hover", "focus"];
-  const layers = { normal: new Map(), hover: new Map(), focus: new Map() };   // layer -> element -> {selector, tag, snippet, props: Map(prop -> {before, after, original}), text}
+  const STATES = ["hover", "focus", "active"];
+  const layers = { normal: new Map(), hover: new Map(), focus: new Map(), active: new Map() };   // layer -> element -> {selector, tag, snippet, props: Map(prop -> {before, after, original}), text}
   let layer = "normal";
   let changes = layers.normal;
   // Features register with these instead of editing the handlers below.

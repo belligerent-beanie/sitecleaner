@@ -2,13 +2,13 @@
   // A state edit is a CSS rule, `selector:hover { ... }`, in a style sheet of our own (a constructed one: the page's security policy cannot refuse it).
   // The tools write to it through styleOf(), which gives them the rule's style instead of the element's, so every tool, and undo, saving and the export,
   // work on a state the way they do on the element itself. While a state is being edited the selected elements carry an attribute that makes
-  // the rule (and a copy of the page's own :hover or :focus rules) apply, so the designer sees the state without having to hold the pointer there.
+  // the rule (and a copy of the page's own :hover, :focus or :active rules) apply, so the designer sees the state without having to hold the pointer there.
   const FORCE = "data-designer-force";
   const stateSheet = new CSSStyleSheet();    // the designer's state rules
   const mirrorSheet = new CSSStyleSheet();   // the page's own :hover and :focus rules, copied so that they also match the forced attribute
-  const stateRules = { hover: new Map(), focus: new Map() };   // state -> element -> its CSSStyleRule
+  const stateRules = { hover: new Map(), focus: new Map(), active: new Map() };   // state -> element -> its CSSStyleRule
   const forced = new Set();                  // elements carrying the attribute now
-  let pendingStates = { hover: [], focus: [] };   // saved state edits whose element is not on the page (yet)
+  let pendingStates = { hover: [], focus: [], active: [] };   // saved state edits whose element is not on the page (yet)
   const anyPending = () => !!(pending.length || pendingOps.length || STATES.some((state) => pendingStates[state].length));
 
   function installSheets() {
@@ -46,8 +46,8 @@
     for (const rule of rules) {
       try {
         if (rule.type === 1) {
-          const parts = rule.selectorText.split(",").filter((part) => /:(hover|focus|focus-visible)(?![\w-])/.test(part))
-            .map((part) => part.replace(/:hover(?![\w-])/g, `[${FORCE}~="hover"]`).replace(/:focus(?:-visible)?(?![\w-])/g, `[${FORCE}~="focus"]`));
+          const parts = rule.selectorText.split(",").filter((part) => /:(hover|focus|focus-visible|active)(?![\w-])/.test(part))
+            .map((part) => part.replace(/:hover(?![\w-])/g, `[${FORCE}~="hover"]`).replace(/:focus(?:-visible)?(?![\w-])/g, `[${FORCE}~="focus"]`).replace(/:active(?![\w-])/g, `[${FORCE}~="active"]`));
           if (parts.length) out.push(`${parts.join(",")} { ${rule.style.cssText} }`);
         } else if (rule.cssRules && (rule.type === 4 || rule.type === 12)) {   // @media, @supports
           const inner = [];
