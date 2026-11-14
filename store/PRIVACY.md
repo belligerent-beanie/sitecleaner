@@ -31,5 +31,4 @@ on your device and go only where you put them. A screenshot is a picture of the 
 
 ## Changes and contact
 
-If this policy changes, the new version replaces this file with a new date. Questions or concerns: [the address of the project's issue tracker, filled in
-when the extension is published]. The extension is open source under the Apache License 2.0.
+If this policy changes, the new version replaces this file with a new date. Questions or concerns: https://github.com/belligerent-beanie/sitecleaner/issues. The extension is open source under the Apache License 2.0.

@@ -8,8 +8,8 @@ review. Build the file to upload with `node scripts/build.mjs --zip` (it writes 
   most often antivirus, ad-blocking and tidy-up tools, and the store's policy on misleading names and descriptions is enforced; the listing text below says
   plainly that this is a design and review tool, which is the mitigation. If the review objects, rename in `extension/manifest.template.json` (`name`,
   `action.default_title`) and the strings in `src/`. Do not use "VisBug" (Apache-2.0 gives no right to the name).
-- **Where the project lives.** The privacy policy and support fields need public URLs: put the repository somewhere, then fill in the two placeholders below
-  and in `store/PRIVACY.md`.
+- **Where the project lives.** https://github.com/belligerent-beanie/sitecleaner (public since 14 November 2026). The two URLs below point there; if the repository is ever moved or renamed, change them
+  here and in `store/PRIVACY.md`.
 
 ## Basics
 
@@ -19,8 +19,8 @@ review. Build the file to upload with `node scripts/build.mjs --zip` (it writes 
 | Category | Developer Tools |
 | Language | English |
 | Summary (from the manifest, 132 characters at most) | Select, restyle, move and measure anything on any page, check contrast, undo it all, and hand the changes to a developer or Claude. |
-| Privacy policy URL | *(the public address of `store/PRIVACY.md`)* |
-| Homepage / support URL | *(the public address of the repository)* |
+| Privacy policy URL | https://github.com/belligerent-beanie/sitecleaner/blob/main/store/PRIVACY.md |
+| Homepage / support URL | https://github.com/belligerent-beanie/sitecleaner |
 | Screenshots (1280 × 800) | `store/screenshots/*.png` (regenerate with `node scripts/screenshots.mjs`) |
 | Small promo tile (440 × 280) | `store/promo-tile-440x280.png` (regenerate with `node scripts/promo-tile.mjs`) |
 
