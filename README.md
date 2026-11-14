@@ -25,7 +25,7 @@ site's CSS variables.
 
 **Check as you go.** Fill and Font show the contrast against what is behind the text: WCAG 2 (AA and AAA) and APCA. The inspector (`I`)
 shows whatever is under the pointer: size, type, colours, contrast, role and the name a screen reader would announce, and flags a missing name or alt
-text. Hold `M` to measure distances, `G` to see what lines up with the selection, `\` to flip back to the original page.
+text. Hold `M` to measure distances, `G` to see what lines up with the selection, `;` (or the Gridlines button) to draw lines through the selection's edges across the page, `\` to flip back to the original page.
 
 **Edit the page itself.** Delete, duplicate, copy, cut and paste, group and ungroup elements. Double-click text to retype it. Move elements through
 the page (arrow keys, or drag a sibling to reorder), or place them anywhere. Drop an image file on a picture, or paste one, to replace it.
@@ -79,7 +79,7 @@ To add a feature: a new file in `src/parts/`, registered through the `keyHooks`,
 ## Test
 
     bun install                   # Playwright and axe-core
-    bun run test                  # the end-to-end suite (146 checks), then the accessibility audit of the dock
+    bun run test                  # the end-to-end suite (153 checks), then the accessibility audit of the dock
 
 Both run offline and must pass. `bun run test:e2e` and `bun run test:a11y` run one each. The suite builds the extension, loads it into Playwright's Chromium
 (branded Chrome no longer loads unpacked extensions from the command line) and drives it on a page that is nothing like a designer's own: a strict content

@@ -40,7 +40,7 @@ review. Build the file to upload with `node scripts/build.mjs --zip` (it writes 
 >
 > **Check as you go.** Every colour picker shows the WCAG contrast ratio (AA and AAA) and the APCA contrast value live, and lists the colours the page already
 > uses, with the names of its CSS variables. Hover anything with the inspector to see its size, type, colours, contrast and the name a screen reader would
-> announce. Hold a key to measure distances between elements, another to see what lines up, and another to flip back to the original page.
+> announce. Hold a key to measure distances between elements, another to see what lines up, switch on gridlines through the selection's edges, and hold another to flip back to the original page.
 >
 > **Work safely.** One undo and redo for everything, down to a whole drag or a run of key presses being a single step. Edits are kept per page and come back
 > after a reload. Preview your edits at phone, tablet and laptop sizes in a real browser window. Save a screenshot of the selection.
