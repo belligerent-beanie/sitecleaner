@@ -1,0 +1,52 @@
+# The nightly smoke test on real websites (docs/CI_DESIGN.md). It never blocks anything: it needs the network and live pages.
+# While it fails there is one open issue, updated each night; when it passes again the issue is closed.
+name: smoke
+
+on:
+  schedule:
+    - cron: "17 4 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TITLE: Real-site smoke test failing
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
+      - run: bun install --frozen-lockfile
+      - run: bunx playwright install --with-deps chromium
+      - name: Smoke test on real sites, under a virtual display
+        id: smoke
+        shell: bash
+        run: |
+          set +e
+          xvfb-run --auto-servernum --server-args="-screen 0 1280x1024x24" bun run smoke 2>&1 | tee smoke-output.txt
+          echo "status=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
+      - name: Open, update or close the issue
+        shell: bash
+        run: |
+          run_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          open=$(gh issue list --state open --search "in:title \"$TITLE\"" --json number --jq '.[0].number // empty')
+          if [ "${{ steps.smoke.outputs.status }}" != "0" ]; then
+            { echo "The nightly smoke test on real websites failed: $run_url"; echo; echo '```'; grep -E "^(https?://|  FAIL|[0-9]+ step|  \(the page)" smoke-output.txt | head -40; echo '```'; } > body.md
+            if [ -n "$open" ]; then gh issue comment "$open" --body-file body.md; else gh issue create --title "$TITLE" --body-file body.md; fi
+          elif [ -n "$open" ]; then
+            gh issue close "$open" --comment "Passing again: $run_url"
+          fi
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: smoke-output
+          path: smoke-output.txt
+          retention-days: 14
+      - name: Fail the job if the smoke test failed (red in the Actions tab; not a required check)
+        if: steps.smoke.outputs.status != '0'
+        run: exit 1

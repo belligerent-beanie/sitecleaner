@@ -1,14 +1,16 @@
-# The proof for docs/CI_DESIGN.md (rollout step 2): does the whole suite pass on a Linux runner under a virtual display?
-# This is the `test` job only. Nothing is required for merging until it has passed 20 runs in a row.
+# The `test` workflow (docs/CI_DESIGN.md): the end-to-end suite and the accessibility audit, on a Linux runner under a virtual display.
+# `result` is the one check that is required for merging; `package` leaves the Web Store zip as an artifact.
 name: test
 
 on:
   push:
-    branches: [ci-proof]
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
   workflow_dispatch:
     inputs:
       repeats:
-        description: How many times to run the suite (each run is its own job, to measure how often it fails)
+        description: How many times to run the suite (each run is its own job; used to measure how often it fails)
         default: "1"
 
 permissions:
@@ -16,7 +18,7 @@ permissions:
 
 concurrency:
   group: test-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   plan:
@@ -56,3 +58,28 @@ jobs:
             test-output.txt
             test-artifacts/
           retention-days: 14
+
+  # One stable name for the branch rule to require, whatever the number of matrix jobs behind it.
+  result:
+    needs: test
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          if [ "${{ needs.test.result }}" != "success" ]; then echo "test: ${{ needs.test.result }}"; exit 1; fi
+
+  package:
+    needs: result
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
+      - run: bun install --frozen-lockfile
+      - run: bun run zip
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: sitecleaner-zip
+          path: releases/*.zip
+          retention-days: 30

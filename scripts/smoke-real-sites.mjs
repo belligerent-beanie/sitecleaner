@@ -26,7 +26,8 @@ const profile = fs.mkdtempSync(path.join(os.tmpdir(), "dp-smoke-profile-"));
 const context = await chromium.launchPersistentContext(profile, { headless: false, viewport: null, args: [`--disable-extensions-except=${dist}`, `--load-extension=${dist}`, "--window-size=1366,900"] });
 const worker = context.serviceWorkers()[0] || (await context.waitForEvent("serviceworker", { timeout: 15000 }));
 const report = [];
-for (const site of SITES) {
+async function runSite(site) {
+  await worker.evaluate(() => chrome.storage.local.clear());   // nothing saved by an earlier attempt on this page
   const steps = [];
   const errors = [];
   const step = async (name, run) => { try { const result = await run(); steps.push({ name, ok: result !== false }); return result; } catch (error) { steps.push({ name, ok: false, why: error.message.split("\n")[0].slice(0, 90) }); return false; } };
@@ -35,11 +36,11 @@ for (const site of SITES) {
   try {
     await page.goto(site, { waitUntil: "domcontentloaded", timeout: 40000 });
     await page.waitForTimeout(2500);
-  } catch (error) { report.push({ site, steps: [{ name: "load the page", ok: false, why: error.message.split("\n")[0].slice(0, 90) }], errors }); await page.close(); continue; }
+  } catch (error) { await page.close(); return { site, steps: [{ name: "load the page", ok: false, why: error.message.split("\n")[0].slice(0, 90) }], errors }; }
   await page.bringToFront();
   await worker.evaluate(async () => { const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true }); await toggle(tab); });
   const ready = await step("the picker appears", async () => { await page.locator(".dz-toggle").waitFor({ timeout: 8000 }); return true; });
-  if (ready === false) { report.push({ site, steps, errors }); await page.close(); continue; }
+  if (ready === false) { await page.close(); return { site, steps, errors }; }
   await page.keyboard.press("Escape");
   let heading = page.locator("body");   // the first visible heading, level 1 to 3; a link only when the page has no headings at all (a skip link would be unclickable)
   for (const selector of ["h1:visible", "h2:visible", "h3:visible", "a:visible"]) { if (await page.locator(selector).count()) { heading = page.locator(selector).first(); break; } }
@@ -59,16 +60,21 @@ for (const site of SITES) {
   if (before) await step("Ctrl+Z puts it back", async () => { await page.evaluate(() => { const a = document.querySelector("#design-picker-extension-root").shadowRoot.activeElement; if (a) a.blur(); }); await page.keyboard.press("Control+z"); return (await page.locator("css:light=p").count()) === before; });
   await step("the export lists the change", async () => { await page.keyboard.press("Escape"); await page.keyboard.press("Escape"); await page.locator(".dz-dock .dz-head button:text-matches('Changes')").click({ timeout: 4000 }); return /background-color: .* → /.test(await page.locator(".dz-preview").innerText({ timeout: 3000 })); });
   await step("the inspector says what is under the pointer", async () => { await page.keyboard.press("Escape"); await page.keyboard.press("Escape"); await page.keyboard.press("i"); await heading.hover({ timeout: 4000 }); const tip = await page.locator(".dz-tip").innerText({ timeout: 3000 }); await page.keyboard.press("i"); return tip.length > 10; });
-  report.push({ site, steps, errors });
   await page.close();
+  return { site, steps, errors };
+}
+for (const site of SITES) {
+  let entry = await runSite(site);
+  if (entry.steps.some((step) => !step.ok)) { entry = await runSite(site); entry.retried = true; }   // one more try before calling it broken
+  report.push(entry);
 }
 await context.close();
 fs.rmSync(dist, { recursive: true, force: true });
 fs.rmSync(profile, { recursive: true, force: true });
 
 let failed = 0;
-for (const { site, steps, errors } of report) {
-  console.log(`\n${site}`);
+for (const { site, steps, errors, retried } of report) {
+  console.log(`\n${site}${retried ? "  (second attempt)" : ""}`);
   for (const { name, ok, why } of steps) { if (!ok) failed++; console.log(`  ${ok ? "ok  " : "FAIL"}  ${name}${ok ? "" : "  -> " + (why || "did not hold")}`); }
   if (errors.length) console.log(`  (the page itself raised ${errors.length} error${errors.length > 1 ? "s" : ""}, e.g. ${JSON.stringify(errors[0])})`);
 }
