@@ -13,19 +13,37 @@
     if (before["background-image"] && before["background-image"].length > 500) before["background-image"] = before["background-image"].slice(0, 500) + "…";
     return { selector: rec.selector, snippet: rec.snippet, before, after, text: rec.text || null };
   };
+  // Naming an element (selectorFor) searches the whole page, so naming every edited element on every save made an edit of N elements cost N times N
+  // searches. The names only change when the page's structure, ids, classes or attributes do (not when only inline styles do, which is all the
+  // picker's own edits touch), so they are worked out again only after such a change has been seen.
+  let selectorsDirty = true;
+  let selectorWatch = null;
+  const namesChange = (records) => records.some((r) => (r.type === "childList" || r.attributeName !== "style") && !ours(r.target));   // the picker's own drawing is not the page
+  function selectorsStale() {
+    if (!selectorWatch && typeof MutationObserver !== "undefined") {
+      selectorWatch = new MutationObserver((records) => { if (namesChange(records)) selectorsDirty = true; });
+      selectorWatch.observe(document.documentElement, { subtree: true, childList: true, attributes: true });
+      return true;   // not watched until now: anything may have changed
+    }
+    if (!selectorWatch) return true;   // cannot watch: work them out every time, as before
+    if (namesChange(selectorWatch.takeRecords())) selectorsDirty = true;   // changes made a moment ago, not yet delivered to the observer's callback
+    return selectorsDirty;
+  }
   /** An entry that changes nothing (everything put back as it was) is not worth keeping, counting or exporting. */
   function save() {
     if (PREVIEW) return;
     try {
       retargetRules();
+      const rename = selectorsStale();
       const listFor = (map, waiting) => {
         const live = [...map.entries()].filter(([element]) => element.isConnected);   // what was removed from the page cannot come back
-        for (const [element, rec] of live) rec.selector = selectorFor(element);       // named by the page as it is now, structure changes included
+        if (rename) for (const [element, rec] of live) rec.selector = selectorFor(element);   // named by the page as it is now, structure changes included
         return [...live.map(([, rec]) => saved(rec)), ...waiting].filter(hasChange);
       };
       const edits = listFor(layers.normal, pending);
       const states = {};
       for (const state of STATES) states[state] = listFor(layers[state], pendingStates[state]);
+      selectorsDirty = false;
       const structure = [...ops.map((op) => op.desc), ...pendingOps];
       const anyState = STATES.some((state) => states[state].length);
       host.writeEdits(STORE_KEY, edits.length || structure.length || anyState ? JSON.stringify(anyState ? { v: 3, edits, ops: structure, states } : { v: 2, edits, ops: structure }) : null);
