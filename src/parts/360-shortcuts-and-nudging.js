@@ -94,16 +94,17 @@
     ["See", [["I", "inspect on hover"], [";", "gridlines through the selection, on or off"], ["hold M", "measure distances"], ["hold G", "alignment guides"], ["hold \\", "the original"], ["Alt Shift S", "screenshot"]]],
     ["Hand off", [["Alt Shift E", "copy the changes as Markdown"], ["Alt Shift P", "picker on and off"], ["?", "this list"]]],
   ];
+  const SHORTCUT_FEATURE = { "/": "find", "I": "inspector", ";": "measure", "hold M": "measure", "hold G": "measure", "hold \\": "compare", "Alt Shift E": "export" };   // the shortcuts an edition can switch off
   function keysPanel() {
     const panel = h("div", { class: "dz-panel dz-keys" });
     for (const [title, rows] of SHORTCUTS) {
       panel.append(h("strong", { class: "dz-keys-title", text: title }));
-      for (const [keys, what] of rows) panel.append(h("div", { class: "dz-keys-row" }, h("kbd", { text: keys }), h("span", { text: what })));
+      for (const [keys, what] of rows.filter(([keys]) => has(SHORTCUT_FEATURE[keys] || ""))) panel.append(h("div", { class: "dz-keys-row" }, h("kbd", { text: keys }), h("span", { text: what })));
     }
     return panel;
   }
   keyHooks.push((event) => {   // ; turns the gridlines on or off
-    if (event.key !== ";" || event.ctrlKey || event.metaKey || event.altKey || isEditingField(eventTarget(event))) return false;
+    if (event.key !== ";" || !has("measure") || event.ctrlKey || event.metaKey || event.altKey || isEditingField(eventTarget(event))) return false;
     event.preventDefault();
     setGridlines(!gridOn());
     return true;

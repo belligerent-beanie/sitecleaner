@@ -1,4 +1,6 @@
-// Builds the unpacked extension: node scripts/build.mjs [--out DIR] [--test] [--zip] [--share]
+// Builds the unpacked extension: node scripts/build.mjs [--edition designer|consumer] [--out DIR] [--test] [--zip] [--share]
+// Two editions are built from the same files: the designer edition (everything; dist/) and the consumer edition (a smaller set of tools; dist-consumer/).
+// An edition is a name, a description and a list of features the picker leaves out (see `has` in src/parts/010-where-it-runs.js).
 // --zip also writes releases/sitecleaner-<version>.zip, the file the Chrome Web Store takes.
 // --share also writes releases/SiteCleaner-<version>-share.zip, the one to hand to people: the extension plus plain-language instructions for installing it in Chrome
 // (store/SHARE_README.txt), the licences, and the skill for AIs.
@@ -25,7 +27,17 @@ const wantMinify = !args.includes("--no-minify");
 let esbuild = null;
 if (wantMinify) { try { esbuild = await import("esbuild"); } catch (_) { console.warn("esbuild is not installed (bun install): building without minifying."); } }
 const shrink = (code, loader) => (esbuild ? esbuild.transformSync(code, { loader, minify: true, target: "chrome114", legalComments: "none" }).code : code);
-const out = path.resolve(args.includes("--out") ? args[args.indexOf("--out") + 1] : path.join(root, "dist"));
+const EDITIONS = {
+  designer: { name: "SiteCleaner", dir: "dist", zip: "sitecleaner", features: {},
+    description: "Select, restyle, move and measure anything on any page, check contrast, undo it all, and hand the changes to a developer or Claude." },
+  consumer: { name: "SiteCleaner Personal", dir: "dist-consumer", zip: "sitecleaner-personal",   // the name is a placeholder: check it before publishing
+    features: { find: false, inspector: false, compare: false, preview: false, measure: false, export: false },
+    description: "Make any website look the way you like: change colours and text, undo anything, and keep your changes." },
+};
+const editionName = args.includes("--edition") ? args[args.indexOf("--edition") + 1] : "designer";
+if (!EDITIONS[editionName]) throw new Error(`unknown edition "${editionName}": use ${Object.keys(EDITIONS).join(" or ")}`);
+const edition = EDITIONS[editionName];
+const out = path.resolve(args.includes("--out") ? args[args.indexOf("--out") + 1] : path.join(root, edition.dir));
 const version = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8")).version;
 
 fs.rmSync(out, { recursive: true, force: true });
@@ -38,8 +50,14 @@ const css = shrink(fs.readFileSync(path.join(root, "src", "picker.css"), "utf8")
 fs.writeFileSync(path.join(out, "designer-css.js"), `window.__designerCss = ${JSON.stringify(css)};\n`);
 
 // ---- the extension's own files
-for (const file of ["host.js", "restore.js", "background.js", "options.html", "options.js"]) fs.copyFileSync(path.join(ext, file), path.join(out, file));
+for (const file of ["restore.js", "background.js", "options.html", "options.js"]) fs.copyFileSync(path.join(ext, file), path.join(out, file));
+const hostSource = fs.readFileSync(path.join(ext, "host.js"), "utf8");
+const marked = /\/\*edition\*\/[\s\S]*?\/\*end\*\//;
+if (!marked.test(hostSource)) throw new Error("extension/host.js has lost its /*edition*/ ... /*end*/ marker");
+fs.writeFileSync(path.join(out, "host.js"), hostSource.replace(marked, () => JSON.stringify({ name: editionName, features: edition.features })));
 const manifest = JSON.parse(fs.readFileSync(path.join(ext, "manifest.template.json"), "utf8").replace("__VERSION__", version));
+manifest.name = edition.name;
+manifest.description = edition.description;
 if (manifest.description.length > 132) throw new Error(`the manifest description is ${manifest.description.length} characters; the Chrome Web Store allows 132`);
 if (test) manifest.host_permissions = ["<all_urls>"];   // the real build asks only for the tab clicked (activeTab), and all sites only if the designer opts in
 fs.writeFileSync(path.join(out, "manifest.json"), JSON.stringify(manifest, null, 2) + "\n");
@@ -130,13 +148,14 @@ function zipDirectory(dir) {
 }
 if (makeZip) {
   fs.mkdirSync(path.join(root, "releases"), { recursive: true });
-  const zipPath = path.join(root, "releases", `sitecleaner-${version}.zip`);
+  const zipPath = path.join(root, "releases", `${edition.zip}-${version}.zip`);
   fs.writeFileSync(zipPath, zipDirectory(out));
   console.log(`Wrote ${zipPath}`);
 }
 
 if (makeShare) {
   if (test) throw new Error("--share makes the zip for people, which must be the real build: not with --test");
+  if (editionName !== "designer") throw new Error("--share is only for the designer edition");
   const stage = fs.mkdtempSync(path.join(os.tmpdir(), "sitecleaner-share-"));
   const top = path.join(stage, `SiteCleaner-${version}`);
   fs.mkdirSync(top, { recursive: true });
@@ -154,4 +173,4 @@ if (makeShare) {
   console.log(`Wrote ${sharePath}`);
 }
 
-console.log(`Built the extension (version ${version}${test ? ", test build" : ""}) in ${out}`);
+console.log(`Built the ${editionName} extension (version ${version}${test ? ", test build" : ""}) in ${out}`);

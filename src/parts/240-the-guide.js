@@ -88,7 +88,7 @@
     const head = h("div", { class: "dz-head" },
       h("strong", { text: selection.length > 1 ? `${selection.length} elements` : selected ? label(selected) : "SiteCleaner" }),
       h("button", { type: "button", class: "dz-menu-button dz-tutorial", text: "Tutorial", title: "A short tutorial: what SiteCleaner can do, and how", onclick: () => { tourStep = 0; renderDock(); } }),
-      undoLink, redoLink, findLink, inspectLink, compareLink, previewLink,
+      undoLink, redoLink, has("find") && findLink, has("inspector") && inspectLink, has("compare") && compareLink, has("preview") && previewLink,
       changesLink,
       h("button", { type: "button", class: "dz-link", text: "Keys", title: "Every keyboard shortcut (?)", "aria-pressed": String(showKeys),
                     onclick: () => { showKeys = !showKeys; showChanges = false; showPreview = false; showFind = false; renderDock(); } }),
@@ -100,14 +100,14 @@
     if (showFind) { const panel = findPanel(); dock.append(panel); panel.querySelector(".dz-find").focus(); return; }   // focus at once: keys typed straight after / must land in the field
     if (showChanges) { dock.append(changesPanel()); return; }
     if (!selected) {
-      dock.append(h("p", { class: "dz-hint", text: "Click any element to select it; Shift-click adds more. ↑ parent, ↓ child, Enter for the tools, Esc to clear. / to find, hold M to measure or G for alignment guides, I to inspect. Alt+Shift+E copies your changes." }));
+      dock.append(h("p", { class: "dz-hint", text: "Click any element to select it; Shift-click adds more. ↑ parent, ↓ child, Enter for the tools, Esc to clear." + (has("find") ? " / to find." : "") + (has("measure") ? " Hold M to measure or G for alignment guides." : "") + (has("inspector") ? " I to inspect." : "") + (has("export") ? " Alt+Shift+E copies your changes." : "") }));
       return;
     }
     const lookRow = () => h("div", { class: "dz-menu dz-look" },
       h("button", { type: "button", class: "dz-menu-button", text: "Copy look", title: "Copy this element's fill, type, border, corners, shadow and padding (Alt+Shift+C)", onclick: () => copyLook(selected) }),
       h("button", { type: "button", class: "dz-menu-button", text: "Paste look", disabled: !copiedLook, title: copiedLook ? `Paste the look of ${copiedLook.from} (Alt+Shift+V)` : "Copy an element's look first",
                     onclick: () => pasteLook(targets()) }),
-      h("button", { type: "button", class: "dz-menu-button" + (gridOn() ? " dz-active" : ""), text: "Gridlines", "aria-pressed": String(gridOn()),
+      has("measure") && h("button", { type: "button", class: "dz-menu-button" + (gridOn() ? " dz-active" : ""), text: "Gridlines", "aria-pressed": String(gridOn()),
                     title: "Draw lines through the edges of the selection, across the page (;)", onclick: () => setGridlines(!gridOn()) }),
       h("button", { type: "button", class: "dz-menu-button", text: "Screenshot", disabled: !host.capture, title: host.capture ? "Save a PNG of the selected elements, or of the page if nothing is selected (Alt+Shift+S)" : "Screenshots need the Chrome extension",
                     onclick: () => takeScreenshot() }));

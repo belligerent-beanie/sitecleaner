@@ -25,7 +25,7 @@
   }
   function onKey(event) {
     if (event.altKey && event.shiftKey && event.code === "KeyP") { event.preventDefault(); setOn(!on); return; }
-    if (event.altKey && event.shiftKey && event.code === "KeyE") { event.preventDefault(); copyChanges(); return; }   // works with the picker off too
+    if (event.altKey && event.shiftKey && event.code === "KeyE" && has("export")) { event.preventDefault(); copyChanges(); return; }   // works with the picker off too
     if (!on) return;
     if (event.altKey && event.shiftKey && (event.code === "KeyC" || event.code === "KeyV") && selected) {
       event.preventDefault();
@@ -44,28 +44,28 @@
       return;
     }
     for (const hook of keyHooks) if (hook(event)) return;
-    if (event.key === "/" && !event.ctrlKey && !event.metaKey && !event.altKey && !isEditingField(eventTarget(event))) {   // find
+    if (event.key === "/" && has("find") && !event.ctrlKey && !event.metaKey && !event.altKey && !isEditingField(eventTarget(event))) {   // find
       event.preventDefault();
       showFind = true; showChanges = false; showPreview = false; showKeys = false;
       renderDock();
       return;
     }
-    if (event.key.toLowerCase() === "g" && !event.ctrlKey && !event.metaKey && !event.altKey && selected && !isEditingField(eventTarget(event))) {   // hold for guides
+    if (event.key.toLowerCase() === "g" && has("measure") && !event.ctrlKey && !event.metaKey && !event.altKey && selected && !isEditingField(eventTarget(event))) {   // hold for guides
       event.preventDefault();
       if (!event.repeat) { guiding = true; renderGuides(); }
       return;
     }
-    if (event.key.toLowerCase() === "i" && !event.ctrlKey && !event.metaKey && !event.altKey && !isEditingField(eventTarget(event))) {   // toggle the inspector
+    if (event.key.toLowerCase() === "i" && has("inspector") && !event.ctrlKey && !event.metaKey && !event.altKey && !isEditingField(eventTarget(event))) {   // toggle the inspector
       event.preventDefault();
       if (!event.repeat) { setInspect(!inspecting); renderDock(); }
       return;
     }
-    if (event.key.toLowerCase() === "m" && !event.ctrlKey && !event.metaKey && !event.altKey && selected && !isEditingField(eventTarget(event))) {   // hold to measure
+    if (event.key.toLowerCase() === "m" && has("measure") && !event.ctrlKey && !event.metaKey && !event.altKey && selected && !isEditingField(eventTarget(event))) {   // hold to measure
       event.preventDefault();
       if (!event.repeat) { measuring = true; renderMeasure(); }
       return;
     }
-    if (event.key === "\\" && !event.ctrlKey && !event.metaKey && !event.altKey && !isEditingField(eventTarget(event))) {   // hold to compare
+    if (event.key === "\\" && has("compare") && !event.ctrlKey && !event.metaKey && !event.altKey && !isEditingField(eventTarget(event))) {   // hold to compare
       event.preventDefault();
       if (!event.repeat) setCompare(true);
       return;

@@ -3,3 +3,4 @@ dist/
 releases/
 *.log
 test-artifacts/
+dist-consumer/

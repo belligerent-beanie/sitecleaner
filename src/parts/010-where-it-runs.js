@@ -23,6 +23,9 @@
       return true;
     },
     capture: null,   // () => a promise of a PNG data URL of the visible tab: only the extension can
+    features: {},   // {name: false} turns a feature off: find, inspector, compare, preview, measure, export (all on unless an edition says otherwise)
     mount(root) { document.body.append(root); },
     isOwn: () => false,   // a node outside the root that is still the picker's (the extension's shadow host)
   }, pre || {});
+  /** Is this feature part of this edition of the picker? Everything is, unless the host switched it off (see the editions in scripts/build.mjs). */
+  const has = (name) => !host.features || host.features[name] !== false;

@@ -6,6 +6,8 @@
   if (window.__designerHostInstalled) return;
   window.__designerHostInstalled = true;
 
+  // Replaced by scripts/build.mjs with the edition being built (the designer edition when this file is used as it stands).
+  const EDITION = /*edition*/ { name: "designer", features: {} } /*end*/;
   const key = "dz-changes:" + location.origin + location.pathname;
   const cache = { edits: null, tour: null, prefs: {} };   // tour: the version of the tutorial last seen (older builds stored "done")
   let preview = false;
@@ -23,6 +25,8 @@
 
   window.__designerHost = {
     ready,
+    edition: EDITION.name,
+    features: EDITION.features,
     storageKey: () => key,
     readEdits: () => cache.edits,
     writeEdits(_key, value) {
