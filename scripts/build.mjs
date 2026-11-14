@@ -35,9 +35,10 @@ if (manifest.description.length > 132) throw new Error(`the manifest description
 if (test) manifest.host_permissions = ["<all_urls>"];   // the real build asks only for the tab clicked (activeTab), and all sites only if the designer opts in
 fs.writeFileSync(path.join(out, "manifest.json"), JSON.stringify(manifest, null, 2) + "\n");
 
-// ---- icons: the flask on its brown, drawn here so there is no image tool to install (Chrome wants PNGs)
-const FLASK = [[26, 10], [38, 10], [38, 14], [35, 14], [35, 28], [49, 52], [48, 55], [44.7, 59.5], [19.3, 59.5], [16, 55], [15, 52], [29, 28], [29, 14], [26, 14]];
-const LIQUID = [[22, 46], [42, 46], [47, 54.5], [17, 54.5]];
+// ---- icons: a selection frame and a pointer on indigo, drawn here so there is no image tool to install (Chrome wants PNGs)
+const FRAME_OUTER = [[12, 12], [46, 12], [46, 46], [12, 46]];
+const FRAME_INNER = [[17, 17], [41, 17], [41, 41], [17, 41]];
+const POINTER = [[33, 30], [33, 56], [39.5, 49.5], [44, 59], [49, 56.8], [44.5, 47.5], [53.5, 47.5]];
 function inside(poly, x, y) {
   let c = false;
   for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
@@ -62,7 +63,7 @@ function png(size) {
       for (let sy = 0; sy < sub; sy++) for (let sx = 0; sx < sub; sx++) {
         const x = ((px + (sx + 0.5) / sub) / size) * 64, y = ((py + (sy + 0.5) / sub) / size) * 64;
         if (!roundedSquare(x, y)) continue;
-        const [cr, cg, cb] = inside(LIQUID, x, y) ? [255, 153, 51] : inside(FLASK, x, y) ? [244, 241, 232] : [107, 78, 61];
+        const [cr, cg, cb] = inside(POINTER, x, y) ? [255, 176, 59] : inside(FRAME_OUTER, x, y) && !inside(FRAME_INNER, x, y) ? [255, 255, 255] : [53, 70, 190];
         r += cr; g += cg; b += cb; a += 255;
       }
       const n = sub * sub, o = py * (size * 4 + 1) + 1 + px * 4;

@@ -20,7 +20,7 @@ review. Build the file to upload with `node scripts/build.mjs --zip` (it writes 
 | Privacy policy URL | *(the public address of `store/PRIVACY.md`)* |
 | Homepage / support URL | *(the public address of the repository)* |
 | Screenshots (1280 × 800) | `store/screenshots/*.png` (regenerate with `node scripts/screenshots.mjs`) |
-| Small promo tile (440 × 280) | not made yet: required by the store |
+| Small promo tile (440 × 280) | `store/promo-tile-440x280.png` (regenerate with `node scripts/promo-tile.mjs`) |
 
 ## Detailed description
 
@@ -67,5 +67,5 @@ Lets a designer select, restyle, move and measure elements on a web page to try 
 
 1. `node test/e2e.mjs` passes (123 checks).
 2. Bump `version` in `package.json`; `node scripts/build.mjs --zip`.
-3. Fill in the name decision and the two URLs above; make the 440 × 280 promo tile.
+3. Fill in the name decision and the two URLs above.
 4. Upload the zip; paste the fields above; add the screenshots; submit.

@@ -82,7 +82,7 @@ To add a feature: a new file in `src/parts/`, registered through the `keyHooks`,
 It builds the extension, loads it into Playwright's Chromium (branded Chrome no longer loads unpacked extensions from the command line), and
 drives it on a page that is nothing like a designer's own: a strict content security policy, generated class names, its own CSS variables. It covers
 every feature above, including the round trip through a reload and through Reset all. `node scripts/build.mjs --zip` writes the zip for the Web Store
-(`releases/`), and `node scripts/screenshots.mjs` regenerates the store screenshots from the real extension.
+(`releases/`), `node scripts/screenshots.mjs` regenerates the store screenshots from the real extension, and `node scripts/promo-tile.mjs` the promo tile.
 `node scripts/smoke-real-sites.mjs [url ...]` tries it on real sites (Wikipedia, Hacker News, MDN, GitHub, the BBC and others: strict security policies,
 web components, single-page apps); it needs the network, so it is separate from the end-to-end test.
 
