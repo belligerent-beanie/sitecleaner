@@ -25,6 +25,7 @@ const page = await browser.newPage();
 await page.goto(`http://127.0.0.1:${server.address().port}/`);
 await page.evaluate((css) => { window.__designerCss = css; }, css);
 await page.addScriptTag({ content: script });
+await page.addScriptTag({ path: path.join(root, "extension", "readable.js") });
 const result = await page.evaluate((n) => {
   const P = window.__prof, out = {}, time = (name, fn, reps = 3) => { const t = []; for (let i = 0; i < reps; i++) { const s = performance.now(); fn(); t.push(performance.now() - s); } out[name] = Math.round(Math.min(...t) * 10) / 10; };
   out.elements = document.body.querySelectorAll("*").length;
@@ -36,6 +37,9 @@ const result = await page.evaluate((n) => {
   P.setOn(true);
   time("refreshBoxes with 300 selected", () => P.refreshBoxes());
   time("applyFill on 300 selected", () => P.applyFill(many, "#336699"));
+  const R = window.__scReadable;   // the easier-to-read pass: every text element read, then written
+  const opts = { textScale: 1.25, minText: 14, contrast: true, spacing: true, links: true };
+  time("easier to read: whole pass", () => { R.apply(opts); R.apply(null); }, 3);
   return out;
 }, count);
 console.log(JSON.stringify(result, null, 1));

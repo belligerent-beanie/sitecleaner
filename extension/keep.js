@@ -6,7 +6,8 @@ const allow = document.getElementById("allow");
 chrome.runtime.sendMessage({ type: "keep-info", token }).then((info) => {
   if (!info || info.error) { done.textContent = (info && info.error) || "This request has expired. Close this window and press Keep again."; allow.disabled = true; return; }
   document.getElementById("site").textContent = info.origin;
-  document.getElementById("what").textContent = `${info.count} style ${info.count === 1 ? "rule" : "rules"} will be kept.`;
+  const parts = [info.count ? `${info.count} style ${info.count === 1 ? "rule" : "rules"}` : "", info.settings ? "your easier-to-read settings" : ""].filter(Boolean);
+  document.getElementById("what").textContent = `${parts.join(" and ")} will be kept.`;
   allow.addEventListener("click", async () => {
     allow.disabled = true;
     const granted = await chrome.permissions.request({ origins: [info.origin + "/*"] });

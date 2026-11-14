@@ -27,7 +27,7 @@ function describe(rule) {   // the same words as the picker's panel
   return `${cut(rule.s, 36)}: ${cut(what, 48)}`;
 }
 async function save(origin, entry) {
-  if (entry.rules.length) await chrome.storage.local.set({ [SITE_PREFIX + origin]: entry });
+  if (entry.rules.length || (entry.presets && entry.presets.access)) await chrome.storage.local.set({ [SITE_PREFIX + origin]: entry });
   else await chrome.storage.local.remove(SITE_PREFIX + origin);
   await chrome.runtime.sendMessage({ type: "site-sync", origin });
 }
@@ -55,12 +55,15 @@ async function showSites() {
     label.append(box, name);
     const count = document.createElement("span");
     count.className = "count";
-    count.textContent = `${entry.rules.length} ${entry.rules.length === 1 ? "change" : "changes"}`;
+    const preset = entry.presets && entry.presets.access;
+    const total = entry.rules.length + (preset ? 1 : 0);
+    count.textContent = `${total} ${total === 1 ? "change" : "changes"}`;
     const forget = document.createElement("button");
     forget.type = "button";
     forget.textContent = "Forget";
     forget.addEventListener("click", async () => {
-      await save(origin, { ...entry, rules: [] });
+      const { presets, ...rest } = entry;
+      await save(origin, { ...rest, rules: [] });
       await chrome.permissions.remove({ origins: [origin + "/*"] }).catch(() => { /* not granted, or granted for all sites */ });
       showSites();
     });
@@ -70,6 +73,17 @@ async function showSites() {
     summary.textContent = "What is kept";
     const rules = document.createElement("ul");
     rules.className = "rules";
+    if (preset && window.__scReadable) {
+      const row = document.createElement("li");
+      const text = document.createElement("code");
+      text.textContent = "Easier to read: " + window.__scReadable.describe(preset);
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.textContent = "Remove";
+      remove.addEventListener("click", async () => { const { presets, ...rest } = entry; await save(origin, rest); showSites(); });
+      row.append(text, remove);
+      rules.append(row);
+    }
     for (const rule of entry.rules) {
       const row = document.createElement("li");
       const text = document.createElement("code");

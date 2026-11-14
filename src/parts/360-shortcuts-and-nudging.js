@@ -136,7 +136,7 @@
     if (event.key !== "?" || event.ctrlKey || event.metaKey || event.altKey || isEditingField(eventTarget(event))) return false;
     event.preventDefault();
     showKeys = !showKeys;
-    showChanges = false; showPreview = false; showFind = false;
+    showChanges = false; showAccess = false; showPreview = false; showFind = false;
     renderDock();
     return true;
   });

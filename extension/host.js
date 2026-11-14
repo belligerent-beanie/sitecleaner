@@ -52,9 +52,10 @@
       onChange(callback) { chrome.storage.onChanged.addListener((changes, area) => { if (area === "local" && changes[siteKey]) { cache.kept = changes[siteKey].newValue ?? null; callback(); } }); },
       remove: (rule) => chrome.runtime.sendMessage({ type: "keep-remove", s: rule }),
       setEnabled: (enabled) => chrome.runtime.sendMessage({ type: "keep-enable", enabled }),
+      removePreset: () => chrome.runtime.sendMessage({ type: "keep-remove-preset" }),
       repick: (rule, patch) => chrome.runtime.sendMessage({ type: "keep-repick", s: rule, b: patch.b, from: patch.from }),
     },
-    keep: (sheet) => chrome.runtime.sendMessage({ type: "keep", rules: sheet.rules, skipped: sheet.skipped }),   // the worker names the site itself, from the tab
+    keep: (sheet) => chrome.runtime.sendMessage({ type: "keep", rules: sheet.rules, skipped: sheet.skipped, presets: sheet.presets }),   // the worker names the site itself, from the tab
     capture: () => chrome.runtime.sendMessage({ type: "capture" }).then((answer) => {
       if (answer && answer.dataUrl) return answer.dataUrl;
       throw new Error((answer && answer.error) || "no picture came back");

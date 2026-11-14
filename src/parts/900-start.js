@@ -16,7 +16,7 @@
   if (host.kept) host.kept.onChange(() => {
     showCount();
     const kept = host.kept.get();
-    if (plain() && on && kept && kept.rules.length && host.getPref("keptIntro") !== "1") {   // the first time anything is kept (even after the permission window)
+    if (plain() && on && kept && (kept.rules.length || (kept.presets && kept.presets.access)) && host.getPref("keptIntro") !== "1") {   // the first time anything is kept (even after the permission window)
       host.setPref("keptIntro", "1");
       keptIntro = true; showChanges = true; showFind = false; showPreview = false; showKeys = false; tourStep = null;
       renderDock();

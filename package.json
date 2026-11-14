@@ -9,7 +9,7 @@
     "build": "node scripts/build.mjs",
     "zip": "node scripts/build.mjs --zip",
     "share": "node scripts/build.mjs --share",
-    "test": "node test/e2e.mjs && node test/editions.mjs && node test/keep.mjs && node scripts/a11y.mjs && node scripts/a11y.mjs --consumer",
+    "test": "node test/e2e.mjs && node test/editions.mjs && node test/keep.mjs && node test/access.mjs && node scripts/a11y.mjs && node scripts/a11y.mjs --consumer",
     "test:e2e": "node test/e2e.mjs",
     "test:a11y": "node scripts/a11y.mjs",
     "smoke": "node scripts/smoke-real-sites.mjs",
@@ -19,6 +19,7 @@
     "test:editions": "node test/editions.mjs",
     "build:consumer": "node scripts/build.mjs --edition consumer",
     "test:keep": "node test/keep.mjs",
+    "test:access": "node test/access.mjs",
     "test:a11y:consumer": "node scripts/a11y.mjs --consumer"
   },
   "devDependencies": {

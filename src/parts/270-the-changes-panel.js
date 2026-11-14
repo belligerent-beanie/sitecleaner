@@ -4,7 +4,8 @@
     const kept = host.kept && host.kept.get();
     const section = h("div", { class: "dz-kept" }, h("strong", { class: "dz-keys-title", text: "Kept on this site" }));
     if (keptIntro) section.append(h("p", { class: "dz-hint dz-kept-intro", role: "status", text: "Kept. These changes will be here every time you visit this site. This list is where you switch them off or remove one. To switch a site off without opening this, right-click the toolbar icon." }));
-    if (!kept || !kept.rules.length) {
+    const preset = kept && kept.presets && kept.presets.access;
+    if (!kept || (!kept.rules.length && !preset)) {
       section.append(h("p", { class: "dz-hint", text: "Nothing is kept yet. Press Keep to have your changes here every time you visit." }),
         h("div", { class: "dz-menu" }, h("button", { type: "button", class: "dz-menu-button dz-active", text: "Keep these changes", onclick: keepOnSite })));
       return section;
@@ -13,6 +14,11 @@
     enabled.checked = !!kept.enabled;
     enabled.addEventListener("change", () => { host.kept.setEnabled(enabled.checked); });
     section.append(h("label", { class: "dz-row" }, enabled, h("span", { text: "Apply on this site" })));
+    if (preset && readable()) {
+      section.append(h("div", { class: "dz-change" }, h("code", { text: "Easier to read: " + readable().describe(preset) }),
+        h("button", { type: "button", class: "dz-link", text: "Change", onclick: openAccess }),
+        h("button", { type: "button", class: "dz-link", text: "Remove", title: "Stop keeping these settings. The page changes back when you reload.", onclick: () => { host.kept.removePreset(); readable().apply(null); } })));
+    }
     for (const rule of kept.rules) {
       const lost = (kept.stale || []).includes(rule.b);
       section.append(h("div", { class: "dz-change" + (lost ? " dz-lost" : ""), title: lost ? `${rule.b}: matches nothing on the last page you visited here` : rule.b },

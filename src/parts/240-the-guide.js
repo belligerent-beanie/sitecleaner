@@ -26,14 +26,14 @@
     { title: "Hand it over", lines: [
       "Alt+Shift+E copies the changes for an AI or a developer. Elements that share a class are one entry: \"×5\" means all five changed (so change the class), \"2 of 5\" that only two did. \"from:\" names the rule that defines the property now.",
       "Changes shows what the list costs, and switches between Compact and Detailed (every element, with before and after)."],
-      action: { label: "Open Changes", run: () => { showChanges = true; } } },
+      action: { label: "Open Changes", run: () => { showChanges = true; showAccess = false; } } },
     { title: "Keep your work", lines: [
       "Ctrl+Z undoes, Ctrl+Shift+Z redoes, Reset all puts the page back. Your changes are kept per page and come back after a reload.",
       "In the extension's Options, \"Allow all sites\" also turns the picker back on by itself after a reload. The Changes panel sets the look of this panel: light, dark or automatic."] },
     { title: "Every shortcut", lines: [
       "? (or Keys) lists every shortcut, grouped.",
       "The Tutorial button at the top of this panel shows these pages again, at any time."],
-      action: { label: "Open Keys", run: () => { showKeys = true; } } },
+      action: { label: "Open Keys", run: () => { showKeys = true; showAccess = false; } } },
   ];
   const PLAIN_TOUR = [
     { title: "Welcome", lines: [
@@ -45,7 +45,7 @@
     { title: "Keep it", lines: [
       "Press Keep and your changes are there every time you visit this site. The first time, your browser asks to allow the extension on that one site, and only that one.",
       "My changes lists what you have kept, with a switch to turn it off and a Remove for each change. The extension's options list all your sites."],
-      action: { label: "Open My changes", run: () => { showChanges = true; } } },
+      action: { label: "Open My changes", run: () => { showChanges = true; showAccess = false; } } },
   ];
   const TOUR = plain() ? PLAIN_TOUR : FULL_TOUR;
   function endTour() {
@@ -86,7 +86,7 @@
     updateHandles();
     if (tourStep !== null) { dock.append(tourPanel()); return; }
 
-    changesLink = h("button", { type: "button", class: "dz-link", text: `${say("changes", "Changes")} (${changeCount()})`, onclick: () => { showChanges = !showChanges; showPreview = false; showFind = false; showKeys = false; renderDock(); } });
+    changesLink = h("button", { type: "button", class: "dz-link", text: `${say("changes", "Changes")} (${changeCount()})`, onclick: () => { showChanges = !showChanges; showAccess = false; showPreview = false; showFind = false; showKeys = false; renderDock(); } });
     undoLink = h("button", { type: "button", class: "dz-link", text: "Undo", title: "Undo (Ctrl+Z)", onclick: undo });
     redoLink = h("button", { type: "button", class: "dz-link", text: "Redo", title: "Redo (Ctrl+Shift+Z or Ctrl+Y)", onclick: redo });
     showHistory();
@@ -96,21 +96,24 @@
     compareLink.addEventListener("pointerdown", (event) => { event.preventDefault(); setCompare(true); });
     for (const type of ["pointerup", "pointerleave", "pointercancel"]) compareLink.addEventListener(type, () => setCompare(false));
     const findLink = h("button", { type: "button", class: "dz-link", text: "Find", title: "Select everything that matches a CSS selector or some words (/)",
-      onclick: () => { showFind = !showFind; showChanges = false; showPreview = false; showKeys = false; renderDock(); } });
+      onclick: () => { showFind = !showFind; showChanges = false; showAccess = false; showPreview = false; showKeys = false; renderDock(); } });
     const previewLink = h("button", { type: "button", class: "dz-link", text: "Preview", title: "See this page at phone, tablet and laptop sizes",
-      onclick: () => { showPreview = !showPreview; showChanges = false; showFind = false; showKeys = false; renderDock(); } });
+      onclick: () => { showPreview = !showPreview; showChanges = false; showAccess = false; showFind = false; showKeys = false; renderDock(); } });
     const head = h("div", { class: "dz-head" },
       h("strong", { text: selection.length > 1 ? `${selection.length} elements` : selected ? label(selected) : "SiteCleaner" }),
       h("button", { type: "button", class: "dz-menu-button dz-tutorial", text: "Tutorial", title: "A short tutorial: what SiteCleaner can do, and how", onclick: () => { tourStep = 0; renderDock(); } }),
       undoLink, redoLink,
       has("keep") && host.keep && h("button", { type: "button", class: "dz-link dz-keep", text: "Keep", title: "Keep these changes on this site, so they are there every time you visit", onclick: keepOnSite }),
       has("find") && findLink, has("inspector") && inspectLink, has("compare") && compareLink, has("preview") && previewLink,
+      host.features && host.features.access === true && h("button", { type: "button", class: "dz-link", text: "Easier to read", title: "Bigger text, clearer links, calmer pages: kept for this site if you like", "aria-pressed": String(showAccess),
+        onclick: () => { if (showAccess) { showAccess = false; renderDock(); } else openAccess(); } }),
       changesLink,
       h("button", { type: "button", class: "dz-link", text: "Keys", title: "Every keyboard shortcut (?)", "aria-pressed": String(showKeys),
-                    onclick: () => { showKeys = !showKeys; showChanges = false; showPreview = false; showFind = false; renderDock(); } }),
+                    onclick: () => { showKeys = !showKeys; showChanges = false; showAccess = false; showPreview = false; showFind = false; renderDock(); } }),
       h("button", { type: "button", class: "dz-link", text: "Off", title: "Turn picker mode off", onclick: () => setOn(false) }));
     dock.append(head);
 
+    if (showAccess && has("access")) { dock.append(accessPanel()); return; }
     if (showPreview) { dock.append(previewPanel()); return; }
     if (showKeys) { dock.append(keysPanel()); return; }
     if (showFind) { const panel = findPanel(); dock.append(panel); panel.querySelector(".dz-find").focus(); return; }   // focus at once: keys typed straight after / must land in the field

@@ -69,7 +69,7 @@ try {
     }
     await page.locator(`.dz-dock button:text-is('${consumer ? "Background" : "Fill"}')`).click();
     await page.locator(".dz-chip").first().click();
-    for (const link of consumer ? ["My changes", "Keys"] : ["Changes", "Keys", "Find", "Preview"]) {
+    for (const link of consumer ? ["My changes", "Easier to read", "Keys"] : ["Changes", "Keys", "Find", "Preview"]) {
       const button = page.locator(`.dz-dock .dz-head button:text-matches('^${link}')`);
       await button.click();
       await audit(`${look}: the ${link} panel`);

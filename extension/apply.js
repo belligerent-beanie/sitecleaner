@@ -33,7 +33,19 @@
     watcher.observe(document, { childList: true, characterData: true, subtree: true });
   }
 
+  // The easier-to-read settings (readable.js, loaded just before this file). Applied only when they changed, so an unrelated change to the entry
+  // (a rule kept, the stale list) does not undo what the page is showing.
+  let lastAccess = null;
+  function applyAccess() {
+    const wanted = entry && entry.enabled && entry.presets && entry.presets.access ? entry.presets.access : null;
+    const json = JSON.stringify(wanted);
+    if (json === lastAccess || !window.__scReadable) return;
+    lastAccess = json;
+    window.__scReadable.apply(wanted);
+  }
+
   function apply() {
+    applyAccess();
     const all = entry && entry.enabled && Array.isArray(entry.rules) ? entry.rules : [];
     const rules = all.filter((rule) => rule.k !== "text");
     texts = all.filter((rule) => rule.k === "text");

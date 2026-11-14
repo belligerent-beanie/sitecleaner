@@ -66,7 +66,7 @@
   let repicking = null;   // the rule being re-picked
   function startRepick(rule) {
     repicking = rule;
-    showChanges = false;
+    showChanges = false; showAccess = false;
     renderDock();
     showToast(rule.k === "text" ? "Click the element that now holds this text. Esc cancels." : "Click the element this change should apply to. Esc cancels.");
   }

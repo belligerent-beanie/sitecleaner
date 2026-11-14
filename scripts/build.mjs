@@ -33,7 +33,7 @@ const EDITIONS = {
   consumer: { name: "SiteCleaner Personal", dir: "dist-consumer", zip: "sitecleaner-personal",   // the name is a placeholder: check it before publishing
     features: { find: false, inspector: false, compare: false, preview: false, measure: false, export: false,
       size: false, layout: false, position: false, move: false, image: false, states: false, structure: false,   // tools whose changes cannot be kept (or are for designers)
-      plain: true, watermark: true },   // keep is on; watermark: pictures say they are of an edited page; plain: everyday words, a short tutorial, a Delete button
+      plain: true, watermark: true, access: true },   // keep is on; watermark: pictures say they are of an edited page; plain: everyday words, a short tutorial, a Delete button
     permissions: ["contextMenus"],   // right-click the toolbar icon to switch a site's changes off or on
     description: "Make any website look the way you like: change colours and text, undo anything, and keep your changes." },
 };
@@ -53,7 +53,7 @@ const css = shrink(fs.readFileSync(path.join(root, "src", "picker.css"), "utf8")
 fs.writeFileSync(path.join(out, "designer-css.js"), `window.__designerCss = ${JSON.stringify(css)};\n`);
 
 // ---- the extension's own files
-for (const file of ["restore.js", "apply.js", "keep.html", "keep.js", "background.js", "options.html"]) fs.copyFileSync(path.join(ext, file), path.join(out, file));
+for (const file of ["restore.js", "readable.js", "apply.js", "keep.html", "keep.js", "background.js", "options.html"]) fs.copyFileSync(path.join(ext, file), path.join(out, file));
 const marked = /\/\*edition\*\/[\s\S]*?\/\*end\*\//;
 for (const file of ["host.js", "options.js"]) {   // the files that need to know which edition they are in
   const source = fs.readFileSync(path.join(ext, file), "utf8");
