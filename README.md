@@ -98,7 +98,8 @@ The audit runs axe-core on every tool and panel in both looks of the dock, and m
 
 `bun run smoke` tries the extension on real sites (Wikipedia, Hacker News, MDN, GitHub, gov.uk and others: strict security policies, web components,
 single-page apps). It needs the network and live pages that change, so it is **not** part of `test`: run it by hand before a release.
-`bun run zip` writes the zip for the Web Store (`releases/`), `bun run screenshots` regenerates the store screenshots from the real extension, and
+`bun run zip` writes the zip for the Web Store (`releases/`), `bun run share` the one to hand to people (`releases/SiteCleaner-<version>-share.zip`: the extension, plain-language
+instructions for installing it in Chrome and using it, the licences and the skill for AIs), `bun run screenshots` regenerates the store screenshots from the real extension, and
 `bun run promo` the promo tile.
 
 ## Where it comes from
