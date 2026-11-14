@@ -14,7 +14,8 @@
     "test:a11y": "node scripts/a11y.mjs",
     "smoke": "node scripts/smoke-real-sites.mjs",
     "screenshots": "node scripts/screenshots.mjs",
-    "promo": "node scripts/promo-tile.mjs"
+    "promo": "node scripts/promo-tile.mjs",
+    "profile": "node scripts/profile.mjs"
   },
   "devDependencies": {
     "axe-core": "^4.14.0",
