@@ -783,6 +783,46 @@ try {
     await bp.close();
   }
 
+  // ---- gridlines through the selection: a switch (button or ;), four lines per element at its edges, remembered
+  {
+    const gp = await context.newPage();
+    gp.on("pageerror", (error) => console.log("      [page error]", error.message));
+    await gp.goto(url + "gridlines");
+    await gp.bringToFront();
+    await worker.evaluate(async () => { const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true }); await toggle(tab); });
+    await gp.locator(".dz-toggle").waitFor({ timeout: 8000 });
+    await gp.keyboard.press("Escape");
+    const lines = () => gp.evaluate(() => {
+      const sr = document.querySelector("#design-picker-extension-root").shadowRoot;
+      const shown = [...sr.querySelectorAll(".dz-gridline")].filter((l) => !l.hasAttribute("hidden"));
+      const r = document.querySelector(".cta").getBoundingClientRect();
+      return { count: shown.length, xs: shown.filter((l) => l.getAttribute("y1") === "0" && l.getAttribute("x1") === l.getAttribute("x2")).map((l) => +l.getAttribute("x1")).sort((a, b) => a - b),
+               ys: shown.filter((l) => l.getAttribute("y1") === l.getAttribute("y2")).map((l) => +l.getAttribute("y1")).sort((a, b) => a - b), box: [r.left, r.right, r.top, r.bottom], svg: !sr.querySelector(".dz-gridlines").hasAttribute("hidden") };
+    });
+    await gp.locator(".cta").click();
+    eq("gridlines are off to begin with", (await lines()).count, 0);
+    await gp.keyboard.press("Enter");
+    await gp.locator(".dz-dock button:text-is('Gridlines')").click();
+    eq("the Gridlines button shows it is on", await gp.locator(".dz-dock button:text-is('Gridlines')").getAttribute("aria-pressed"), "true");
+    const on = await lines();
+    check("four lines go through the edges of the selected element", on.count === 4 && on.xs[0] === on.box[0] && on.xs[1] === on.box[1] && on.ys[0] === on.box[2] && on.ys[1] === on.box[3], JSON.stringify(on));
+    await gp.locator("h1").click();
+    check("selecting another element moves them to it", (await lines()).count === 4 && (await lines()).xs[0] !== on.xs[0], JSON.stringify(await lines()));
+    await gp.evaluate(() => { const a = document.querySelector("#design-picker-extension-root").shadowRoot.activeElement; if (a) a.blur(); });
+    await gp.keyboard.press(";");
+    eq("the ; key turns them off", [(await lines()).count, (await lines()).svg], [0, false]);
+    await gp.keyboard.press(";");
+    eq("and on again", (await lines()).count, 4);
+    await gp.reload();
+    await gp.waitForLoadState("load");
+    await settleOn(gp);
+    await gp.keyboard.press("Escape");
+    await gp.locator(".cta").click();
+    eq("the switch is remembered across a reload", (await lines()).count, 4);
+    await gp.keyboard.press(";");
+    await gp.close();
+  }
+
   // ---- the options page shows the shortcut the browser actually assigned, and how to change it
   {
     const op = await context.newPage();

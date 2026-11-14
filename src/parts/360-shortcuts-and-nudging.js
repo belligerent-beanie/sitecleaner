@@ -91,7 +91,7 @@
     ["Nudge, with a tool open", [["Spacing", "arrows change a side; Alt takes away; Shift ten; Ctrl ▲▼ all sides"], ["Font", "Ctrl B, Ctrl I bold, italic; ▲▼ size, ◀▶ letter spacing, Alt ▲▼ line height"], ["Size", "▶◀ width, ▼▲ height"], ["Position / Move", "arrows place or move"]]],
     ["Edit", [["Delete", "remove (Alt: clear its edits)"], ["Ctrl D", "duplicate"], ["Ctrl C X V", "copy, cut, paste elements"], ["Ctrl G", "group (Shift: ungroup)"], ["Double-click", "edit text in place"],
               ["Alt Shift C V", "copy, paste a look"], ["Ctrl Z", "undo (Shift or Y: redo)"]]],
-    ["See", [["I", "inspect on hover"], ["hold M", "measure distances"], ["hold G", "alignment guides"], ["hold \\", "the original"], ["Alt Shift S", "screenshot"]]],
+    ["See", [["I", "inspect on hover"], [";", "gridlines through the selection, on or off"], ["hold M", "measure distances"], ["hold G", "alignment guides"], ["hold \\", "the original"], ["Alt Shift S", "screenshot"]]],
     ["Hand off", [["Alt Shift E", "copy the changes as Markdown"], ["Alt Shift P", "picker on and off"], ["?", "this list"]]],
   ];
   function keysPanel() {
@@ -102,6 +102,12 @@
     }
     return panel;
   }
+  keyHooks.push((event) => {   // ; turns the gridlines on or off
+    if (event.key !== ";" || event.ctrlKey || event.metaKey || event.altKey || isEditingField(eventTarget(event))) return false;
+    event.preventDefault();
+    setGridlines(!gridOn());
+    return true;
+  });
   keyHooks.push((event) => {   // Ctrl+B and Ctrl+I with the Font tool open (as VisBug has them): bold and italic on or off
     if (tool !== "font" || !selection.length || !(event.ctrlKey || event.metaKey) || event.altKey || event.shiftKey || isEditingField(eventTarget(event))) return false;
     const key = event.key.toLowerCase();

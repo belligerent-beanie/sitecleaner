@@ -84,6 +84,8 @@
       h("button", { type: "button", class: "dz-menu-button", text: "Copy look", title: "Copy this element's fill, type, border, corners, shadow and padding (Alt+Shift+C)", onclick: () => copyLook(selected) }),
       h("button", { type: "button", class: "dz-menu-button", text: "Paste look", disabled: !copiedLook, title: copiedLook ? `Paste the look of ${copiedLook.from} (Alt+Shift+V)` : "Copy an element's look first",
                     onclick: () => pasteLook(targets()) }),
+      h("button", { type: "button", class: "dz-menu-button" + (gridOn() ? " dz-active" : ""), text: "Gridlines", "aria-pressed": String(gridOn()),
+                    title: "Draw lines through the edges of the selection, across the page (;)", onclick: () => setGridlines(!gridOn()) }),
       h("button", { type: "button", class: "dz-menu-button", text: "Screenshot", disabled: !host.capture, title: host.capture ? "Save a PNG of the selected elements, or of the page if nothing is selected (Alt+Shift+S)" : "Screenshots need the Chrome extension",
                     onclick: () => takeScreenshot() }));
     const tools = () => h("div", { class: "dz-tools" }, stateRow(), h("div", { class: "dz-menu" },
