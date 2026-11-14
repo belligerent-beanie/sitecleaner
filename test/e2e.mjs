@@ -612,6 +612,7 @@ try {
     await sp.locator(".dz-toggle").waitFor({ timeout: 8000 });
     await sp.keyboard.press("Escape");
     const bg = () => sp.evaluate(() => getComputedStyle(document.querySelector(".cta")).backgroundColor);
+    const blurDock = () => sp.evaluate(() => { const a = document.querySelector("#design-picker-extension-root").shadowRoot.activeElement; if (a) a.blur(); });
     const hoverBg = async () => { await sp.mouse.move(2, 2); await sp.locator(".cta").hover(); await sp.waitForTimeout(600); const value = await bg(); await sp.mouse.move(2, 2); await sp.waitForTimeout(600); return value; };
     eq("the page's own hover look is yellow, and the link is white at rest", [await hoverBg(), await bg()], ["rgb(255, 238, 0)", "rgb(255, 255, 255)"]);
     await sp.locator(".cta").click();
@@ -631,9 +632,11 @@ try {
     await sp.locator(".dz-dock .dz-head button:text-matches('Changes')").click();
     const exported = await sp.locator(".dz-preview").innerText();
     check("the export names the state and starts from the page's hover look", /a\.cta:hover[^\n]*\n\s+background-color: #ffee00 → #222222/.test(exported) && exported.includes("A selector ending in :hover"), JSON.stringify(exported));
+    await blurDock();
     await sp.keyboard.press("Escape");
     await sp.keyboard.press("Control+z");
     eq("undo takes the hover edit away again", await hoverBg(), "rgb(255, 238, 0)");
+    await blurDock();
     await sp.keyboard.press("Control+Shift+z");
     eq("and redo brings it back", await hoverBg(), "rgb(34, 34, 34)");
     await sp.reload();
@@ -677,6 +680,7 @@ try {
     await sp.locator(".dz-dock button:text-is('Reset all')").click();
     await sp.waitForTimeout(300);
     eq("Reset all puts both states back", [await hoverBg(), await bg()], ["rgb(255, 238, 0)", "rgb(255, 255, 255)"]);
+    await blurDock();
     await sp.keyboard.press("Control+z");
     eq("and one undo brings both back", await hoverBg(), "rgb(34, 34, 34)");
     await sp.close();
