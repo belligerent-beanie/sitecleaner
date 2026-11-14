@@ -13,7 +13,15 @@
   };
   window.addEventListener("scroll", scheduleRefresh, { capture: true, passive: true });
   window.addEventListener("resize", scheduleRefresh);
-  if (host.kept) host.kept.onChange(() => { showCount(); if (on && showChanges) renderDock(); });   // kept from another tab, or removed in this panel
+  if (host.kept) host.kept.onChange(() => {
+    showCount();
+    const kept = host.kept.get();
+    if (plain() && on && kept && kept.rules.length && host.getPref("keptIntro") !== "1") {   // the first time anything is kept (even after the permission window)
+      host.setPref("keptIntro", "1");
+      keptIntro = true; showChanges = true; showFind = false; showPreview = false; showKeys = false; tourStep = null;
+      renderDock();
+    } else if (on && showChanges) renderDock();
+  });   // kept from another tab, or removed in this panel
   toggle.addEventListener("click", () => setOn(!on));
   host.mount(root);
   restore();

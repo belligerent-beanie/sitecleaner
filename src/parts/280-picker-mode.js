@@ -17,7 +17,10 @@
     for (const hook of pageEventHooks) if (hook(event)) return;
     event.preventDefault();
     event.stopImmediatePropagation();
-    if (event.type === "click") { climbed = []; select(eventTarget(event), event.shiftKey); }
+    if (event.type === "click") {
+      if (repicking) { const rule = repicking; repicking = null; finishRepick(rule, eventTarget(event)); renderDock(); return; }
+      climbed = []; select(eventTarget(event), event.shiftKey);
+    }
   }
   function onMove(event) {
     if (ours(eventTarget(event))) { hovered = null; } else { hovered = eventTarget(event) === document.documentElement ? null : eventTarget(event); }
@@ -73,7 +76,8 @@
     const typing = ours(eventTarget(event)) && (/^(INPUT|TEXTAREA|SELECT)$/.test(eventTarget(event).tagName) || isEditingField(eventTarget(event)));
     if (event.key === "Escape") {
       event.preventDefault();
-      if (showKeys) showKeys = false;
+      if (repicking) { repicking = null; showToast("Cancelled."); }
+      else if (showKeys) showKeys = false;
       else if (showFind) showFind = false;
       else if (showPreview) showPreview = false;
       else if (showChanges) showChanges = false;
@@ -108,7 +112,7 @@
     window[method]("mousemove", onMove, true);
     clearInterval(pollTimer);   // the page may move things around (the board does): poll for it only while the picker is on
     pollTimer = on ? setInterval(() => { if (selected) refreshBoxes(); }, 500) : null;
-    if (!on) { for (const hook of offHooks) hook(); inspecting = false; renderInspect(null); hovered = null; setSelection([]); climbed = []; menuOpen = false; tool = null; showChanges = false; tourStep = null; }
+    if (!on) { repicking = null; keptIntro = false; for (const hook of offHooks) hook(); inspecting = false; renderInspect(null); hovered = null; setSelection([]); climbed = []; menuOpen = false; tool = null; showChanges = false; tourStep = null; }
     else {
       if (!host.tourSeen(TUTORIAL_VERSION)) tourStep = 0;   // the first time on this browser, and once after an update that changes the tutorial
     }

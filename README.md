@@ -69,7 +69,7 @@ Preview, measuring and gridlines, and the Markdown export. An edition is a name,
 asks `has("find")` and the like (`src/parts/010-where-it-runs.js`), and everything is on unless the host switches it off. The two are separate extensions, each with its own storage.
 `bun run test:editions` checks that each one has what it should. The consumer edition also has **Keep** in the dock: it saves the session's style edits as CSS rules for the site, asks once for
 permission for that site alone, and a small loader (`extension/apply.js`) puts them back before the page paints, with no picker; the options page lists kept sites to switch off or forget
-(`bun run test:keep`). Its dock uses everyday words and a shorter tool list, with a three-page tutorial and a "My sites" options page, and each kept change can be removed on its own. The consumer edition's name is a placeholder, and its interface is a first version: see `docs/EDITIONS.md`.
+(`bun run test:keep`). Its dock uses everyday words and a shorter tool list, with a three-page tutorial and a "My sites" options page, and each kept change can be removed on its own or, once the site has changed, re-pointed at another element. Right-click the toolbar icon to switch a site's changes off or on. The consumer edition's name is a placeholder, and its interface is a first version: see `docs/EDITIONS.md`.
 
 ## Permissions and privacy
 

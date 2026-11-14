@@ -24,7 +24,7 @@
     },
     capture: null,   // () => a promise of a PNG data URL of the visible tab: only the extension can
     features: {},   // {name: false} turns a feature off: find, inspector, compare, preview, measure, export, keep (all on unless an edition says otherwise)
-    kept: null,   // {get, onChange, remove, setEnabled}: what is kept for this site (the extension's consumer edition)
+    kept: null,   // {get, onChange, remove, setEnabled, repick}: what is kept for this site (the extension's consumer edition)
     keep: null,   // (sheet) => a promise of {message}: keep the edits on this site (the extension's consumer edition)
     mount(root) { document.body.append(root); },
     isOwn: () => false,   // a node outside the root that is still the picker's (the extension's shadow host)

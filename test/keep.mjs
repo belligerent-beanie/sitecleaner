@@ -56,6 +56,8 @@ try {
   check("three tiles changed alike are one rule on their shared class", saved && saved.rules[0].b === "div.tile", saved && saved.rules[0].b);
   check("the rule beats the site's own CSS (important)", saved && /background-color:(#cc3333|rgb\(204, 51, 51\)) !important/.test(saved.rules[0].d), saved && saved.rules[0].d);
   check("the loader is registered for this site only", (await registered()) === 1);
+  check("the first time anything is kept, the panel opens with a note on where it goes from there", await page.locator(".dz-kept-intro").isVisible());
+  await page.keyboard.press("Escape");   // close the panel again
 
   // ---- the options page lists the site, what is kept, and has a switch
   const options = await context.newPage();
@@ -85,6 +87,31 @@ try {
   for (let i = 0; i < 40 && !stale.length; i++) { await gone.waitForTimeout(250); stale = ((await entry()) || {}).stale || []; }
   check("rules that match nothing on a page are recorded as stale", stale.length === 1 && stale[0] === "div.tile", JSON.stringify(stale));
   check("and the toolbar badge says so", (await worker.evaluate(async () => { const [tab] = await chrome.tabs.query({ url: "http://127.0.0.1/gone" }); return chrome.action.getBadgeText({ tabId: tab.id }); })) === "!");
+
+  // ---- the toolbar icon says what is kept here, and its menu action switches it off and on without the picker
+  const goneId = await worker.evaluate(async () => (await chrome.tabs.query({ url: "http://127.0.0.1/gone" }))[0].id);
+  const titleOf = () => worker.evaluate(async (id) => { await refreshSiteUi(id); return chrome.action.getTitle({ tabId: id }); }, goneId);
+  check("hovering the icon says the site's changes are on, and how many no longer match", /my changes are on for 127\.0\.0\.1:\d+ \(1\); 1 no longer match/.test(await titleOf()), await titleOf());
+  await worker.evaluate(async () => { const [tab] = await chrome.tabs.query({ url: "http://127.0.0.1/gone" }); await toggleSite(tab); });
+  check("the toolbar action switches the site off", ((await entry()) || {}).enabled === false && (await registered()) === 0 && /are off for/.test(await titleOf()));
+  await worker.evaluate(async () => { const [tab] = await chrome.tabs.query({ url: "http://127.0.0.1/gone" }); await toggleSite(tab); });
+  check("and on again", ((await entry()) || {}).enabled === true && (await registered()) === 1);
+
+  // ---- a rule whose element is gone can be pointed at another element
+  await worker.evaluate(async () => { const [tab] = await chrome.tabs.query({ url: "http://127.0.0.1/gone" }); await toggle(tab); });
+  await gone.locator(".dz-toggle.dz-on").waitFor({ timeout: 8000 });
+  await gone.keyboard.press("Escape");
+  await gone.locator(".dz-head button", { hasText: "Changes" }).click();
+  check("a rule that matches nothing here is marked and offers Re-pick", (await gone.locator(".dz-kept .dz-lost").count()) === 1 && (await gone.locator(".dz-kept .dz-lost button", { hasText: "Re-pick" }).count()) === 1);
+  await gone.locator(".dz-kept .dz-lost button", { hasText: "Re-pick" }).click();
+  await gone.locator("main > p").click();
+  let repicked = null;
+  for (let i = 0; i < 30; i++) { await gone.waitForTimeout(200); repicked = await entry(); if (repicked && repicked.rules[0].b !== "div.tile") break; }
+  check("the rule now names the element that was picked, and is no longer stale", repicked && repicked.rules.length === 1 && repicked.rules[0].b !== "div.tile" && /p/.test(repicked.rules[0].b) && !(repicked.stale || []).includes("div.tile"), JSON.stringify(repicked));
+  for (let i = 0; i < 20 && (await gone.evaluate(() => getComputedStyle(document.querySelector("main > p")).backgroundColor)) !== "rgb(204, 51, 51)"; i++) await gone.waitForTimeout(150);
+  check("and the change is there on the picked element", (await gone.evaluate(() => getComputedStyle(document.querySelector("main > p")).backgroundColor)) === "rgb(204, 51, 51)");
+  await gone.keyboard.press("Escape");
+  await worker.evaluate(async (k) => { const all = await chrome.storage.local.get(k); const e = all[k]; e.rules[0] = { ...e.rules[0], s: "div.tile", b: "div.tile" }; e.stale = []; await chrome.storage.local.set({ [k]: e }); }, key);   // put the original rule back for the rest
 
   // ---- switched off: the site is as it was, and the loader is gone; switched on again: it is back
   await worker.evaluate(async (k) => { const all = await chrome.storage.local.get(k); await chrome.storage.local.set({ [k]: { ...all[k], enabled: false } }); await syncSite(new URL(k.slice(5)).origin); }, key);

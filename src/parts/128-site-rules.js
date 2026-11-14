@@ -61,3 +61,18 @@
     const what = rule.d.split(";").map((part) => part.replace(/\s*!important\s*$/i, "").replace(":", " ")).slice(0, 3).join(", ");
     return `${shorten(rule.s, 36)}: ${shorten(what, 48)}`;
   }
+  // A kept rule whose element is gone from the page (the site changed) can be pointed at another one: Re-pick, then click the element it should apply to.
+  let keptIntro = false;   // the first time anything is kept, the My changes panel opens with a note on where it goes from there
+  let repicking = null;   // the rule being re-picked
+  function startRepick(rule) {
+    repicking = rule;
+    showChanges = false;
+    renderDock();
+    showToast(rule.k === "text" ? "Click the element that now holds this text. Esc cancels." : "Click the element this change should apply to. Esc cancels.");
+  }
+  function finishRepick(rule, element) {
+    const b = element && !ours(element) && element !== document.documentElement ? selectorFor(element) : "";
+    if (!b || /[{}]/.test(b)) { showToast("Pick an element on the page."); return; }
+    host.kept.repick(rule.s, { b, from: rule.k === "text" ? element.textContent : undefined })
+      .then((answer) => { showToast(answer && answer.ok ? "Done: the change now applies there." : "Could not move that change."); }, () => showToast("Could not move that change."));
+  }

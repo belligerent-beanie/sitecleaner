@@ -65,7 +65,12 @@ First version, built from the choices below. **These are my choices, made so the
 - **Three-page tutorial** (Welcome, Change things, Keep it) instead of nine.
 - **Keep** is the one bold action in the dock; **My changes** lists this visit's changes and, under "Kept on this site", what is kept, with a switch and a Remove for each rule. No export controls.
 - **My sites** (the options page): a card per site with a switch, the number of changes, Forget, a "What is kept" list with Remove for each change, a warning when rules match nothing, and an empty state that says how to start.
-- **Not done:** a toolbar on/off for the current site without opening the picker; offering to re-pick stale rules in the dock; a first-run prompt after the first Keep; app-like touches for phones (the dock is the designer's).
+- **Toolbar, stale rules, first Keep, touch** (added after the first version): hovering the toolbar icon says whether this site's changes are on and how many no longer match; right-clicking it
+  offers "Switch off my changes on <site>" (the consumer edition asks for the `contextMenus` permission for this; the designer edition does not); a kept rule that matches nothing on the last page visited
+  is marked "⚠" in My changes with **Re-pick** (click the element it should apply to; a state such as :hover stays on the end, and retyped text is matched against what that element says now);
+  the first time anything is kept the My changes panel opens with a note on where it goes from there; and on touch screens (`pointer: coarse`) the buttons grow to 40 px.
+- **Not done:** the touch sizes are untested on a real device (Chrome on Android does not run Web Store extensions, so this only matters for browsers that do); the context-menu *click* is not exercised by
+  the tests (the action it runs is); the dock is still the designer's layout, not a bottom sheet.
 
 ## What was built, and where it differs from the design
 

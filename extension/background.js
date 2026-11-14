@@ -225,6 +225,28 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
     })().then(respond, () => respond({ ok: false }));
     return true;
   }
+  if (message.type === "keep-repick") {   // from the picker: a rule whose element is gone now applies to the element the user picked
+    (async () => {
+      const origin = sender.tab && webOrigin(sender.tab.url);
+      const key = origin && SITE_PREFIX + origin;
+      const entry = key && (await chrome.storage.local.get(key))[key];
+      const old = entry && entry.rules.find((rule) => rule.s === message.s);
+      if (!old || typeof message.b !== "string" || !message.b || message.b.length > 2000 || /[{}]/.test(message.b)) return { ok: false };
+      let moved;
+      if (old.k === "text") {
+        if (typeof message.from !== "string" || message.from.length > 5000) return { ok: false };
+        moved = { ...old, s: "text:" + message.b, b: message.b, from: message.from };
+      } else {
+        moved = { ...old, s: message.b + (old.s.startsWith(old.b) ? old.s.slice(old.b.length) : ""), b: message.b };   // a state (:hover) stays on the end
+      }
+      if (!validRule(moved)) return { ok: false };
+      const rules = entry.rules.filter((rule) => rule.s !== old.s && rule.s !== moved.s);
+      rules.push(moved);
+      await chrome.storage.local.set({ [key]: { ...entry, rules, stale: (entry.stale || []).filter((b) => b !== old.b), updated: Date.now() } });
+      return { ok: true };
+    })().then(respond, () => respond({ ok: false }));
+    return true;
+  }
   if (message.type === "keep-cancel") { pendingKeeps.remove(message.token); return false; }
   if (message.type === "site-sync" && typeof message.origin === "string") {   // from the options page: a site was switched on or off, or forgotten
     syncSite(message.origin).then(() => respond({ ok: true }), () => respond({ ok: false }));
@@ -232,8 +254,46 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
   }
   if (message.type === "stale" && sender.tab) {   // the loader found rules that match nothing on this page
     chrome.action.setBadgeText({ tabId: sender.tab.id, text: message.count ? "!" : "" });
-    if (message.count) chrome.action.setTitle({ tabId: sender.tab.id, title: `SiteCleaner: ${message.count} kept ${message.count === 1 ? "change" : "changes"} no longer match this page` });
     return false;
   }
   return false;
 });
+
+// ---- the toolbar icon and kept sites
+// Hovering the icon says whether this site's changes are on; where the browser allows (the consumer edition asks for "contextMenus"), right-clicking it
+// switches them off or on, without opening the picker.
+const SITE_MENU = "site-toggle";
+const defaultTitle = () => chrome.runtime.getManifest().action.default_title;
+async function siteOf(url) {
+  const origin = url && webOrigin(url);
+  const key = origin && SITE_PREFIX + origin;
+  const entry = key && (await chrome.storage.local.get(key))[key];
+  return entry ? { origin, key, entry } : null;
+}
+async function refreshSiteUi(tabId) {
+  let tab;
+  try { tab = await chrome.tabs.get(tabId); } catch (_) { return; }
+  const site = await siteOf(tab.url);
+  const host = site ? new URL(site.origin).host : "";
+  const lost = site && site.entry.stale ? site.entry.stale.length : 0;
+  chrome.action.setTitle({ tabId, title: site ? `${chrome.runtime.getManifest().name}: my changes are ${site.entry.enabled ? "on" : "off"} for ${host} (${site.entry.rules.length})${lost ? `; ${lost} no longer match this page` : ""}` : defaultTitle() }).catch(() => { /* a tab that is gone */ });
+  if (chrome.contextMenus) chrome.contextMenus.update(SITE_MENU, { enabled: !!site, title: site ? `${site.entry.enabled ? "Switch off" : "Switch on"} my changes on ${host}` : "My changes on this site (nothing kept yet)" }).catch(() => { /* not made yet */ });
+}
+async function toggleSite(tab) {
+  const site = tab && (await siteOf(tab.url));
+  if (!site) return false;
+  await chrome.storage.local.set({ [site.key]: { ...site.entry, enabled: !site.entry.enabled } });
+  await syncSite(site.origin);
+  return true;
+}
+async function refreshActiveTab() {
+  const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+  if (tab && tab.id !== undefined) refreshSiteUi(tab.id);
+}
+if (chrome.contextMenus) {
+  chrome.runtime.onInstalled.addListener(() => { chrome.contextMenus.removeAll(() => chrome.contextMenus.create({ id: SITE_MENU, title: "My changes on this site", contexts: ["action"], enabled: false })); });
+  chrome.contextMenus.onClicked.addListener((info, tab) => { if (info.menuItemId === SITE_MENU) toggleSite(tab).then(refreshActiveTab); });
+}
+chrome.tabs.onActivated.addListener(({ tabId }) => refreshSiteUi(tabId));
+chrome.tabs.onUpdated.addListener((tabId, change) => { if (change.status === "complete" || change.url) refreshSiteUi(tabId); });
+chrome.storage.onChanged.addListener((changes, area) => { if (area === "local" && Object.keys(changes).some((k) => k.startsWith(SITE_PREFIX))) refreshActiveTab(); });

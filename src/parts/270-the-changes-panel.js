@@ -3,6 +3,7 @@
   function keptSection() {
     const kept = host.kept && host.kept.get();
     const section = h("div", { class: "dz-kept" }, h("strong", { class: "dz-keys-title", text: "Kept on this site" }));
+    if (keptIntro) section.append(h("p", { class: "dz-hint dz-kept-intro", role: "status", text: "Kept. These changes will be here every time you visit this site. This list is where you switch them off or remove one. To switch a site off without opening this, right-click the toolbar icon." }));
     if (!kept || !kept.rules.length) {
       section.append(h("p", { class: "dz-hint", text: "Nothing is kept yet. Press Keep to have your changes here every time you visit." }),
         h("div", { class: "dz-menu" }, h("button", { type: "button", class: "dz-menu-button dz-active", text: "Keep these changes", onclick: keepOnSite })));
@@ -13,11 +14,13 @@
     enabled.addEventListener("change", () => { host.kept.setEnabled(enabled.checked); });
     section.append(h("label", { class: "dz-row" }, enabled, h("span", { text: "Apply on this site" })));
     for (const rule of kept.rules) {
-      section.append(h("div", { class: "dz-change", title: rule.b },
-        h("code", { text: describeKept(rule) }),
+      const lost = (kept.stale || []).includes(rule.b);
+      section.append(h("div", { class: "dz-change" + (lost ? " dz-lost" : ""), title: lost ? `${rule.b}: matches nothing on the last page you visited here` : rule.b },
+        h("code", { text: (lost ? "⚠ " : "") + describeKept(rule) }),
+        lost && h("button", { type: "button", class: "dz-link", text: "Re-pick", title: "Point this change at another element", onclick: () => startRepick(rule) }),
         h("button", { type: "button", class: "dz-link", text: "Remove", title: "Stop keeping this change. What you changed in this visit stays until you undo it.", onclick: () => { host.kept.remove(rule.s); } })));
     }
-    if (kept.stale && kept.stale.length) section.append(h("p", { class: "dz-hint", text: `${kept.stale.length} of these match nothing on the last page you visited here: the site may have changed.` }));
+    if (kept.stale && kept.stale.length) section.append(h("p", { class: "dz-hint", text: `${kept.stale.length} of these match nothing on the last page you visited here: the site may have changed. Re-pick points one at another element.` }));
     section.append(h("div", { class: "dz-menu" }, h("button", { type: "button", class: "dz-menu-button", text: "Keep these changes", title: "Add what you changed in this visit", onclick: keepOnSite })));
     return section;
   }

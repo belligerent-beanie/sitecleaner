@@ -34,6 +34,7 @@ const EDITIONS = {
     features: { find: false, inspector: false, compare: false, preview: false, measure: false, export: false,
       size: false, layout: false, position: false, move: false, image: false, states: false, structure: false,   // tools whose changes cannot be kept (or are for designers)
       plain: true },   // keep is on; plain: everyday words, a short tutorial, a Delete button
+    permissions: ["contextMenus"],   // right-click the toolbar icon to switch a site's changes off or on
     description: "Make any website look the way you like: change colours and text, undo anything, and keep your changes." },
 };
 const editionName = args.includes("--edition") ? args[args.indexOf("--edition") + 1] : "designer";
@@ -61,6 +62,7 @@ for (const file of ["host.js", "options.js"]) {   // the files that need to know
 }
 const manifest = JSON.parse(fs.readFileSync(path.join(ext, "manifest.template.json"), "utf8").replace("__VERSION__", version));
 manifest.name = edition.name;
+manifest.permissions = [...manifest.permissions, ...(edition.permissions || [])];
 manifest.description = edition.description;
 if (manifest.description.length > 132) throw new Error(`the manifest description is ${manifest.description.length} characters; the Chrome Web Store allows 132`);
 if (test) manifest.host_permissions = ["<all_urls>"];   // the real build asks only for the tab clicked (activeTab), and all sites only if the designer opts in
