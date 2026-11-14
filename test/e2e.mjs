@@ -24,10 +24,10 @@ const PAGE = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>
 <body><main class="css-1x2y3z"><h1 class="title">Hello there</h1><p class="lede">A paragraph of text to restyle.</p>
 <button id="go" class="btn-a1b2c3d">Go</button><div class="card"><span class="muted">Muted words</span></div>
 <ul class="items"><li>One</li><li>Two</li><li>Three</li></ul>
-<img id="pic" class="hero-img" alt="Logo" src="/pic.png" srcset="/pic.png 1x, /pic2.png 2x"><div class="banner">Banner</div></main><a class="cta" href="#cta">Visit</a><dialog id="modal"><p class="in-modal">A modal dialog</p><button id="shut">Close</button></dialog><script src="/fixture.js"></script></body></html>`;
+<img id="pic" class="hero-img" alt="Logo" src="/pic.png" srcset="/pic.png 1x, /pic2.png 2x"><div class="banner">Banner</div></main><a class="cta" href="#cta">Visit</a><section class="tiles"><a class="tile" href="#t1">One</a><a class="tile" href="#t2">Two</a><a class="tile" href="#t3">Three</a><a class="tile" href="#t4">Four</a><a class="tile feature" href="#t5">Five</a></section><dialog id="modal"><p class="in-modal">A modal dialog</p><button id="shut">Close</button></dialog><script src="/fixture.js"></script></body></html>`;
 const CSS = `:root { --brand: #3366cc; --ink: #222222; } body { margin: 0; font: 16px system-ui; color: var(--ink); background: #ffffff; }
 main { padding: 24px; } .btn-a1b2c3d { background: var(--brand); color: #ffffff; border: 0; padding: 8px 16px; } .card { background: #eeeeee; padding: 12px; margin-top: 16px; } .cta { display: inline-block; color: #0000ee; background: #ffffff; padding: 4px 8px; transition: background-color 0.4s; } .cta:hover { background: #ffee00; }
-.muted { color: #999999; } .hero-img { display: block; width: 120px; height: 60px; } .banner { height: 50px; background: url(/pic.png) center / cover; }`;
+.muted { color: #999999; } .tile { display: inline-block; color: #0000ee; background: #ffffff; padding: 4px 8px; margin: 0 4px 4px 0; } .hero-img { display: block; width: 120px; height: 60px; } .banner { height: 50px; background: url(/pic.png) center / cover; }`;
 const server = http.createServer((req, res) => {
   if (req.url.startsWith("/pic")) {
     res.setHeader("Content-Type", "image/png");
@@ -53,6 +53,7 @@ const context = await chromium.launchPersistentContext(profile, {
 let failed = false;
 try {
   const worker = context.serviceWorkers()[0] || (await context.waitForEvent("serviceworker", { timeout: 15000 }));
+  await worker.evaluate(() => chrome.storage.local.set({ "dz-prefs": { export: "detailed" } }));   // the checks below were written for the detailed export
   check("the extension loads and its service worker starts", /background\.js$/.test(worker.url()), worker.url());
 
   const page = await context.newPage();
@@ -823,6 +824,87 @@ try {
     await gp.close();
   }
 
+  // ---- the compact export: shared classes are one entry, no before values, where the property is defined now, and far fewer tokens
+  {
+    const xp = await context.newPage();
+    xp.on("pageerror", (error) => console.log("      [page error]", error.message));
+    await xp.goto(url + "export");
+    await xp.bringToFront();
+    await worker.evaluate(async () => { const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true }); await toggle(tab); });
+    await xp.locator(".dz-toggle").waitFor({ timeout: 8000 });
+    await xp.keyboard.press("Escape");
+    const findTiles = async (selector) => { await xp.keyboard.press("Escape"); await xp.keyboard.press("Escape"); await xp.keyboard.press("/"); await xp.locator(".dz-find").waitFor(); await xp.keyboard.type(selector); await xp.keyboard.press("Enter"); };
+    const changes = () => xp.locator(".dz-dock .dz-head button:text-matches('Changes')");
+    const preview = async () => { await changes().click(); const text = await xp.locator(".dz-preview").innerText(); await changes().click(); return text; };
+    const asMode = async (mode) => { await changes().click(); await xp.locator(`.dz-dock button:text-is('${mode}')`).click(); await changes().click(); };
+
+    // all five tiles, the same two edits
+    await findTiles(".tile");
+    await xp.keyboard.press("Enter");
+    await xp.locator(".dz-dock button:text-is('Fill')").click();
+    await xp.locator(".dz-chip[title*='--ink']").click();
+    await xp.locator(".dz-dock button:text-is('Font')").click();
+    await xp.locator(".dz-bold").click();
+    await asMode("detailed");
+    const detailed = await preview();
+    await asMode("compact");
+    const compact = await preview();
+    if (process.env.SHOW_EXPORTS) console.log("=== compact", compact.length, 'chars:', JSON.stringify(compact));
+    check("all the elements with the class changed alike: one entry, for the class", /^\.tile ×5$/m.test(compact), compact);
+    check("the new values are there, once", (compact.match(/background-color: #222222/g) || []).length === 1 && (compact.match(/font-weight: 700/g) || []).length === 1, compact);
+    check("it says where the property is defined now", /^ {2}from: \/fixture\.css \.tile$/m.test(compact), compact);
+    check("there are no before values and no arrows", !compact.includes("→"), compact);
+    if (process.env.SHOW_EXPORTS) console.log("=== detailed", detailed.length, 'chars:', JSON.stringify(detailed));
+    check("the detailed export lists each of the five on its own", (detailed.match(/background-color: .* → #222222/g) || []).length === 5, detailed);
+    check("the compact export is less than half the size of the detailed one", compact.length < detailed.length * 0.5, `${compact.length} against ${detailed.length}`);
+    await changes().click();
+    check("the panel says what the export costs", /\d+ characters, about \d+ tokens/.test(await xp.locator(".dz-tokens").innerText()), await xp.locator(".dz-tokens").innerText());
+    await xp.locator(".dz-dock button:text-is('Reset all')").click();
+
+    // only two of the five: the entry says so, so the reader chooses between the class and a variant
+    await xp.keyboard.press("Escape"); await xp.keyboard.press("Escape");
+    await xp.locator(".tile").nth(0).click();
+    await xp.locator(".tile").nth(1).click({ modifiers: ["Shift"] });
+    await xp.keyboard.press("Enter");
+    await xp.locator(".dz-dock button:text-is('Fill')").click();
+    await xp.locator(".dz-chip[title*='--ink']").click();
+    const partial = await preview();
+    if (process.env.SHOW_EXPORTS) console.log("=== partial", partial.length, 'chars:', JSON.stringify(partial));
+    check("when only some of the elements with a class changed, it says how many", /^2 of 5 \.tile: /m.test(partial), partial);
+    await changes().click();
+    await xp.locator(".dz-dock button:text-is('Reset all')").click();
+
+    // two different values on elements of one class are two entries
+    await xp.keyboard.press("Escape"); await xp.keyboard.press("Escape");
+    await xp.locator(".tile").nth(0).click();
+    await xp.keyboard.press("Enter");
+    await xp.locator(".dz-dock button:text-is('Fill')").click();
+    await xp.locator(".dz-chip[title*='--ink']").click();
+    await xp.keyboard.press("Escape"); await xp.keyboard.press("Escape"); await xp.keyboard.press("Escape");
+    await xp.locator(".tile").nth(2).click();
+    await xp.keyboard.press("Enter");
+    await xp.locator(".dz-dock button:text-is('Fill')").click();
+    await xp.locator(".dz-hex").fill("#cc3333");
+    const split = await preview();
+    if (process.env.SHOW_EXPORTS) console.log("=== split", split.length, 'chars:', JSON.stringify(split));
+    check("different values for elements of one class are separate entries, each saying it is one of the class", (split.match(/^1 of 5 \.tile: /gm) || []).length === 2 && split.includes("#222222") && split.includes("#cc3333") && /"One"/.test(split) && /"Three"/.test(split), split);
+    await changes().click();
+    await xp.locator(".dz-dock button:text-is('Reset all')").click();
+
+    // a state, on all of them
+    await findTiles(".tile");
+    await xp.keyboard.press("Enter");
+    await xp.locator(".dz-states button:text-is('hover')").click();
+    await xp.locator(".dz-dock button:text-is('Fill')").click();
+    await xp.locator(".dz-chip[title*='--ink']").click();
+    const hover = await preview();
+    if (process.env.SHOW_EXPORTS) console.log("=== hover", hover.length, 'chars:', JSON.stringify(hover));
+    check("a state is part of the selector, and the legend explains it", /^\.tile:hover ×5$/m.test(hover) && hover.includes(":hover, :focus and :active entries are rules for that state"), hover);
+    await changes().click();
+    await xp.locator(".dz-dock button:text-is('Reset all')").click();
+    await xp.close();
+  }
+
   // ---- the options page shows the shortcut the browser actually assigned, and how to change it
   {
     const op = await context.newPage();
@@ -853,7 +935,7 @@ try {
       try { console.log(`      [diagnostic] page ${n} ${open.url()}: dock says`, JSON.stringify(await open.evaluate(() => { const h = document.getElementById("design-picker-extension-root"); return h ? h.shadowRoot.querySelector(".dz-dock").innerText.slice(0, 160) : "(no picker)"; }))); } catch (_) { /* no picker there */ }
     }
   }
-  console.log("FAIL  the test stopped:", error.message, String(error.stack || "").split(/\r?\n/).filter((l) => l.includes("e2e.mjs")).slice(0, 2).join(" "));
+  console.log("FAIL  the test stopped:", String(error.message).split(/\r?\n/).slice(0, 6).join(" | "), "@", String(error.stack || "").split(/\r?\n/).filter((line) => /e2e\.mjs:\d+/.test(line)).slice(0, 1).join(""));
 } finally {
   await context.close();
   server.close();
