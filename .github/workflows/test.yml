@@ -1,0 +1,56 @@
+# The proof for docs/CI_DESIGN.md (rollout step 2): does the whole suite pass on a Linux runner under a virtual display?
+# This is the `test` job only. Nothing is required for merging until it has passed 20 runs in a row.
+name: test
+
+on:
+  push:
+    branches: [ci-proof]
+  workflow_dispatch:
+    inputs:
+      repeats:
+        description: How many times to run the suite (each run is its own job, to measure how often it fails)
+        default: "1"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: test-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      runs: ${{ steps.runs.outputs.runs }}
+    steps:
+      - id: runs
+        run: |
+          n="${{ github.event.inputs.repeats || '1' }}"
+          echo "runs=$(seq -s, 1 "$n" | sed 's/^/[/; s/$/]/')" >> "$GITHUB_OUTPUT"
+
+  test:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        run: ${{ fromJSON(needs.plan.outputs.runs) }}
+    steps:
+      # Actions are pinned to commits (the v4 / v2 tags as of 2026-11-14): this tool runs on people's pages, so its build chain is not left to a moving tag.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
+      - run: bun install --frozen-lockfile
+      - run: bunx playwright install --with-deps chromium
+      - name: Suite and accessibility audit, under a virtual display
+        run: xvfb-run --auto-servernum --server-args="-screen 0 1280x1024x24" bun run test 2>&1 | tee test-output.txt
+        shell: bash
+        env:
+          CI: "true"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: output-${{ matrix.run }}
+          path: test-output.txt
+          retention-days: 14
