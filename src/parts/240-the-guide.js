@@ -1,14 +1,15 @@
   // ---------- the tutorial ----------
   // The tutorial: opened on the first run (and once after an update that changes it), and by the Tutorial button at the top of the panel at any time.
   // A page may have an `action`: a button that closes the tutorial and opens what the page is about.
-  const TUTORIAL_VERSION = "0.3.1";   // change it when the tutorial changes enough to show it once more to people who have seen the last one
+  const TUTORIAL_VERSION = "0.4.0";   // change it when the tutorial changes enough to show it once more to people who have seen the last one
   const FULL_TOUR = [
     { title: "Welcome", lines: [
       "SiteCleaner lets you try changes on any page and then hand them over. Nothing touches the real site: it all happens in this tab, and Ctrl+Z undoes it.",
       "Turn it on with the toolbar icon or Alt+Shift+P. The Tutorial button at the top of this panel brings these pages back whenever you like."] },
     { title: "Select", lines: [
       "Click an element: a label shows its name and size. Shift-click adds more, and the tools then change all of them.",
-      "↑ ↓ go to the parent and child, Tab to the next sibling (or the first element, if nothing is selected). / finds everything that matches a selector or some words. F6 moves between the page and this panel. Esc clears."],
+      "↑ ↓ go to the parent and child, Tab to the next sibling (or the first element, if nothing is selected). / finds everything that matches a selector or some words. F6 moves between the page and this panel. Esc clears.",
+      "The Classes link lists the page's classes, most used first: click one to select every element that has it."],
       action: { label: "Try Find", run: () => { showFind = true; } } },
     { title: "Style", lines: [
       "Press Enter, or a letter: C fill, B border, D shadow, E text, F font, S size, P spacing, R radius, A layout, H tone. The page changes at once.",
