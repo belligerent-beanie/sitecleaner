@@ -686,15 +686,17 @@ try {
     await sp.locator(".dz-chip[title*='--ink']").click();
     await sp.locator(".dz-states button:text-is('normal')").click();
     const box = await sp.locator(".cta").boundingBox();
-    await sp.mouse.move(box.x + 6, box.y + 6);
+    const holdAt = [box.x + box.width - 4, box.y + box.height / 2];   // the right of the link: the picker's tab on the page's left edge can cover its left end
+    await sp.mouse.move(holdAt[0], holdAt[1]);
     await sp.mouse.down();
-    await sp.waitForTimeout(600);
+    const settles = (colour) => sp.waitForFunction((c) => getComputedStyle(document.querySelector(".cta")).backgroundColor === c, colour, { timeout: 4000 }).catch(() => {});   // the link has a colour transition
+    await settles("rgb(34, 34, 34)");
     const pressed = await bg();
-    const held = await sp.evaluate(([x, y]) => ({ box: [x, y], under: (() => { const e = document.elementFromPoint(x, y); return e ? e.tagName + "." + e.className + "#" + e.id : null; })(), viewport: [innerWidth, innerHeight], active: document.querySelector(".cta").matches(":active"), hover: document.querySelector(".cta").matches(":hover"), rules: [...document.adoptedStyleSheets].flatMap((sheet) => [...sheet.cssRules].map((r) => r.cssText)).filter((t) => /active/.test(t)).slice(0, 3) }), [box.x + 6, box.y + 6]);
-    if (pressed !== "rgb(34, 34, 34)") console.log("      [diagnostic] while held:", JSON.stringify(held));
+    const held = await sp.evaluate(([x, y]) => ({ box: [x, y], under: (() => { const e = document.elementFromPoint(x, y); return e ? e.tagName + "." + e.className + "#" + e.id : null; })(), viewport: [innerWidth, innerHeight], active: document.querySelector(".cta").matches(":active"), hover: document.querySelector(".cta").matches(":hover"), rules: [...document.adoptedStyleSheets].flatMap((sheet) => [...sheet.cssRules].map((r) => r.cssText)).filter((t) => /active/.test(t)).slice(0, 3) }), holdAt);
+    if (pressed !== "rgb(34, 34, 34)") console.log("      [diagnostic] while held:", pressed, JSON.stringify(held));
     await sp.mouse.up();
     await sp.mouse.move(2, 2);
-    await sp.waitForTimeout(600);
+    await settles("rgb(255, 255, 255)");
     eq("an active edit applies while the button is held down, and not after", [pressed, await bg()], ["rgb(34, 34, 34)", "rgb(255, 255, 255)"]);
     await sp.keyboard.press("Escape");
     await sp.locator(".dz-dock .dz-head button:text-matches('Changes')").click();
