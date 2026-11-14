@@ -85,7 +85,7 @@ try {
 
   // ---- the style sheet part
   await apply({ links: true, font: true, spacing: true, motion: true, buttons: true });
-  check("links are underlined", (await get("#link", "textDecorationLine")) === "underline");
+  { const v = await get("#link", "textDecorationLine"); check("links are underlined", v === "underline", "engine: " + v); }
   check("the font is plain (and icons keep theirs)", /Verdana/.test(await get("#small", "fontFamily")) && /monospace/.test(await get("#icon", "fontFamily")));
   check("lines are spaced out", parseFloat(await get("#small", "lineHeight")) > 1.5 * (await px("#small")) - 1);
   check("animations and transitions are cut to nothing", parseFloat(await get("#anim", "transitionDuration")) < 0.01);
@@ -173,7 +173,10 @@ try {
   await page.locator(".dz-access label", { hasText: "Underline every link" }).locator("input").check();
   await page.locator(".dz-access label", { hasText: "Fix text that is hard to read" }).locator("input").check();
   check("the page changes as the settings are chosen", await wait(async () => Math.abs((await size(page)) - 21) < 0.2));
-  check("links are underlined", (await page.evaluate(() => getComputedStyle(document.getElementById("link")).textDecorationLine)) === "underline");
+  // the size is reached by the slider alone; the checkboxes apply a moment later, so wait for the underline itself
+  const underline = () => page.evaluate(() => getComputedStyle(document.getElementById("link")).textDecorationLine);
+  await wait(async () => (await underline()) === "underline");
+  { const v = await underline(); check("links are underlined", v === "underline", "panel: " + v); }
   check("the status says what contrast did", await wait(async () => /Fixed \d+ pieces/.test(await page.locator(".dz-access [role=status]").innerText()), 20));
   await page.locator(".dz-head button:text-is('Easier to read')").click();
   check("the button closes the panel again, and Esc does too", (await page.locator(".dz-access").count()) === 0);
@@ -200,7 +203,13 @@ try {
   check("the kept list names the settings", /Easier to read: text 150%/.test(await page.locator(".dz-kept").innerText()), await page.locator(".dz-kept").innerText());
   const options = await context.newPage();
   await options.goto(`chrome-extension://${new URL(worker.url()).host}/options.html`);
-  check("the options page lists them in words", /text 150%.*underlined links.*fixed low contrast/.test(await options.locator(".site").innerText().then(async () => { await options.locator(".site summary").click(); return options.locator(".site ul.rules").innerText(); })), await options.locator(".site ul.rules").innerText());
+  await options.locator(".site").waitFor();
+  // the page draws the list again whenever the store changes, which closes it: open it (not click, which would close an open one) each time we look
+  const listed = async () => { await options.locator(".site details").evaluate((d) => { d.open = true; }).catch(() => {}); return options.locator(".site ul.rules").innerText({ timeout: 1000 }).catch(() => ""); };
+  const wordsRe = /text 150%.*underlined links.*fixed low contrast/;
+  let listedText = "";
+  const gotWords = await wait(async () => wordsRe.test(listedText = await listed()));   // the page draws its list after it has read the store
+  check("the options page lists them in words", gotWords, listedText);
   check("and counts them", /1 change/.test(await options.locator(".site .count").innerText()));
   await options.locator(".site input[type=checkbox]").uncheck();
   check("switching the site off takes the loader away", await wait(async () => (await registered()) === 0));
