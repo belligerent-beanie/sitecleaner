@@ -81,4 +81,4 @@
     || !!(item.text && item.text.after !== item.text.before);
   const changeCount = () => Object.values(layers).reduce((sum, map) => sum + [...map.entries()].filter(([el, rec]) => el.isConnected && hasChange(rec)).length, 0)
     + pending.filter(hasChange).length + STATES.reduce((sum, state) => sum + pendingStates[state].filter(hasChange).length, 0) + ops.length + pendingOps.length;
-  function showCount() { if (changesLink) changesLink.textContent = `Changes (${changeCount()})`; }
+  function showCount() { if (changesLink) changesLink.textContent = `${say("changes", "Changes")} (${changeCount()})`; }

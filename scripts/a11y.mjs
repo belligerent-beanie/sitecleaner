@@ -17,8 +17,9 @@ const PAGE = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>
 const server = http.createServer((req, res) => { res.setHeader("Content-Type", "text/html"); res.end(PAGE); });
 await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
 const url = `http://127.0.0.1:${server.address().port}/`;
+const consumer = process.argv.includes("--consumer");   // the consumer edition: fewer tools, everyday words, a three-page tutorial
 const dist = path.join(os.tmpdir(), "dp-a11y-" + process.pid);
-execFileSync("node", [path.join(root, "scripts", "build.mjs"), "--test", "--out", dist], { stdio: "ignore" });
+execFileSync("node", [path.join(root, "scripts", "build.mjs"), "--test", "--edition", consumer ? "consumer" : "designer", "--out", dist], { stdio: "ignore" });
 const profile = fs.mkdtempSync(path.join(os.tmpdir(), "dp-a11y-profile-"));
 const context = await chromium.launchPersistentContext(profile, { headless: false, viewport: null, args: [`--disable-extensions-except=${dist}`, `--load-extension=${dist}`, "--window-size=1280,900"] });
 const found = new Map();   // "rule | panel" -> detail
@@ -48,25 +49,27 @@ try {
     await setTheme(look);
     await page.keyboard.press("Escape"); await page.keyboard.press("Escape"); await page.keyboard.press("Escape");
     await page.locator(".dz-dock .dz-tutorial").click();
-    for (let n = 1; n <= 9; n++) { await page.locator(`.dz-step:text-is('${n}')`).click(); await audit(`${look}: tutorial page ${n}`); }
+    for (let n = 1; n <= (consumer ? 3 : 9); n++) { await page.locator(`.dz-step:text-is('${n}')`).click(); await audit(`${look}: tutorial page ${n}`); }
     await page.keyboard.press("Escape");
     await audit(look + ": nothing selected");
     await page.locator(".lead").click();
     await page.keyboard.press("Enter");
     await audit(look + ": the tools");
-    for (const tool of ["Fill", "Border", "Shadow", "Radius", "Tone", "Text", "Font", "Image", "Size", "Spacing", "Layout", "Position", "Move"]) {
+    for (const tool of consumer ? ["Background", "Border", "Shadow", "Corners", "Colour mood", "Edit words", "Text style", "Spacing"] : ["Fill", "Border", "Shadow", "Radius", "Tone", "Text", "Font", "Image", "Size", "Spacing", "Layout", "Position", "Move"]) {
       const button = page.locator(`.dz-tools > .dz-menu:not(.dz-states) button:text-is('${tool}')`);
       if (await button.isDisabled().catch(() => true)) continue;
       await button.click();
       await audit(`${look}: the ${tool} tool`);
       await button.click();   // closes it
     }
-    await page.locator(".dz-states button:text-is('hover')").click();
-    await audit(look + ": the hover state");
-    await page.locator(".dz-states button:text-is('normal')").click();
-    await page.locator(".dz-dock button:text-is('Fill')").click();
+    if (!consumer) {
+      await page.locator(".dz-states button:text-is('hover')").click();
+      await audit(look + ": the hover state");
+      await page.locator(".dz-states button:text-is('normal')").click();
+    }
+    await page.locator(`.dz-dock button:text-is('${consumer ? "Background" : "Fill"}')`).click();
     await page.locator(".dz-chip").first().click();
-    for (const link of ["Changes", "Keys", "Find", "Preview"]) {
+    for (const link of consumer ? ["My changes", "Easier to read", "Keys"] : ["Changes", "Keys", "Find", "Preview"]) {
       const button = page.locator(`.dz-dock .dz-head button:text-matches('^${link}')`);
       await button.click();
       await audit(`${look}: the ${link} panel`);

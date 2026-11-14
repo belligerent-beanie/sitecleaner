@@ -168,3 +168,8 @@
 .dz-tour-steps { gap: 4px; }
 .dz-step { min-width: 28px; padding: 3px 0 !important; text-align: center; }
 .dz-tutorial { margin: 0 0 0 auto !important; padding: 3px 10px !important; }
+
+.dz-keep { font-weight: 700 !important; color: var(--dz-accent-text) !important; }
+.dz-lost code { color: var(--dz-accent-text); }
+.dz-kept-intro { padding: 6px 8px; border: 1px solid var(--dz-border); border-radius: 8px; }
+@media (pointer: coarse) { .dz-menu-button, .dz-link { min-height: 40px !important; padding-left: 12px !important; padding-right: 12px !important; } }   /* a finger, not a pointer */
