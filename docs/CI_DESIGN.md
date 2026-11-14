@@ -8,7 +8,7 @@ The project has three kinds of check, and today a person has to remember to run 
 
 | Check | Command | Needs | Runs for | Today |
 |---|---|---|---|---|
-| End-to-end suite (180 checks) | `bun run test:e2e` | a real browser with the extension loaded | roughly 2 minutes | by hand |
+| End-to-end suite (181 checks) | `bun run test:e2e` | a real browser with the extension loaded | roughly 2 minutes | by hand |
 | Accessibility audit of the dock (41 audits, both looks) | `bun run test:a11y` | the same | roughly 1 minute | by hand |
 | Smoke test on six real sites | `bun run smoke` | the same, plus the network and live sites | roughly 3 minutes | by hand |
 

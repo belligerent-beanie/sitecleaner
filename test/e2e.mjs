@@ -954,6 +954,8 @@ try {
     eq("the Tutorial button opens it at any point", await header(), "Tutorial 1 / 9");
     await tp.locator(".dz-tour button:text-is('Next')").click();
     eq("Next turns the page", await header(), "Tutorial 2 / 9");
+    const tops = await tp.locator(".dz-step").evaluateAll((buttons) => buttons.map((b) => Math.round(b.getBoundingClientRect().top)));
+    check("the nine page numbers sit in one row", tops.length === 9 && new Set(tops).size === 1, tops.join(" "));
     await tp.locator(".dz-step:text-is('7')").click();
     eq("the page numbers jump to a page", [await header(), await tp.locator(".dz-tour-title").innerText(), await tp.locator(".dz-step.dz-active").getAttribute("aria-current")], ["Tutorial 7 / 9", "Hand it over", "step"]);
     await tp.keyboard.press("ArrowRight");

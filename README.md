@@ -95,7 +95,7 @@ To add a feature: a new file in `src/parts/`, registered through the `keyHooks`,
 ## Test
 
     bun install                   # Playwright and axe-core
-    bun run test                  # the end-to-end suite (180 checks), then the accessibility audit of the dock
+    bun run test                  # the end-to-end suite (181 checks), then the accessibility audit of the dock
 
 Both run offline and must pass. `bun run test:e2e` and `bun run test:a11y` run one each. The suite builds the extension, loads it into Playwright's Chromium
 (branded Chrome no longer loads unpacked extensions from the command line) and drives it on a page that is nothing like a designer's own: a strict content

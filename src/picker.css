@@ -176,5 +176,5 @@
 
 /* The tutorial: its page numbers, and the button that opens it */
 .dz-tour-steps { gap: 4px; }
-.dz-step { min-width: 28px; padding: 3px 0 !important; text-align: center; }
+.dz-step { flex: 1 1 0; min-width: 0 !important; padding: 3px 0 !important; text-align: center; }   /* the nine page numbers share one row */
 .dz-tutorial { margin: 0 0 0 auto !important; padding: 3px 10px !important; }
