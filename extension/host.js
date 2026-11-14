@@ -46,6 +46,7 @@
     reportOn: (on) => { chrome.runtime.sendMessage({ type: "on", on, origin: location.origin }).catch(() => { /* no worker */ }); },
     openPreview: (width, height) => chrome.runtime.sendMessage({ type: "preview", url: location.href, width, height })
       .then((answer) => (answer && answer.error) || true),   // a string is shown to the designer as a message
+    keep: (sheet) => chrome.runtime.sendMessage({ type: "keep", rules: sheet.rules, skipped: sheet.skipped }),   // the worker names the site itself, from the tab
     capture: () => chrome.runtime.sendMessage({ type: "capture" }).then((answer) => {
       if (answer && answer.dataUrl) return answer.dataUrl;
       throw new Error((answer && answer.error) || "no picture came back");

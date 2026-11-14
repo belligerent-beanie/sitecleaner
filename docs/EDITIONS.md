@@ -1,6 +1,9 @@
 # Editions: designer and consumer
 
-Status: the **edition switch is built** (the build option, the feature list, `test/editions.mjs`). Everything below it is a **design**, not code, so it can be argued with before it is built.
+Status: **built** are the edition switch (`--edition`, the feature list, `test/editions.mjs`) and the **keep feature** of the consumer edition: the site sheet (`src/parts/128-site-rules.js`),
+the loader (`extension/apply.js`), the per-site permission window (`extension/keep.html`), the worker side (`extension/background.js`, "kept sites"), a plain list of kept sites in the
+options page, and `test/keep.mjs`. **Not built, and waiting for the design decisions**: the consumer interface (a short dock, the saved-sites page as a designed page, the tutorial) and
+everything under "Open questions". The sections below describe the design; "What was built" says where it differs.
 
 ## The two editions
 
@@ -61,11 +64,26 @@ If a saved selector matches nothing (the site changed), the loader marks the sit
 - **First run:** a three-page tutorial in place of the nine-page designer one.
 - **Toolbar badge:** on/off for the current site without opening anything.
 
+## What was built, and where it differs from the design
+
+- **Rules:** `siteSheet()` turns the session's style edits (normal, hover, focus and active) into rules. Elements changed alike become one rule when one of their classes (with their tag) names
+  *exactly* that set, checked against the page; otherwise each element gets a rule named by `selectorFor`. A rule is `{s, b, d}`: the selector as written, the selector without the state (this is
+  what must match something), and the declarations.
+- **Always `!important`.** An inline style beats every site rule that is not `!important`, whatever its specificity; a sheet rule does not. So every kept declaration is `!important`. The one case
+  this does not reproduce is a site `!important` rule of higher specificity, which also beats an `!important` sheet rule (an inline `!important` would win). Rare, and left alone for now.
+- **Left out and counted:** text edits, structure changes (delete, move, group...) and edits of elements that are not on the page. The Keep message says how many.
+- **Keeping again adds.** Rules merge by selector: a rule made again replaces the old one, the others stay. Removing one rule is not possible yet; "Forget" in the options page removes the whole site.
+- **The permission window** (`keep.html`) opens only when the site has not been allowed yet. The worker names the site from the tab that asked, and refuses rules with braces in them.
+- **The loader** (`apply.js`) is registered per origin, only while the site is switched on *and* its permission is still granted, and re-checked at start-up and whenever a permission is removed.
+- **Stale rules** are recorded in the site's entry and shown by a "!" badge on the tab and a line in the options page. Not yet: offering to re-pick them in the dock.
+- **The designer edition** does not get the Keep button (`keep: false` in `scripts/build.mjs`): it keeps edits its own way. One line to change if you want both.
+- **Not tried in this environment:** the permission window itself (the test build is given every site up front, so no window opens), and the real Chrome Web Store flow.
+
 ## Order of work, and what each step costs
 
 1. **Edition switch** (done): build option, feature list, test.
-2. **Site sheet** (the core change): rules from grouped edits, the stylesheet, undo and save working through it. Medium; touches `110`, `125`, `095`. Both editions gain from it.
-3. **Loader and per-site permission:** `apply.js`, `keep.html`, registration, the badge. Medium; new files, little existing code.
+2. **Site sheet** (done, in a first form): rules from the session's edits. Still to do: removing single rules, and using it in the designer edition for "apply to every `.tile`".
+3. **Loader and per-site permission** (done): `apply.js`, `keep.html`, registration, the badge.
 4. **Consumer interface:** the saved-sites page, short dock, tutorial. Largest; needs design decisions first.
 5. **Store work:** a name, a privacy statement for per-site access, listing text and screenshots for the second extension.
 

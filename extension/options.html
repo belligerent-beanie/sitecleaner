@@ -9,6 +9,9 @@
   button { font: inherit; padding: 6px 14px; cursor: pointer; }
   #state { font-weight: 600; }
   p.small { color: #555; font-size: 13px; }
+  #sites ul { list-style: none; padding: 0; }
+  #sites li { padding: 6px 0; border-top: 1px solid #ddd; }
+  #sites .note { color: #a33; font-size: 13px; }
 </style>
 </head>
 <body>
@@ -27,6 +30,11 @@ things work:</p>
   Choose another key in the browser's shortcut list.</p>
 <p class="small">New here? Turn SiteCleaner on in a page and press <strong>Tutorial</strong> at the top of its panel: it explains everything in nine short pages, and is always one click away.</p>
 <p class="small">Your edits are kept in this browser only, per site and page, and nothing is sent anywhere.</p>
+<div id="sites" hidden>
+<h2 style="font-size:1.1rem">Kept sites</h2>
+<p class="small">Sites you chose to keep changes on. Each one is switched on by itself the next time you visit; switch it off to see the site as it is, or forget it to remove its changes and the permission.</p>
+<ul id="site-list"></ul>
+</div>
 <script src="options.js"></script>
 </body>
 </html>

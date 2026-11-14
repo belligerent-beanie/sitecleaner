@@ -28,10 +28,10 @@ let esbuild = null;
 if (wantMinify) { try { esbuild = await import("esbuild"); } catch (_) { console.warn("esbuild is not installed (bun install): building without minifying."); } }
 const shrink = (code, loader) => (esbuild ? esbuild.transformSync(code, { loader, minify: true, target: "chrome114", legalComments: "none" }).code : code);
 const EDITIONS = {
-  designer: { name: "SiteCleaner", dir: "dist", zip: "sitecleaner", features: {},
+  designer: { name: "SiteCleaner", dir: "dist", zip: "sitecleaner", features: { keep: false },   // the designer edition keeps edits its own way (per page, replayed by the picker)
     description: "Select, restyle, move and measure anything on any page, check contrast, undo it all, and hand the changes to a developer or Claude." },
   consumer: { name: "SiteCleaner Personal", dir: "dist-consumer", zip: "sitecleaner-personal",   // the name is a placeholder: check it before publishing
-    features: { find: false, inspector: false, compare: false, preview: false, measure: false, export: false },
+    features: { find: false, inspector: false, compare: false, preview: false, measure: false, export: false },   // keep is on
     description: "Make any website look the way you like: change colours and text, undo anything, and keep your changes." },
 };
 const editionName = args.includes("--edition") ? args[args.indexOf("--edition") + 1] : "designer";
@@ -50,7 +50,7 @@ const css = shrink(fs.readFileSync(path.join(root, "src", "picker.css"), "utf8")
 fs.writeFileSync(path.join(out, "designer-css.js"), `window.__designerCss = ${JSON.stringify(css)};\n`);
 
 // ---- the extension's own files
-for (const file of ["restore.js", "background.js", "options.html", "options.js"]) fs.copyFileSync(path.join(ext, file), path.join(out, file));
+for (const file of ["restore.js", "apply.js", "keep.html", "keep.js", "background.js", "options.html", "options.js"]) fs.copyFileSync(path.join(ext, file), path.join(out, file));
 const hostSource = fs.readFileSync(path.join(ext, "host.js"), "utf8");
 const marked = /\/\*edition\*\/[\s\S]*?\/\*end\*\//;
 if (!marked.test(hostSource)) throw new Error("extension/host.js has lost its /*edition*/ ... /*end*/ marker");

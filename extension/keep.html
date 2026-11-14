@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Keep changes on this site</title>
+<style>
+  body { font: 15px/1.5 system-ui, sans-serif; margin: 1.5rem; color: #222; }
+  h1 { font-size: 1.15rem; margin: 0 0 .75rem; }
+  button { font: inherit; padding: 6px 14px; cursor: pointer; margin-right: 6px; }
+  code { word-break: break-all; }
+  p.small { color: #555; font-size: 13px; }
+</style>
+</head>
+<body>
+<h1>Keep your changes on <code id="site">…</code>?</h1>
+<p id="what"></p>
+<p class="small">This lets the extension put your changes on <strong>this site only</strong> each time you visit it. It does not read the site's pages and sends nothing anywhere.
+  You can turn the site off or forget it in the extension's options.</p>
+<p><button id="allow" type="button">Allow and keep</button> <button id="cancel" type="button">Cancel</button></p>
+<p id="done" role="status"></p>
+<script src="keep.js"></script>
+</body>
+</html>

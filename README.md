@@ -67,8 +67,9 @@ The same files build two extensions. `node scripts/build.mjs` makes the **design
 (`bun run build:consumer`) makes the **consumer edition** in `dist-consumer/`, which leaves out the tools for handing work to a developer: Find, Inspect, Compare,
 Preview, measuring and gridlines, and the Markdown export. An edition is a name, a description and a list of features it leaves out, kept in `scripts/build.mjs`; the picker
 asks `has("find")` and the like (`src/parts/010-where-it-runs.js`), and everything is on unless the host switches it off. The two are separate extensions, each with its own storage.
-`bun run test:editions` checks that each one has what it should. The consumer edition's name is a placeholder, and it does not yet have its own permissions model, simple tutorial or
-saved-sites page: see `docs/EDITIONS.md`.
+`bun run test:editions` checks that each one has what it should. The consumer edition also has **Keep** in the dock: it saves the session's style edits as CSS rules for the site, asks once for
+permission for that site alone, and a small loader (`extension/apply.js`) puts them back before the page paints, with no picker; the options page lists kept sites to switch off or forget
+(`bun run test:keep`). The consumer edition's name is a placeholder, and its interface, tutorial and saved-sites page are not designed yet: see `docs/EDITIONS.md`.
 
 ## Permissions and privacy
 

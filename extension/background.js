@@ -122,3 +122,99 @@ chrome.tabs.onUpdated.addListener(async (tabId, change) => {
   } catch (_) { /* the page may not allow scripts */ }
 });
 chrome.tabs.onRemoved.addListener((tabId) => { previewTabs.remove(tabId); });
+
+// ---- kept sites (the consumer edition's "Keep on this site")
+// A site the user keeps changes on is `site:<origin>` in storage: {enabled, rules: [{s, b, d}], stale, updated}. For each such site that is enabled, and whose
+// permission is still granted, the loader (apply.js) is registered for that origin alone. The origin always comes from the tab that asked, never from the message.
+const SITE_PREFIX = "site:";
+const siteScriptId = (origin) => "site-" + origin;
+const sitePattern = (origin) => origin + "/*";
+const webOrigin = (url) => { try { const u = new URL(url); return u.protocol === "https:" || u.protocol === "http:" ? u.origin : null; } catch (_) { return null; } };
+
+async function syncSite(origin) {
+  const id = siteScriptId(origin);
+  const stored = (await chrome.storage.local.get(SITE_PREFIX + origin))[SITE_PREFIX + origin];
+  const wanted = !!(stored && stored.enabled && stored.rules && stored.rules.length) && (await chrome.permissions.contains({ origins: [sitePattern(origin)] }));
+  const registered = (await chrome.scripting.getRegisteredContentScripts({ ids: [id] })).length > 0;
+  const script = { id, matches: [sitePattern(origin)], js: ["apply.js"], runAt: "document_start", persistAcrossSessions: true };
+  if (wanted && !registered) await chrome.scripting.registerContentScripts([script]);
+  else if (!wanted && registered) await chrome.scripting.unregisterContentScripts({ ids: [id] });
+}
+async function syncAllSites() {
+  const all = await chrome.storage.local.get(null);
+  const origins = Object.keys(all).filter((k) => k.startsWith(SITE_PREFIX)).map((k) => k.slice(SITE_PREFIX.length));
+  const registered = (await chrome.scripting.getRegisteredContentScripts()).map((s) => s.id).filter((id) => id.startsWith("site-")).map((id) => id.slice(5));
+  for (const origin of new Set([...origins, ...registered])) { try { await syncSite(origin); } catch (_) { /* one bad entry must not stop the rest */ } }
+}
+chrome.runtime.onInstalled.addListener(syncAllSites);
+chrome.runtime.onStartup.addListener(syncAllSites);
+chrome.permissions.onRemoved.addListener(syncAllSites);
+
+/** Add (or replace, rule by rule) the rules of a site and turn the loader on for it. */
+async function saveSite(origin, rules) {
+  const key = SITE_PREFIX + origin;
+  const old = (await chrome.storage.local.get(key))[key];
+  const merged = new Map(((old && old.rules) || []).map((rule) => [rule.s, rule]));   // what was kept before stays unless the same rule is made again
+  for (const rule of rules) merged.set(rule.s, rule);
+  const list = [...merged.values()];
+  await chrome.storage.local.set({ [key]: { enabled: true, rules: list, stale: [], updated: Date.now() } });
+  await syncSite(origin);
+  return list.length;
+}
+const validRules = (rules) => Array.isArray(rules) && rules.length > 0 && rules.length <= 2000
+  && rules.every((r) => r && typeof r.s === "string" && typeof r.b === "string" && typeof r.d === "string" && r.s.length < 2000 && r.d.length < 4000 && !/[{}]/.test(r.s + r.b + r.d));
+const skippedNote = (skipped) => {
+  const left = skipped ? (skipped.text || 0) + (skipped.structure || 0) + (skipped.notOnPage || 0) : 0;
+  return left ? ` (${left} ${left === 1 ? "change" : "changes"} that are not styles were left out)` : "";
+};
+
+const pendingKeeps = {
+  async get(token) { return (await chrome.storage.session.get("keep:" + token))["keep:" + token]; },
+  async set(token, info) { await chrome.storage.session.set({ ["keep:" + token]: info }); },
+  async remove(token) { await chrome.storage.session.remove("keep:" + token); },
+};
+
+chrome.runtime.onMessage.addListener((message, sender, respond) => {
+  if (message.type === "keep") {
+    (async () => {
+      const origin = sender.tab && webOrigin(sender.tab.url);
+      if (!origin) return { message: "Changes can only be kept on web pages." };
+      if (!validRules(message.rules)) return { message: "Nothing to keep." };
+      if (await chrome.permissions.contains({ origins: [sitePattern(origin)] })) {   // asked before for this site (or allowed everywhere): no question needed
+        const count = await saveSite(origin, message.rules);
+        return { ok: true, message: `Kept on ${new URL(origin).host}: ${count} ${count === 1 ? "rule" : "rules"}${skippedNote(message.skipped)}.` };
+      }
+      const token = crypto.randomUUID();
+      await pendingKeeps.set(token, { origin, rules: message.rules, skipped: message.skipped || null });
+      await chrome.windows.create({ url: chrome.runtime.getURL("keep.html?token=" + token), type: "popup", width: 460, height: 330 });
+      return { message: "A window opened to ask for this site." };
+    })().then(respond, (error) => respond({ message: String((error && error.message) || error) }));
+    return true;
+  }
+  if (message.type === "keep-info") {
+    pendingKeeps.get(message.token).then((info) => respond(info ? { origin: info.origin, count: info.rules.length } : { error: "This request has expired. Close this window and press Keep again." }));
+    return true;
+  }
+  if (message.type === "keep-confirm") {
+    (async () => {
+      const info = await pendingKeeps.get(message.token);
+      if (!info) return { message: "This request has expired. Close this window and press Keep again." };
+      if (!(await chrome.permissions.contains({ origins: [sitePattern(info.origin)] }))) return { message: "Not allowed, so nothing was kept." };
+      const count = await saveSite(info.origin, info.rules);
+      await pendingKeeps.remove(message.token);
+      return { ok: true, message: `Kept: ${count} ${count === 1 ? "rule" : "rules"}${skippedNote(info.skipped)}. Reload the site to see them apply by themselves.` };
+    })().then(respond, (error) => respond({ message: String((error && error.message) || error) }));
+    return true;
+  }
+  if (message.type === "keep-cancel") { pendingKeeps.remove(message.token); return false; }
+  if (message.type === "site-sync" && typeof message.origin === "string") {   // from the options page: a site was switched on or off, or forgotten
+    syncSite(message.origin).then(() => respond({ ok: true }), () => respond({ ok: false }));
+    return true;
+  }
+  if (message.type === "stale" && sender.tab) {   // the loader found rules that match nothing on this page
+    chrome.action.setBadgeText({ tabId: sender.tab.id, text: message.count ? "!" : "" });
+    if (message.count) chrome.action.setTitle({ tabId: sender.tab.id, title: `SiteCleaner: ${message.count} kept ${message.count === 1 ? "change" : "changes"} no longer match this page` });
+    return false;
+  }
+  return false;
+});

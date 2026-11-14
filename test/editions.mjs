@@ -38,6 +38,7 @@ async function run(edition) {
       check(`${edition}: the ${text} link is ${wanted ? "there" : "left out"}`, new RegExp(`\\b${text}\\b`).test(head) === wanted, head.replace(/\n/g, " "));
     }
     check(`${edition}: undo, Changes and Keys are always there`, /Changes/.test(head) && /Keys/.test(head) && /Undo/i.test(head), head.replace(/\n/g, " "));
+    check(`${edition}: the Keep link is ${wanted ? "left out" : "there"}`, /\bKeep\b/.test(head) === !wanted, head.replace(/\n/g, " "));
     await page.keyboard.press("/");
     check(`${edition}: the / key ${wanted ? "opens" : "does not open"} Find`, (await page.locator(".dz-find").count()) === (wanted ? 1 : 0));
     await page.keyboard.press("Escape");
