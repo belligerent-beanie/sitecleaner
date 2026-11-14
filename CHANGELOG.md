@@ -11,14 +11,14 @@ Every released version, and everything that is waiting for one. Newest first. Da
 
 ## Unreleased
 
-Neither of these is in a release yet, and neither bumps the version, so the numbers are suggestions. A release is made on request (`bun run share`).
+Both are merged into `main` and neither is in a release yet. Neither bumps the version, so the numbers are suggestions. A release is made on request (`bun run share`).
 
 | Pull request | Branch | What | State | Tests | Suggested version |
 |---|---|---|---|---|---|
 | [#9](https://github.com/belligerent-beanie/sitecleaner/pull/9) | `editions-and-performance` | 14 patches: performance, a minified build, the consumer edition | **merged into `main`** (14 Nov 2026), not released | 172 of 172, plus editions, keep and access checks, and two audits clean | 0.4.0 (a second edition and a changed build are more than a patch) |
-| [#7](https://github.com/belligerent-beanie/sitecleaner/pull/7) | `classes-panel` | The classes panel, in the designer edition only | **this change**: takes `main` (with #9) and merges after CI | 188 of 188, plus editions, keep and access checks, and two audits clean | goes with #9 in the next release |
+| [#7](https://github.com/belligerent-beanie/sitecleaner/pull/7) | `classes-panel` | The classes panel, in the designer edition only | **merged into `main`** (14 Nov 2026, after #9), not released | 188 of 188, plus editions, keep and access checks, and two audits clean | goes with #9 in the next release |
 
-The two touched the same code (the dock header, key handling, shortcuts, the accessibility script). The conflicts were resolved when #7 took `main` after #9 merged: the classes link is now one of the designer edition's feature switches (`has("classes")`, off in the consumer edition), and every panel closes the others, including the consumer edition's "Easier to read" and the first-Keep note.
+The two touched the same code (the dock header, key handling, shortcuts, the accessibility script). The conflicts were resolved when #7 took `main` after #9 merged (CI green on Linux, then merged): the classes link is now one of the designer edition's feature switches (`has("classes")`, off in the consumer edition), and every panel closes the others, including the consumer edition's "Easier to read" and the first-Keep note.
 
 ### Performance, a minified build and the consumer edition (#9, merged)
 
