@@ -1,6 +1,9 @@
   // ---------- the changes panel ----------
   function changesPanel() {
     const panel = h("div", { class: "dz-panel" });
+    panel.append(h("div", { class: "dz-menu" }, h("span", { class: "dz-hint", text: "Look of this panel:" }),
+      ...THEMES.map((name) => h("button", { type: "button", class: "dz-menu-button" + (theme() === name ? " dz-active" : ""), text: name, "aria-pressed": String(theme() === name),
+        title: name === "auto" ? "Follow the browser's light or dark setting" : `Use the ${name} look`, onclick: () => { host.setPref("theme", name); applyTheme(); renderDock(); } }))));
     if (!changeCount()) { panel.append(h("p", { class: "dz-hint", text: "No changes yet." })); return panel; }
     for (const [element, rec] of changes) {
       if (!element.isConnected || !hasChange(rec)) continue;

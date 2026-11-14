@@ -599,6 +599,18 @@ try {
     await np.locator(".dz-dock .dz-head button:text-matches('Changes')").click();
     eq("the choice is remembered across a reload", await np.locator(".dz-dock button.dz-active:text-is('rgb')").count(), 1);
     await np.locator(".dz-dock button:text-is('hex')").click();   // the choice is kept for the browser: leave the default for the sections that follow
+    const dockBg = () => np.evaluate(() => getComputedStyle(document.querySelector("#design-picker-extension-root").shadowRoot.querySelector(".dz-dock")).backgroundColor);
+    await np.locator(".dz-dock button:text-is('light')").click();
+    eq("choosing the light look lightens the dock", await dockBg(), "rgb(255, 255, 255)");
+    await np.reload();
+    await np.waitForLoadState("load");
+    await np.locator(".dz-toggle").waitFor({ timeout: 8000 });
+    if ((await np.locator(".dz-toggle").innerText()) !== "Design: on") await worker.evaluate(async () => { const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true }); await toggle(tab); });
+    await np.keyboard.press("Escape");
+    eq("and the look is remembered across a reload", await dockBg(), "rgb(255, 255, 255)");
+    await np.locator(".dz-dock .dz-head button:text-matches('Changes')").click();
+    await np.locator(".dz-dock button:text-is('dark')").click();
+    eq("the dark look brings the dark dock back", await dockBg(), "rgb(31, 31, 36)");
     await np.close();
   }
 

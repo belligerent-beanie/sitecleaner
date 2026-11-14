@@ -65,7 +65,7 @@ Lets a designer select, restyle, move and measure elements on a web page to try 
 
 ## Release checklist
 
-1. `node test/e2e.mjs` passes (124 checks).
+1. `bun run test` passes (and `bun run smoke` by hand).
 2. Bump `version` in `package.json`; `node scripts/build.mjs --zip`.
 3. Fill in the name decision and the two URLs above.
 4. Upload the zip; paste the fields above; add the screenshots; submit.

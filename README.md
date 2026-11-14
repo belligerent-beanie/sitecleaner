@@ -30,6 +30,8 @@ text. Hold `M` to measure distances, `G` to see what lines up with the selection
 **Edit the page itself.** Delete, duplicate, copy, cut and paste, group and ungroup elements. Double-click text to retype it. Move elements through
 the page (arrow keys, or drag a sibling to reorder), or place them anywhere. Drop an image file on a picture, or paste one, to replace it.
 
+**Light or dark.** The dock follows the browser's setting, or is set to either in the Changes panel.
+
 **Undo everything.** One history for all of it: Ctrl+Z and Ctrl+Shift+Z, a slider drag or a run of key presses being a single step. Reset all
 puts the page back, in one step you can undo.
 
@@ -76,15 +78,18 @@ To add a feature: a new file in `src/parts/`, registered through the `keyHooks`,
 
 ## Test
 
-    bun install                   # Playwright, for the tests
-    node test/e2e.mjs             # 124 checks in a real browser
+    bun install                   # Playwright and axe-core
+    bun run test                  # the end-to-end suite (127 checks), then the accessibility audit of the dock
 
-It builds the extension, loads it into Playwright's Chromium (branded Chrome no longer loads unpacked extensions from the command line), and
-drives it on a page that is nothing like a designer's own: a strict content security policy, generated class names, its own CSS variables. It covers
-every feature above, including the round trip through a reload and through Reset all. `node scripts/build.mjs --zip` writes the zip for the Web Store
-(`releases/`), `node scripts/screenshots.mjs` regenerates the store screenshots from the real extension, and `node scripts/promo-tile.mjs` the promo tile.
-`node scripts/a11y.mjs` audits the picker's own dock with axe-core (every tool and panel) and must report no violations. `node scripts/smoke-real-sites.mjs [url ...]` tries it on real sites (Wikipedia, Hacker News, MDN, GitHub, the BBC and others: strict security policies,
-web components, single-page apps); it needs the network, so it is separate from the end-to-end test.
+Both run offline and must pass. `bun run test:e2e` and `bun run test:a11y` run one each. The suite builds the extension, loads it into Playwright's Chromium
+(branded Chrome no longer loads unpacked extensions from the command line) and drives it on a page that is nothing like a designer's own: a strict content
+security policy, generated class names, its own CSS variables. It covers every feature above, including the round trip through a reload and through Reset all.
+The audit runs axe-core on every tool and panel in both looks of the dock, and must report no violations.
+
+`bun run smoke` tries the extension on real sites (Wikipedia, Hacker News, MDN, GitHub, the BBC and others: strict security policies, web components,
+single-page apps). It needs the network and live pages that change, so it is **not** part of `test`: run it by hand before a release.
+`bun run zip` writes the zip for the Web Store (`releases/`), `bun run screenshots` regenerates the store screenshots from the real extension, and
+`bun run promo` the promo tile.
 
 ## Where it comes from
 

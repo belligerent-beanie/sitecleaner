@@ -43,27 +43,32 @@ try {
   await audit("the first-time guide");
   await page.keyboard.press("Escape");
   await page.locator(".dz-dock button:text-is('Skip')").click().catch(() => {});
-  await audit("nothing selected");
-  await page.locator(".lead").click();
-  await page.keyboard.press("Enter");
-  await audit("the tools");
-  for (const tool of ["Fill", "Border", "Shadow", "Radius", "Tone", "Text", "Font", "Image", "Size", "Spacing", "Layout", "Position", "Move"]) {
-    const button = page.locator(`.dz-tools > .dz-menu:not(.dz-states) button:text-is('${tool}')`);
-    if (await button.isDisabled().catch(() => true)) continue;
-    await button.click();
-    await audit(`the ${tool} tool`);
-    await button.click();   // closes it
-  }
-  await page.locator(".dz-states button:text-is('hover')").click();
-  await audit("the hover state");
-  await page.locator(".dz-states button:text-is('normal')").click();
-  await page.locator(".dz-dock button:text-is('Fill')").click();
-  await page.locator(".dz-chip").first().click();
-  for (const link of ["Changes", "Keys", "Find", "Preview"]) {
-    const button = page.locator(`.dz-dock .dz-head button:text-matches('^${link}')`);
-    await button.click();
-    await audit(`the ${link} panel`);
-    await button.click();
+  const setTheme = (name) => page.evaluate((value) => document.getElementById("design-picker-extension-root").shadowRoot.querySelector(".dz-root").setAttribute("data-theme", value), name);
+  for (const look of ["dark", "light"]) {
+    await setTheme(look);
+    await page.keyboard.press("Escape"); await page.keyboard.press("Escape"); await page.keyboard.press("Escape");
+    await audit(look + ": nothing selected");
+    await page.locator(".lead").click();
+    await page.keyboard.press("Enter");
+    await audit(look + ": the tools");
+    for (const tool of ["Fill", "Border", "Shadow", "Radius", "Tone", "Text", "Font", "Image", "Size", "Spacing", "Layout", "Position", "Move"]) {
+      const button = page.locator(`.dz-tools > .dz-menu:not(.dz-states) button:text-is('${tool}')`);
+      if (await button.isDisabled().catch(() => true)) continue;
+      await button.click();
+      await audit(`${look}: the ${tool} tool`);
+      await button.click();   // closes it
+    }
+    await page.locator(".dz-states button:text-is('hover')").click();
+    await audit(look + ": the hover state");
+    await page.locator(".dz-states button:text-is('normal')").click();
+    await page.locator(".dz-dock button:text-is('Fill')").click();
+    await page.locator(".dz-chip").first().click();
+    for (const link of ["Changes", "Keys", "Find", "Preview"]) {
+      const button = page.locator(`.dz-dock .dz-head button:text-matches('^${link}')`);
+      await button.click();
+      await audit(`${look}: the ${link} panel`);
+      await button.click();
+    }
   }
 } finally {
   await context.close();
