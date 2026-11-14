@@ -1,5 +1,7 @@
-// Builds the unpacked extension: node scripts/build.mjs [--out DIR] [--test] [--zip]
+// Builds the unpacked extension: node scripts/build.mjs [--out DIR] [--test] [--zip] [--share]
 // --zip also writes releases/sitecleaner-<version>.zip, the file the Chrome Web Store takes.
+// --share also writes releases/SiteCleaner-<version>-share.zip, the one to hand to people: the extension plus plain-language instructions for installing it in Chrome
+// (store/SHARE_README.txt), the licences, and the skill for AIs.
 //
 // The picker is one script made of the files in src/parts/, joined in name order (they are slices of one closure, so they share its state);
 // its stylesheet is src/picker.css wrapped in a script (the picker draws inside a Shadow DOM and takes its CSS from there). The parts of the
@@ -7,6 +9,7 @@
 // --test grants host access up front (and so also the all-sites permission previews need), so the end-to-end test can drive the extension without a human clicking the toolbar.
 import fs from "node:fs";
 import path from "node:path";
+import os from "node:os";
 import zlib from "node:zlib";
 import { fileURLToPath } from "node:url";
 
@@ -16,6 +19,7 @@ const ext = path.join(root, "extension");
 const args = process.argv.slice(2);
 const test = args.includes("--test");
 const makeZip = args.includes("--zip");
+const makeShare = args.includes("--share");
 const out = path.resolve(args.includes("--out") ? args[args.indexOf("--out") + 1] : path.join(root, "dist"));
 const version = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8")).version;
 
@@ -124,6 +128,25 @@ if (makeZip) {
   const zipPath = path.join(root, "releases", `sitecleaner-${version}.zip`);
   fs.writeFileSync(zipPath, zipDirectory(out));
   console.log(`Wrote ${zipPath}`);
+}
+
+if (makeShare) {
+  if (test) throw new Error("--share makes the zip for people, which must be the real build: not with --test");
+  const stage = fs.mkdtempSync(path.join(os.tmpdir(), "sitecleaner-share-"));
+  const top = path.join(stage, `SiteCleaner-${version}`);
+  fs.mkdirSync(top, { recursive: true });
+  fs.cpSync(out, path.join(top, "extension"), { recursive: true });
+  const instructions = fs.readFileSync(path.join(root, "store", "SHARE_README.txt"), "utf8").replace(/__VERSION__/g, version).replace(/\r?\n/g, "\r\n");   // CRLF: opens cleanly in Notepad
+  fs.writeFileSync(path.join(top, "README - START HERE.txt"), instructions);
+  for (const file of ["LICENSE", "NOTICE"]) fs.copyFileSync(path.join(root, file), path.join(top, file));
+  fs.mkdirSync(path.join(top, "third_party", "visbug"), { recursive: true });
+  for (const file of ["LICENSE", "README.md"]) fs.copyFileSync(path.join(root, "third_party", "visbug", file), path.join(top, "third_party", "visbug", file));
+  fs.cpSync(path.join(root, "skills", "sitecleaner-apply"), path.join(top, "for-AI", "sitecleaner-apply"), { recursive: true });
+  fs.mkdirSync(path.join(root, "releases"), { recursive: true });
+  const sharePath = path.join(root, "releases", `SiteCleaner-${version}-share.zip`);
+  fs.writeFileSync(sharePath, zipDirectory(stage));
+  fs.rmSync(stage, { recursive: true, force: true });
+  console.log(`Wrote ${sharePath}`);
 }
 
 console.log(`Built the extension (version ${version}${test ? ", test build" : ""}) in ${out}`);
