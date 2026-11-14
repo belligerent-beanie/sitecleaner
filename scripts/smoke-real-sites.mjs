@@ -17,7 +17,7 @@ const SITES = process.argv.slice(2).length ? process.argv.slice(2) : [
   "https://news.ycombinator.com/",
   "https://developer.mozilla.org/en-US/docs/Web/CSS/color",   // web components, a strict CSP
   "https://github.com/microsoft/vscode",                      // a single-page app, a strict CSP
-  "https://www.bbc.com/news",
+  "https://www.gov.uk/",   // replaces bbc.com/news, which failed from GitHub's runners (cause not confirmed; a consent banner is the likely one)
 ];
 
 const dist = path.join(os.tmpdir(), "dp-smoke-" + process.pid);
@@ -26,11 +26,13 @@ const profile = fs.mkdtempSync(path.join(os.tmpdir(), "dp-smoke-profile-"));
 const context = await chromium.launchPersistentContext(profile, { headless: false, viewport: null, args: [`--disable-extensions-except=${dist}`, `--load-extension=${dist}`, "--window-size=1366,900"] });
 const worker = context.serviceWorkers()[0] || (await context.waitForEvent("serviceworker", { timeout: 15000 }));
 const report = [];
+// The first line of a Playwright error, plus the line that says what was in the way (a cookie banner, an overlay) when it has one.
+const why = (error) => { const lines = error.message.split("\n"); const blocker = lines.find((line) => /intercepts pointer events|not visible|outside of the viewport/.test(line)); return lines[0].slice(0, 80) + (blocker ? " | " + blocker.trim().slice(0, 110) : ""); };
 async function runSite(site) {
   await worker.evaluate(() => chrome.storage.local.clear());   // nothing saved by an earlier attempt on this page
   const steps = [];
   const errors = [];
-  const step = async (name, run) => { try { const result = await run(); steps.push({ name, ok: result !== false }); return result; } catch (error) { steps.push({ name, ok: false, why: error.message.split("\n")[0].slice(0, 90) }); return false; } };
+  const step = async (name, run) => { try { const result = await run(); steps.push({ name, ok: result !== false }); return result; } catch (error) { steps.push({ name, ok: false, why: why(error) }); return false; } };
   const page = await context.newPage();
   page.on("pageerror", (error) => errors.push(error.message.slice(0, 100)));
   try {

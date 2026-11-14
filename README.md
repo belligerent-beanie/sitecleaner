@@ -86,7 +86,7 @@ Both run offline and must pass. `bun run test:e2e` and `bun run test:a11y` run o
 security policy, generated class names, its own CSS variables. It covers every feature above, including the round trip through a reload and through Reset all.
 The audit runs axe-core on every tool and panel in both looks of the dock, and must report no violations.
 
-`bun run smoke` tries the extension on real sites (Wikipedia, Hacker News, MDN, GitHub, the BBC and others: strict security policies, web components,
+`bun run smoke` tries the extension on real sites (Wikipedia, Hacker News, MDN, GitHub, gov.uk and others: strict security policies, web components,
 single-page apps). It needs the network and live pages that change, so it is **not** part of `test`: run it by hand before a release.
 `bun run zip` writes the zip for the Web Store (`releases/`), `bun run screenshots` regenerates the store screenshots from the real extension, and
 `bun run promo` the promo tile.

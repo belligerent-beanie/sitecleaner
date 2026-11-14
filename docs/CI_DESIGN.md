@@ -113,9 +113,24 @@ the tests' dependence on window size and timing was real. It does not replace a 
 
 On failure the job uploads the console output, and a screenshot of each open page plus what the dock said (`test-artifacts/`).
 
-### Not done yet (rollout steps 3 and 4)
+## What is built (14 November 2026)
 
-- The workflow still triggers only on the `ci-proof` branch. For real use it must run on pull requests and on `main`; the test fixes above live only on this
-  branch until it is merged.
-- Making `test` a required check is a repository setting. On a private repository, GitHub's free plan may not offer branch protection; this has not been tried.
-- The `package` job (zip as an artifact) and the nightly `smoke` job that opens an issue are not written.
+| Piece | State |
+|---|---|
+| `.github/workflows/test.yml`: the suite and the audit on pull requests, on pushes to `main` and on `v*` tags; a stable `result` job; `package` leaves the zip as an artifact (30 days) | built, merged, green on `main` |
+| `.github/workflows/smoke.yml`: nightly at 04:17 UTC and by hand; each site gets one retry; on failure it opens or updates one issue, on a pass it closes it; never required | built, run by hand; see below |
+| `result` as a **required check** for merging | **not possible on this plan**, see below |
+
+**Branch protection.** Asked for through the API, GitHub answered: "Upgrade to GitHub Pro or make this repository public to enable this feature."
+So today nothing stops a push to `main` that fails the suite; the workflow still runs and shows red, and the `result` job is ready to be required the day
+either of those two things changes (the call is in the history of this change: required context `result`, no required reviewers). Until then the rule
+is a convention: change `main` through pull requests and wait for `result`.
+
+**The first smoke run from GitHub's runners:** five of six sites held. The BBC page failed both attempts (the picker could not click its heading), and the
+workflow opened issue #1 as designed. The cause is not confirmed (the likeliest is a consent banner covering the page). The site was replaced by gov.uk, and
+the script now keeps the "what was in the way" line of a click error, so the next failure of this kind says what it was.
+
+### Not done yet
+
+- `result` as a required check (needs a paid plan or a public repository).
+- A screenshot on a smoke failure (the console output is kept; the end-to-end job already keeps screenshots).
