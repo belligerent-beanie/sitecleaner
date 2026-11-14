@@ -172,7 +172,7 @@ const validRule = (r) => !!r && typeof r.s === "string" && typeof r.b === "strin
     : r.k === undefined && typeof r.d === "string" && r.d.length < 4000 && !/[{}]/.test(r.s + r.b + r.d));   // braces would let a rule close itself and start another
 const validRules = (rules) => Array.isArray(rules) && rules.length <= 2000 && rules.every(validRule);
 // The easier-to-read settings: only numbers in range and true/false, and at least one thing turned on. (Checked here, not by loading readable.js.)
-const FLAGS = ["spacing", "font", "links", "focus", "motion", "buttons", "contrast"];
+const FLAGS = ["spacing", "font", "links", "focus", "motion", "buttons", "contrast", "highlight", "dark"];
 const validAccess = (a) => !!a && typeof a === "object" && typeof a.textScale === "number" && a.textScale >= 1 && a.textScale <= 2 && typeof a.minText === "number" && a.minText >= 0 && a.minText <= 24
   && FLAGS.every((f) => typeof a[f] === "boolean") && (a.textScale > 1 || a.minText > 0 || FLAGS.some((f) => a[f]));
 const validPresets = (p) => p === undefined || (!!p && typeof p === "object" && Object.keys(p).every((k) => k === "access") && validAccess(p.access));

@@ -11,26 +11,68 @@
 // Everything it writes inline is remembered and put back when the options change or are turned off.
 (() => {
   if (window.__scReadable) return;
-  const DEFAULTS = { textScale: 1, minText: 0, spacing: false, font: false, links: false, focus: false, motion: false, buttons: false, contrast: false };
+  const FLAGS = ["spacing", "font", "links", "focus", "motion", "buttons", "contrast", "highlight", "dark"];
+  const DEFAULTS = { textScale: 1, minText: 0, ...Object.fromEntries(FLAGS.map((f) => [f, false])) };
   const sheet = new CSSStyleSheet();   // a constructed sheet: the page's content security policy cannot refuse it
   const touched = new Map();           // element -> what its inline style said before: {"font-size": [value, priority], color: [...]}
   let options = null;                  // null: off
   let observer = null, timer = 0, slowUntil = 0;
   let counts = { text: 0, contrast: 0, unsure: 0 };
+  let darkSkipped = false;             // dark mode was asked for but the page is dark already
 
   const clean = (o) => {
     if (!o || typeof o !== "object") return null;
     const next = { ...DEFAULTS };
     next.textScale = Math.min(2, Math.max(1, Number(o.textScale) || 1));
     next.minText = Math.min(24, Math.max(0, Number(o.minText) || 0));
-    for (const key of ["spacing", "font", "links", "focus", "motion", "buttons", "contrast"]) next[key] = o[key] === true;
-    const any = next.textScale > 1 || next.minText > 0 || ["spacing", "font", "links", "focus", "motion", "buttons", "contrast"].some((key) => next[key]);
+    for (const key of FLAGS) next[key] = o[key] === true;
+    const any = next.textScale > 1 || next.minText > 0 || FLAGS.some((key) => next[key]);
     return any ? next : null;
   };
 
+  // ---- dark mode
+  // The classic way: invert the whole page and turn the hues back (so blue stays blue, and white becomes black), then invert pictures, video and frames a
+  // second time so they look as they did. It works on any site without knowing its CSS. A page that is dark already is left alone (the check is below),
+  // since inverting it would make it light. What it cannot do: a picture that is a CSS background is inverted with the rest, and a dark logo on a
+  // transparent background turns dark on dark.
+  const DARK = "invert(1) hue-rotate(180deg)";
+  const clamp255 = (v) => Math.min(255, Math.max(0, v));
+  /** The colour to write so that, once the page is inverted, `rgb` is what is seen. */
+  function forDark([r, g, b]) {
+    const h = [-0.574 * r + 1.43 * g + 0.144 * b, 0.426 * r + 0.43 * g + 0.144 * b, 0.426 * r + 1.43 * g - 0.856 * b].map((v) => Math.round(255 - clamp255(v)));
+    return `rgb(${h[0]}, ${h[1]}, ${h[2]})`;
+  }
+  function pageIsDark() {
+    for (const el of [document.body, document.documentElement]) {
+      if (!el) continue;
+      const cs = getComputedStyle(el);
+      const c = parse(cs.backgroundColor);
+      if (cs.backgroundImage === "none" && c && c[3] >= 0.5) return lum(c) < 0.2;
+    }
+    return false;   // no background anywhere: the browser's white
+  }
+  function canvasBare() {   // nothing paints the page: give the inversion something to invert (white becomes black)
+    return [document.documentElement, document.body].every((el) => { if (!el) return true; const c = parse(getComputedStyle(el).backgroundColor); return !c || c[3] === 0; })
+      && [document.documentElement, document.body].every((el) => !el || getComputedStyle(el).backgroundImage === "none");
+  }
+
   // ---- the style sheet part
+  const TEXTY = "p, li, a, h1, h2, h3, h4, h5, h6, td, th, dt, dd, label, summary, figcaption, blockquote, button, [role=button], [role=link], [role=menuitem], [role=tab]";
+  const FIELDS = "a, button, select, textarea, summary, [tabindex], [role=button], input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]):not([type=color])";
   function css(o) {
     const out = [];
+    const dark = o.dark && !darkSkipped;
+    const paint = (rgb) => (dark ? forDark(rgb) : `rgb(${rgb.join(", ")})`);
+    if (dark) {
+      out.push(`html { filter: ${DARK} !important; ${canvasBare() ? "background-color: #fff !important; " : ""}}`);
+      out.push(`img, picture, video, canvas, iframe, embed, object { filter: ${DARK} !important; }`);
+    }
+    if (o.highlight) {   // what the pointer or the keyboard is on gets a solid background, so it is easy to read (screen magnifiers follow both)
+      const bg = [255, 243, 160], fg = [0, 0, 0];   // pale yellow with black text, as seen: in dark mode paint() writes the colours that come out like this once inverted
+      const point = `:is(${TEXTY}):hover:not(:has(:is(${TEXTY}):hover))`, tab = `:is(${FIELDS}):focus-visible`;
+      out.push(`${point}, ${tab} { background-color: ${paint(bg)} !important; background-image: none !important; color: ${paint(fg)} !important; }`);
+      out.push(`${point} *, ${tab} * { color: ${paint(fg)} !important; }`);
+    }
     if (o.spacing) {
       out.push("body :where(p, li, dd, dt, blockquote, td, th, figcaption, label, summary) { line-height: 1.6 !important; letter-spacing: 0.03em !important; word-spacing: 0.08em !important; }");
       out.push("body :where(p) { margin-bottom: 1em !important; }");
@@ -39,7 +81,7 @@
       out.push('body :not([class*="icon" i]):not([class*="glyph" i]):not([class*="material" i]):not([class*="fa-"]):not(.fa):not(.fas):not(.far):not(.fab):not(svg):not(svg *):not(code):not(pre):not(kbd):not(samp) { font-family: Verdana, Tahoma, "Segoe UI", system-ui, sans-serif !important; }');
     }
     if (o.links) out.push("a:where([href]) { text-decoration: underline !important; text-underline-offset: 0.15em !important; }");
-    if (o.focus) out.push(":focus-visible { outline: 3px solid #ffbf47 !important; outline-offset: 2px !important; box-shadow: 0 0 0 2px #111 !important; }");
+    if (o.focus) out.push(`:focus-visible { outline: 3px solid ${paint([255, 191, 71])} !important; outline-offset: 2px !important; box-shadow: 0 0 0 2px ${paint([17, 17, 17])} !important; }`);
     if (o.motion) out.push("*, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; scroll-behavior: auto !important; }");
     if (o.buttons) out.push('button, [role="button"], input[type="button"], input[type="submit"], input[type="reset"], select, summary { min-height: 44px !important; min-width: 44px !important; }');
     return out.join("\n");
@@ -158,9 +200,13 @@
     observer.observe(document.documentElement, { childList: true, subtree: true });
   }
 
+  function rebuild() {
+    darkSkipped = !!(options && options.dark && document.body && pageIsDark());   // before the body exists the page is taken to be light
+    sheet.replaceSync(options ? css(options) : "");
+  }
   function apply(next) {
     options = clean(next);
-    sheet.replaceSync(options ? css(options) : "");
+    rebuild();
     const adopted = document.adoptedStyleSheets.includes(sheet);
     if (options && !adopted) document.adoptedStyleSheets = [...document.adoptedStyleSheets, sheet];
     else if (!options && adopted) document.adoptedStyleSheets = document.adoptedStyleSheets.filter((other) => other !== sheet);
@@ -169,7 +215,7 @@
     watch(needsText);
     return stats();
   }
-  const stats = () => ({ ...counts });
+  const stats = () => ({ ...counts, darkSkipped });
   function describe(o) {
     const c = clean(o);
     if (!c) return "Nothing turned on";
@@ -183,9 +229,13 @@
     if (c.motion) parts.push("calm motion");
     if (c.buttons) parts.push("bigger buttons");
     if (c.contrast) parts.push("fixed low contrast");
+    if (c.highlight) parts.push("highlight under pointer");
+    if (c.dark) parts.push("dark mode");
     return parts.join(", ");
   }
   // The page's own load: text that is there only once it has been parsed.
-  window.addEventListener("DOMContentLoaded", () => { if (options && (options.textScale > 1 || options.minText || options.contrast)) inlinePass(); }, { once: true });
+  const later = () => { if (!options) return; if (options.dark) rebuild(); if (options.textScale > 1 || options.minText || options.contrast) inlinePass(); };
+  window.addEventListener("DOMContentLoaded", later, { once: true });
+  window.addEventListener("load", () => { if (options && options.dark) rebuild(); }, { once: true });   // the page's own CSS may only now be in
   window.__scReadable = { apply, current: () => (options ? { ...options } : null), defaults: { ...DEFAULTS }, describe, stats };
 })();

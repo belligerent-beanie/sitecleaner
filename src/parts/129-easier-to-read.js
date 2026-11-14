@@ -11,6 +11,8 @@
     ["motion", "Calm motion", "Almost no animation or sliding"],
     ["buttons", "Bigger buttons", "At least 44 pixels, easier to hit"],
     ["contrast", "Fix text that is hard to read", "Only on plain backgrounds, never over pictures"],
+    ["highlight", "Highlight what you point at or tab to", "A solid background behind it, easy to read and to follow with a screen magnifier or reader"],
+    ["dark", "Dark mode", "Dark background, light text; pictures stay as they are. Pages that are dark already are left alone"],
   ];
   let accessOpts = null;   // what the panel shows
   let accessTimer = 0;
@@ -30,7 +32,8 @@
       const engine = readable();
       if (!engine) return;
       const stats = engine.apply(accessOpts);
-      if (accessStatus) accessStatus.textContent = accessOpts.contrast ? `Fixed ${stats.contrast} pieces of text that were hard to read; ${stats.unsure} left alone because their background could not be judged.` : "";
+      if (accessStatus) accessStatus.textContent = [accessOpts.dark && stats.darkSkipped ? "This page is dark already, so dark mode was not added." : "",
+        accessOpts.contrast ? `Fixed ${stats.contrast} pieces of text that were hard to read; ${stats.unsure} left alone because their background could not be judged.` : ""].filter(Boolean).join(" ");
     }, 120);
   }
   function accessPanel() {

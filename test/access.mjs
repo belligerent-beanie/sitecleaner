@@ -103,6 +103,38 @@ try {
   check("text added after the pass is scaled once, as the rest", Math.abs((await px("#late")) - 15) < 0.2 && Math.abs((await px("#tiny")) - before.tiny * 1.5) < 0.2, `${await px("#late")} ${await px("#tiny")}`);
   await apply(null);
 
+  // ---- highlight under the pointer and the keyboard
+  const pixel = async (pg, x, y) => {   // what is really painted at a point
+    const png = (await pg.screenshot({ clip: { x, y, width: 1, height: 1 } })).toString("base64");
+    return pg.evaluate(async (b64) => { const bmp = await createImageBitmap(await (await fetch("data:image/png;base64," + b64)).blob()); const c = new OffscreenCanvas(1, 1).getContext("2d"); c.drawImage(bmp, 0, 0); return [...c.getImageData(0, 0, 1, 1).data].slice(0, 3); }, png);
+  };
+  const lightness = (rgb) => (rgb[0] + rgb[1] + rgb[2]) / 3;
+  await apply({ highlight: true });
+  check("nothing is highlighted until the pointer is on it", (await get("#fine", "backgroundColor")) === "rgba(0, 0, 0, 0)");
+  await page.hover("#fine");
+  check("text under the pointer gets a solid background and black text", (await get("#fine", "backgroundColor")) === "rgb(255, 243, 160)" && (await get("#fine", "color")) === "rgb(0, 0, 0)", await get("#fine", "backgroundColor"));
+  await page.mouse.move(600, 5);
+  check("and loses it when the pointer leaves", (await get("#fine", "backgroundColor")) === "rgba(0, 0, 0, 0)");
+  await page.focus("#btn"); await page.keyboard.press("Shift+Tab"); await page.keyboard.press("Tab");
+  check("a field or button reached by keyboard is highlighted too", (await get("#btn", "backgroundColor")) === "rgb(255, 243, 160)", await get("#btn", "backgroundColor"));
+  await apply(null);
+
+  // ---- dark mode
+  await apply({ dark: true });
+  check("dark mode turns a plain white page dark", lightness(await pixel(page, 700, 400)) < 60, String(await pixel(page, 700, 400)));
+  check("pictures and video are turned back, so they look as they did", await page.evaluate(() => { const i = document.createElement("img"); document.body.append(i); const f = getComputedStyle(i).filter; i.remove(); return /invert/.test(f); }));
+  await apply({ dark: true, highlight: true });
+  await page.hover("#fine");
+  check("highlight in dark mode is seen as light, not as a dark patch", lightness(await pixel(page, 600, await page.evaluate(() => { const r = document.getElementById("fine").getBoundingClientRect(); return r.top + r.height / 2; }))) > 200);
+  await apply(null);
+  check("off, the page is light again", lightness(await pixel(page, 700, 400)) > 200);
+  const already = await browser.newPage();
+  await already.setContent(`<!doctype html><body style="background:#111;color:#eee"><p>already dark</p>`);
+  await already.addScriptTag({ path: path.join(root, "extension", "readable.js") });
+  const darkStats = await already.evaluate(() => window.__scReadable.apply({ dark: true }));
+  check("a page that is dark already is not inverted (and it says so)", darkStats.darkSkipped === true && (await already.evaluate(() => getComputedStyle(document.documentElement).filter)) === "none");
+  await already.close();
+
   // ---- speed
   const big = await browser.newPage();
   await big.setContent(`<body>${Array.from({ length: 5000 }, (_, i) => `<div class="r${i % 20}"><p style="font-size:${12 + (i % 5)}px;color:#${i % 2 ? "aaa" : "333"}">row ${i} <a href="#">link</a></p></div>`).join("")}</body>`);
@@ -136,7 +168,7 @@ try {
   await page.keyboard.press("Escape");
   check("the consumer picker has an Easier to read button", (await page.locator(".dz-head button:text-is('Easier to read')").count()) === 1);
   await page.locator(".dz-head button:text-is('Easier to read')").click();
-  check("the panel opens with sensible controls", (await page.locator(".dz-access input[type=range]").count()) === 1 && (await page.locator(".dz-access input[type=checkbox]").count()) === 7);
+  check("the panel opens with sensible controls", (await page.locator(".dz-access input[type=range]").count()) === 1 && (await page.locator(".dz-access input[type=checkbox]").count()) === 9);
   await page.locator(".dz-access input[type=range]").fill("150");
   await page.locator(".dz-access label", { hasText: "Underline every link" }).locator("input").check();
   await page.locator(".dz-access label", { hasText: "Fix text that is hard to read" }).locator("input").check();
@@ -193,7 +225,7 @@ try {
   check("removing just the settings leaves the rule", await wait(async () => { const e = await entry(); return e && !e.presets && e.rules.length === 1; }));
   // the worker refuses settings that are out of range or mean nothing
   const verdicts = await worker.evaluate(() => {
-    const ok = { textScale: 1.5, minText: 0, spacing: false, font: false, links: true, focus: false, motion: false, buttons: false, contrast: false };
+    const ok = { textScale: 1.5, minText: 0, spacing: false, font: false, links: true, focus: false, motion: false, buttons: false, contrast: false, highlight: false, dark: false };
     return [validPresets({ access: ok }), validPresets({ access: { ...ok, textScale: 5 } }), validPresets({ access: { ...ok, links: "yes" } }), validPresets({ access: { ...ok, textScale: 1, links: false } }), validPresets({ other: ok }), validPresets({ access: { ...ok, minText: -3 } }), validPresets(undefined)];
   });
   check("the worker accepts sane settings and refuses the rest", verdicts.join() === "true,false,false,false,false,false,true", verdicts.join());
