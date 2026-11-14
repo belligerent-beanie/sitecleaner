@@ -88,7 +88,7 @@
     ["Select", [["Click", "select; Shift adds or removes"], ["↑ ↓", "parent, child"], ["Tab", "next sibling (Shift: previous); the first element if nothing is selected"], ["F6", "move between the page and the picker's panel"], ["Ctrl E", "select similar (Shift: all)"],
                 ["Ctrl Shift Enter", "select the children"], ["/", "find by selector or words"], ["Esc", "clear, close"]]],
     ["Tools (with something selected)", [["C B D E", "fill, border, shadow, text"], ["F S P R", "font, size, spacing, radius"], ["A H", "layout, tone (hue)"], ["V L", "move, position"], ["Enter", "the tool menu"]]],
-    ["Nudge, with a tool open", [["Spacing", "arrows change a side; Alt takes away; Shift ten; Ctrl ▲▼ all sides"], ["Font", "▲▼ size, ◀▶ letter spacing, Alt ▲▼ line height"], ["Size", "▶◀ width, ▼▲ height"], ["Position / Move", "arrows place or move"]]],
+    ["Nudge, with a tool open", [["Spacing", "arrows change a side; Alt takes away; Shift ten; Ctrl ▲▼ all sides"], ["Font", "Ctrl B, Ctrl I bold, italic; ▲▼ size, ◀▶ letter spacing, Alt ▲▼ line height"], ["Size", "▶◀ width, ▼▲ height"], ["Position / Move", "arrows place or move"]]],
     ["Edit", [["Delete", "remove (Alt: clear its edits)"], ["Ctrl D", "duplicate"], ["Ctrl C X V", "copy, cut, paste elements"], ["Ctrl G", "group (Shift: ungroup)"], ["Double-click", "edit text in place"],
               ["Alt Shift C V", "copy, paste a look"], ["Ctrl Z", "undo (Shift or Y: redo)"]]],
     ["See", [["I", "inspect on hover"], ["hold M", "measure distances"], ["hold G", "alignment guides"], ["hold \\", "the original"], ["Alt Shift S", "screenshot"]]],
@@ -102,6 +102,15 @@
     }
     return panel;
   }
+  keyHooks.push((event) => {   // Ctrl+B and Ctrl+I with the Font tool open (as VisBug has them): bold and italic on or off
+    if (tool !== "font" || !selection.length || !(event.ctrlKey || event.metaKey) || event.altKey || event.shiftKey || isEditingField(eventTarget(event))) return false;
+    const key = event.key.toLowerCase();
+    if (key !== "b" && key !== "i") return false;
+    event.preventDefault();
+    if (key === "b") toggleBold(); else toggleItalic();
+    renderDock();
+    return true;
+  });
   keyHooks.push((event) => {   // F6, the browser's own key for moving between parts of a window: into the panel, and back out to the page
     if (event.key !== "F6" || event.ctrlKey || event.metaKey || event.altKey) return false;
     event.preventDefault();

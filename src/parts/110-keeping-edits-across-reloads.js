@@ -84,6 +84,7 @@
       if (/^#[0-9a-f]{6}$/i.test(after.color || "")) type.color = after.color;
       if (/^\d+(\.\d+)?px$/.test(after["font-size"] || "")) type["font-size"] = after["font-size"];
       if (/^[1-9]00$/.test(after["font-weight"] || "")) type["font-weight"] = after["font-weight"];
+      if (/^(italic|normal)$/.test(after["font-style"] || "")) type["font-style"] = after["font-style"];
       if (/^\d+(\.\d+)?$/.test(after["line-height"] || "")) type["line-height"] = after["line-height"];
       if (/^-?\d+(\.\d+)?px$/.test(after["letter-spacing"] || "")) type["letter-spacing"] = after["letter-spacing"];
       if (TEXT_ALIGNS.includes(after["text-align"])) type["text-align"] = after["text-align"];

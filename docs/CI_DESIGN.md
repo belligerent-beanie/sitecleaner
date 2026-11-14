@@ -8,7 +8,7 @@ The project has three kinds of check, and today a person has to remember to run 
 
 | Check | Command | Needs | Runs for | Today |
 |---|---|---|---|---|
-| End-to-end suite (132 checks) | `bun run test:e2e` | a real browser with the extension loaded | roughly 2 minutes | by hand |
+| End-to-end suite (146 checks) | `bun run test:e2e` | a real browser with the extension loaded | roughly 2 minutes | by hand |
 | Accessibility audit of the dock (41 audits, both looks) | `bun run test:a11y` | the same | roughly 1 minute | by hand |
 | Smoke test on six real sites | `bun run smoke` | the same, plus the network and live sites | roughly 3 minutes | by hand |
 
@@ -95,7 +95,7 @@ on a Linux runner, is the next piece of work, and nothing is made required befor
 
 ## Result of the proof (14 November 2026, branch `ci-proof`)
 
-The suite and the accessibility audit **pass on `ubuntu-latest` under Xvfb**: 132 of 132 checks and 41 audits with no violations. Twenty runs of the
+The suite and the accessibility audit **pass on `ubuntu-latest` under Xvfb**: 132 of 146 checks and 41 audits with no violations. Twenty runs of the
 same commit, as 20 parallel jobs (`bun run test` under `xvfb-run`): **20 passed, 0 failed.** Each job took 87 to 131 seconds, 102 on average, including the
 browser install, so a run costs roughly two runner-minutes. (Twenty parallel jobs of one commit measure flakiness within a commit; they are not twenty
 successive commits.)

@@ -28,7 +28,7 @@
     for (const [element, rec, state] of entries) {
       if (element && !element.isConnected) continue;   // removed from the page: its style edits are moot
       const lines = [];
-      for (const prop of ["background-color", "color", "font-size", "font-weight", "line-height", "letter-spacing", "text-align", "border", "border-radius", "box-shadow", "padding", "margin", "width", "height", "display", "flex-direction", "flex-wrap", "justify-content", "align-items", "justify-items", "gap", "opacity", "position", "top", "left", "z-index", "background-image"]) {
+      for (const prop of ["background-color", "color", "font-size", "font-weight", "font-style", "line-height", "letter-spacing", "text-align", "border", "border-radius", "box-shadow", "padding", "margin", "width", "height", "display", "flex-direction", "flex-wrap", "justify-content", "align-items", "justify-items", "gap", "opacity", "position", "top", "left", "z-index", "background-image"]) {
         const after = rec.after && rec.after[prop];
         const say = COLOUR_PROPS.includes(prop) ? (value) => colourIn(String(value)) : (value) => String(value);
         if (after !== undefined && after !== rec.before[prop]) lines.push(`  ${prop}: ${shorten(say(rec.before[prop]), 110)} → ${shorten(say(after), 110)}`);

@@ -10,6 +10,13 @@
     }
     edited();
   }
+  // Bold and italic toggles are an idea from VisBug's font tool (Apache-2.0, https://github.com/GoogleChromeLabs/ProjectVisBug, app/features/font.js, Cmd+B and Cmd+I).
+  // Modified: they are buttons too, go through the recorded edits (undo, saving, export), and bold means a weight of 600 or more.
+  /** Bold on or off, for everything selected, judged by the one the panel shows: heavier than 500 goes to normal, anything else to bold. */
+  const isBold = (element) => (parseInt(getComputedStyle(element).fontWeight, 10) || 400) >= 600;
+  const isItalic = (element) => /^(italic|oblique)$/.test(getComputedStyle(element).fontStyle);
+  function toggleBold() { if (selected) applyType(targets(), { "font-weight": isBold(selected) ? "400" : "700" }); }
+  function toggleItalic() { if (selected) applyType(targets(), { "font-style": isItalic(selected) ? "normal" : "italic" }); }
   function fontPanel() {
     const element = selected;
     const cs = getComputedStyle(element);
@@ -66,11 +73,24 @@
       button.classList.toggle("dz-active", on);
       button.setAttribute("aria-pressed", on ? "true" : "false");
     });
-    showSize(); showLine(); showSpace(); showAlign();
+    const boldButton = h("button", { type: "button", class: "dz-menu-button dz-bold", text: "B", "aria-label": "Bold", title: "Bold on or off (Ctrl+B)", "aria-pressed": "false" });
+    const italicButton = h("button", { type: "button", class: "dz-menu-button dz-italic", text: "I", "aria-label": "Italic", title: "Italic on or off (Ctrl+I)", "aria-pressed": "false" });
+    const showStyle = () => {   // read from the page, so the buttons are right whichever way the style was changed
+      for (const [button, now] of [[boldButton, isBold(element)], [italicButton, isItalic(element)]]) {
+        button.classList.toggle("dz-active", now);
+        button.setAttribute("aria-pressed", now ? "true" : "false");
+      }
+      state.weight = parseInt(getComputedStyle(element).fontWeight, 10) || 400;
+      if ([...weightSelect.options].some((option) => +option.value === state.weight)) weightSelect.value = String(state.weight);
+    };
+    boldButton.addEventListener("click", () => { toggleBold(); showStyle(); contrast.update(); });
+    italicButton.addEventListener("click", () => { toggleItalic(); showStyle(); });
+    showSize(); showLine(); showSpace(); showAlign(); showStyle();
     return h("div", { class: "dz-panel dz-font" },
       colourButton, holder, contrast.node,
       h("label", { class: "dz-row" }, h("span", { text: "Size" }), sizeRange, sizeField, h("span", { class: "dz-unit", text: "px" })),
       h("label", { class: "dz-row" }, h("span", { text: "Weight" }), weightSelect),
+      h("div", { class: "dz-menu" }, boldButton, italicButton),
       h("label", { class: "dz-row" }, h("span", { text: "Line" }), lineRange, lineNumber),
       h("label", { class: "dz-row" }, h("span", { text: "Letters" }), spaceRange, spaceNumber),
       h("div", { class: "dz-menu" }, ...alignButtons));

@@ -154,3 +154,8 @@
 
 /* Which state is being edited */
 .dz-states { align-items: center; }
+
+/* The label on the selected element, and the bold and italic buttons */
+.dz-selabel { position: fixed; padding: 1px 7px; border-radius: 4px; background: #ff5ca8; color: var(--dz-on-accent); font: 600 11px/1.5 ui-monospace, Consolas, monospace; white-space: nowrap; pointer-events: none; box-shadow: 0 1px 6px rgba(0, 0, 0, 0.3); }
+.dz-bold { min-width: 34px; font-weight: 800 !important; }
+.dz-italic { min-width: 34px; font-style: italic !important; font-family: Georgia, "Times New Roman", serif !important; }

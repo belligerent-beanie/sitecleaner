@@ -13,11 +13,11 @@ exported. See [Where it comes from](#where-it-comes-from).
 
 ## What it does
 
-**Select.** Click an element. Shift-click adds or removes elements and the tools then change all of them at once. `/` finds everything
+**Select.** Click an element; a label with its name and size appears next to it (and stays at the edge of the window, pointing the way, when it is scrolled out of view). Shift-click adds or removes elements and the tools then change all of them at once. `/` finds everything
 that matches a CSS selector (or some words). Walk the page with ↑ parent, ↓ child, Tab siblings; Ctrl+E selects the similar ones.
 
 **Style.** Fill, border, shadow, corner radius, tone (shift the hue, saturation and brightness of a whole selection together); text, font
-(colour, size, weight, line height, letter spacing, alignment); size (type it, or drag the handles), padding and margin, flex and grid layout,
+(colour, size, weight, bold and italic with Ctrl+B and Ctrl+I, line height, letter spacing, alignment); size (type it, or drag the handles), padding and margin, flex and grid layout,
 opacity. Copy one element's look and paste it onto others. **Hover and focus:** the State switch above the tools (normal, hover, focus, active) points every tool at
 that state: the selected elements are shown in it while you edit, starting from the look the site's own `:hover`, `:focus` or `:active` rules give them, and the
 change is written as a rule for the state, undone, saved and exported like any other. Every colour picker lists the colours already on the page, with the names of the
@@ -79,7 +79,7 @@ To add a feature: a new file in `src/parts/`, registered through the `keyHooks`,
 ## Test
 
     bun install                   # Playwright and axe-core
-    bun run test                  # the end-to-end suite (132 checks), then the accessibility audit of the dock
+    bun run test                  # the end-to-end suite (146 checks), then the accessibility audit of the dock
 
 Both run offline and must pass. `bun run test:e2e` and `bun run test:a11y` run one each. The suite builds the extension, loads it into Playwright's Chromium
 (branded Chrome no longer loads unpacked extensions from the command line) and drives it on a page that is nothing like a designer's own: a strict content
