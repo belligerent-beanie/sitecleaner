@@ -13,6 +13,9 @@ exported. See [Where it comes from](#where-it-comes-from).
 
 ## What it does
 
+**Tutorial.** The first time (and once after an update that changes it), a nine-page tutorial opens in the panel. The **Tutorial** button at the top of
+the panel opens it again at any time; page numbers jump to a page, and some pages have a button that opens what they describe.
+
 **Classes.** The Classes link lists the classes the page's style sheets define, most used first: how many elements have each, which file defines it, and its rules
 ("Rules"); a click selects every element that has the class. It reads a page with thousands of rules in well under a second.
 
@@ -92,7 +95,7 @@ To add a feature: a new file in `src/parts/`, registered through the `keyHooks`,
 ## Test
 
     bun install                   # Playwright and axe-core
-    bun run test                  # the end-to-end suite (171 checks), then the accessibility audit of the dock
+    bun run test                  # the end-to-end suite (180 checks), then the accessibility audit of the dock
 
 Both run offline and must pass. `bun run test:e2e` and `bun run test:a11y` run one each. The suite builds the extension, loads it into Playwright's Chromium
 (branded Chrome no longer loads unpacked extensions from the command line) and drives it on a page that is nothing like a designer's own: a strict content

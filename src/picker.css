@@ -125,7 +125,7 @@
 .dz-tip { position: fixed; max-width: 360px; padding: 8px 10px; border: 1px solid var(--dz-border); border-radius: 8px; background: var(--dz-bg); color: var(--dz-fg); font: 12px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4); pointer-events: none; }
 .dz-tip-title { font-weight: 600; color: var(--dz-accent-text); }
 .dz-link.dz-on-link { color: var(--dz-accent-text) !important; font-weight: 600 !important; }
-.dz-head strong { flex: 1 1 100%; }   /* the name of what is selected gets its own row: the links beside it would squeeze it to nothing ("3 elements" read "3.") */
+.dz-head strong { flex: 1 1 calc(100% - 104px); }   /* the Tutorial button sits beside it, on the same row */   /* the name of what is selected gets its own row: the links beside it would squeeze it to nothing ("3 elements" read "3.") */
 
 /* Find, Tone, alignment guides */
 .dz-find { width: 100% !important; }
@@ -173,3 +173,8 @@
 .dz-class-name:disabled { opacity: 0.5; text-decoration: none !important; cursor: default !important; }
 .dz-class-file { margin: 0 0 2px; font-size: 11px; overflow-wrap: anywhere; }
 .dz-class-rule { margin-top: 4px; max-height: 120px; }
+
+/* The tutorial: its page numbers, and the button that opens it */
+.dz-tour-steps { gap: 4px; }
+.dz-step { min-width: 28px; padding: 3px 0 !important; text-align: center; }
+.dz-tutorial { margin: 0 0 0 auto !important; padding: 3px 10px !important; }

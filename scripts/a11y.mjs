@@ -40,13 +40,16 @@ try {
     });
     for (const v of result) found.set(`${v.id} | ${panel}`, v);
   };
-  await audit("the first-time guide");
+  await audit("the first-time tutorial");
   await page.keyboard.press("Escape");
-  await page.locator(".dz-dock button:text-is('Skip')").click().catch(() => {});
+  await page.locator(".dz-dock button:text-is('Close')").click().catch(() => {});
   const setTheme = (name) => page.evaluate((value) => document.getElementById("design-picker-extension-root").shadowRoot.querySelector(".dz-root").setAttribute("data-theme", value), name);
   for (const look of ["dark", "light"]) {
     await setTheme(look);
     await page.keyboard.press("Escape"); await page.keyboard.press("Escape"); await page.keyboard.press("Escape");
+    await page.locator(".dz-dock .dz-tutorial").click();
+    for (let n = 1; n <= 9; n++) { await page.locator(`.dz-step:text-is('${n}')`).click(); await audit(`${look}: tutorial page ${n}`); }
+    await page.keyboard.press("Escape");
     await audit(look + ": nothing selected");
     await page.locator(".lead").click();
     await page.keyboard.press("Enter");
