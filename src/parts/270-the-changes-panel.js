@@ -36,7 +36,7 @@
       ...NOTATIONS.map((name) => h("button", { type: "button", class: "dz-menu-button" + (notation() === name ? " dz-active" : ""), text: name, "aria-pressed": String(notation() === name),
         title: `Write colours as ${name}`, onclick: () => { host.setPref("colours", name); renderDock(); } }))));
     const copy = h("button", { type: "button", class: "dz-menu-button", text: "Copy", title: "Alt+Shift+E", onclick: copyChanges });
-    panel.append(h("pre", { class: "dz-preview", text: exportMarkdown() || "(nothing differs from the original)" }),
+    panel.append(h("pre", { class: "dz-preview", tabindex: "0", role: "region", "aria-label": "The changes as they will be copied", text: exportMarkdown() || "(nothing differs from the original)" }),
       h("div", { class: "dz-menu" }, copy,
         h("button", { type: "button", class: "dz-menu-button", text: "Download", onclick: () => showToast(`Downloaded ${downloadExport()}.`) }),
         h("button", { type: "button", class: "dz-menu-button", text: "Reset all", onclick: resetAll })));

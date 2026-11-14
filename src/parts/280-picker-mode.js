@@ -70,7 +70,7 @@
       if (!event.repeat) setCompare(true);
       return;
     }
-    const typing = ours(eventTarget(event)) && /^(INPUT|TEXTAREA|SELECT)$/.test(eventTarget(event).tagName);
+    const typing = ours(eventTarget(event)) && (/^(INPUT|TEXTAREA|SELECT)$/.test(eventTarget(event).tagName) || isEditingField(eventTarget(event)));
     if (event.key === "Escape") {
       event.preventDefault();
       if (showKeys) showKeys = false;

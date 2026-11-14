@@ -683,6 +683,16 @@ try {
     await blurDock();
     await sp.keyboard.press("Control+z");
     eq("and one undo brings both back", await hoverBg(), "rgb(34, 34, 34)");
+    // the colour square works from the keyboard, and its arrow keys do not walk the selection through the page
+    await sp.keyboard.press("Escape");
+    await sp.locator(".cta").click();
+    await sp.keyboard.press("Enter");
+    await sp.locator(".dz-dock button:text-is('Fill')").click();
+    await sp.locator(".dz-sv").focus();
+    for (let i = 0; i < 5; i++) await sp.keyboard.press("ArrowDown");
+    await sp.waitForTimeout(900);
+    const grey = (await bg()).match(/\d+/g).map(Number);   // the link's own transition makes the exact start colour vary: it is darker than white and still grey
+    eq("arrow keys in the colour square darken the fill, and the selection stays", [grey[0] < 250 && grey[0] === grey[1] && grey[1] === grey[2], (await sp.locator(".dz-head strong").first().innerText()).startsWith("a")], [true, true]);
     await sp.close();
   }
 

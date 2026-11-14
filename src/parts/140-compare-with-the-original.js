@@ -32,7 +32,7 @@
     compareBadge.hidden = !comparing;
     refreshBoxes();
   }
-  const isEditingField = (t) => t instanceof HTMLElement && (t.isContentEditable || t.tagName === "TEXTAREA" || (t.tagName === "INPUT" && !/^(range|checkbox|radio|button)$/.test(t.type)));
+  const isEditingField = (t) => t instanceof HTMLElement && (t.isContentEditable || t.classList.contains("dz-sv") || t.classList.contains("dz-preview") || t.tagName === "TEXTAREA" || (t.tagName === "INPUT" && !/^(range|checkbox|radio|button)$/.test(t.type)));
   window.addEventListener("keyup", (event) => {
     if (event.key === "\\") setCompare(false);
     if (event.key.toLowerCase() === "m" && measuring) { measuring = false; renderMeasure(); }

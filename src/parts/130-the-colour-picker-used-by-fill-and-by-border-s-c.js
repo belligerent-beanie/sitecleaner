@@ -2,7 +2,7 @@
   function colourPicker(startHex, onChange) {
     let [r, g, b] = parseHex(startHex) || [255, 255, 255];
     let [hue, sat, val] = rgbToHsv(r, g, b);
-    const sv = h("div", { class: "dz-sv", "aria-label": "Saturation and brightness" });
+    const sv = h("div", { class: "dz-sv", role: "group", tabindex: "0", "aria-label": "Saturation and brightness: arrow keys change them, Shift for bigger steps" });
     const dot = h("div", { class: "dz-sv-dot" });
     sv.append(dot);
     const hueInput = h("input", { type: "range", min: "0", max: "359", class: "dz-range dz-hue", "aria-label": "Hue" });
@@ -40,6 +40,16 @@
       fromHsv();
       emit();
     }
+    sv.addEventListener("keydown", (event) => {   // the keyboard way to use the square (the sliders and the hex field are the other ways)
+      const step = event.shiftKey ? 0.1 : 0.01;
+      const move = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, step], ArrowDown: [0, -step] }[event.key];
+      if (!move || event.ctrlKey || event.metaKey || event.altKey) return;
+      event.preventDefault();
+      sat = clamp(sat + move[0], 0, 1);
+      val = clamp(val + move[1], 0, 1);
+      fromHsv();
+      emit();
+    });
     sv.addEventListener("pointerdown", (event) => { sv.setPointerCapture(event.pointerId); dragSv(event); });
     sv.addEventListener("pointermove", (event) => { if (sv.hasPointerCapture(event.pointerId)) dragSv(event); });
     hueInput.addEventListener("input", () => { hue = +hueInput.value; fromHsv(); emit(); });

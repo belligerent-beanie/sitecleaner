@@ -77,13 +77,13 @@ To add a feature: a new file in `src/parts/`, registered through the `keyHooks`,
 ## Test
 
     bun install                   # Playwright, for the tests
-    node test/e2e.mjs             # 123 checks in a real browser
+    node test/e2e.mjs             # 124 checks in a real browser
 
 It builds the extension, loads it into Playwright's Chromium (branded Chrome no longer loads unpacked extensions from the command line), and
 drives it on a page that is nothing like a designer's own: a strict content security policy, generated class names, its own CSS variables. It covers
 every feature above, including the round trip through a reload and through Reset all. `node scripts/build.mjs --zip` writes the zip for the Web Store
 (`releases/`), `node scripts/screenshots.mjs` regenerates the store screenshots from the real extension, and `node scripts/promo-tile.mjs` the promo tile.
-`node scripts/smoke-real-sites.mjs [url ...]` tries it on real sites (Wikipedia, Hacker News, MDN, GitHub, the BBC and others: strict security policies,
+`node scripts/a11y.mjs` audits the picker's own dock with axe-core (every tool and panel) and must report no violations. `node scripts/smoke-real-sites.mjs [url ...]` tries it on real sites (Wikipedia, Hacker News, MDN, GitHub, the BBC and others: strict security policies,
 web components, single-page apps); it needs the network, so it is separate from the end-to-end test.
 
 ## Where it comes from
