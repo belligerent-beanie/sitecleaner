@@ -1085,6 +1085,13 @@ try {
     const explain = async (address) => { const ep = await second.newPage(); await ep.goto(`chrome-extension://${new URL(worker2.url()).host}/cannot.html` + (address ? "?u=" + encodeURIComponent(address) : "")); const text = await ep.locator("#why").innerText(); await ep.close(); return text; };
     const reasons = [await explain("chrome://settings"), await explain("https://chromewebstore.google.com/detail/x"), await explain("https://example.com/paper.pdf"), await explain("file:///C:/a.html"), await explain("https://example.com/"), await explain("")];
     check("the explanation names the kind of page", /browser's own pages/.test(reasons[0]) && /extension store/.test(reasons[1]) && /PDF/.test(reasons[2]) && /file on your computer/.test(reasons[3]) && /did not allow/.test(reasons[4]) && /does not allow extensions/.test(reasons[5]), reasons.join(" | "));
+    // Chrome before 127 cannot open the toolbar popup from the worker: the same explanation then opens in a small window
+    for (const page of second.pages()) if (/cannot\.html/.test(page.url())) await page.close();
+    await worker2.evaluate(() => { chrome.action.openPopup = undefined; });
+    await worker2.evaluate(async (id) => { await explainRefusal({ id, url: "chrome://version/" }); }, closedId);
+    let windowed = false;
+    for (let i = 0; i < 30 && !windowed; i++) { windowed = second.pages().some((page) => /cannot\.html\?u=chrome/.test(page.url())); if (!windowed) await closed.waitForTimeout(100); }
+    check("without openPopup (older Chrome) the explanation opens in a small window instead", windowed);
   } catch (error) {
     check("the shipping build loads", false, error.message);
   } finally {

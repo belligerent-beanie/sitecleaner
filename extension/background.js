@@ -30,7 +30,13 @@ async function explainRefusal(tab) {
   chrome.action.setTitle({ tabId: tab.id, title: `${name} cannot run on this page (click to see why)` });
   const popup = "cannot.html" + (tab.url ? "?u=" + encodeURIComponent(tab.url) : "");
   try { await chrome.action.setPopup({ tabId: tab.id, popup }); } catch (_) { return; }   // from now on, clicking the icon on this tab shows the explanation (it is forgotten when the tab goes elsewhere)
-  try { await chrome.action.openPopup(); } catch (_) { /* older Chrome, or no window to show it in: the badge and the next click still say it */ }
+  // Chrome 127 and later can open the toolbar popup from here. Older ones cannot (and a popup can be refused for other reasons): show the same page in a small window instead.
+  try {
+    if (typeof chrome.action.openPopup !== "function") throw new Error("openPopup is not there");
+    await chrome.action.openPopup();
+  } catch (_) {
+    try { await chrome.windows.create({ url: chrome.runtime.getURL(popup), type: "popup", width: 380, height: 420 }); } catch (__) { /* no window to show it in: the badge, the tooltip and the next click still say it */ }
+  }
 }
 chrome.action.onClicked.addListener(toggle);
 
