@@ -40,13 +40,18 @@
 <h1 id="title">SiteCleaner</h1>
 
 <div class="designer-only">
-<p>The picker works on the tab you click it on, with no special permission. Access to every site is <strong>optional</strong>, and is what makes two
-things work:</p>
+<h2>Optional: let it work without a click</h2>
+<p>As it stands, SiteCleaner only works on the tab you click its icon on, and only until you leave that page. That is the most private setting, and it is
+enough to design. <strong>Allowing all sites</strong> is optional, and it saves you steps in two places:</p>
 <ul>
-  <li><strong>Edits come back by themselves after a reload,</strong> and the picker stays on if it was on. Without it, you turn the picker on again and the edits are restored.</li>
-  <li><strong>Screen-size previews</strong>, which open a second window and need to put your edits on it.</li>
+  <li><strong>After a reload or a return visit to a page you edited,</strong> your edits are put back by themselves, and the picker comes back on if it was on.
+    <em>Without it</em>, you click the icon once after each reload, and the edits come back then.</li>
+  <li><strong>Screen-size previews</strong> (the phone, tablet and desktop views) work. They open a second window and need to put your edits on it.
+    <em>Without it</em>, the Preview button tells you to allow this first.</li>
 </ul>
-<p>All sites: <span id="state">…</span> (checks a page for saved edits; reads nothing else)</p>
+<p><strong>What it reads:</strong> when a page opens, SiteCleaner only checks whether you have saved edits for that page. It reads nothing else, and nothing leaves
+your computer. You can take the permission away here whenever you like; your saved edits stay.</p>
+<p>All sites: <span id="state">…</span></p>
 <p><button id="allow" type="button">Allow all sites</button> <button id="revoke" type="button">Remove that permission</button></p>
 </div>
 

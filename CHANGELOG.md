@@ -11,7 +11,12 @@ Every released version, and everything that is waiting for one. Newest first. Da
 
 ## Unreleased
 
-Nothing: everything merged is in 0.4.0.
+Changes in waiting (from your real-Chrome notes; separate from #12):
+
+- **Tab is no longer a dead end.** Tab walked the page's blocks and stopped at the last one. It now carries on into the picker's panel, and Shift+Tab on the panel's first control comes back to the page. F6 still jumps in and out at once.
+- **Pages that cannot be changed are recognised.** On a page the browser keeps closed to extensions (its own pages, the Web Store, PDFs, files), clicking the icon now opens a small explanation of why and what to do, and the icon says so when you hover it. Before, it only showed a cross.
+- **Classes the picker cannot read are explained.** The classes panel says which style sheets the browser keeps closed (another site's), says the classes still work (select and restyle), and what is missing (the original rules in the list and the export).
+- **"Allow all sites" says what it does for you** (the Options page and the install instructions): edits come back and the picker switches on by itself after a reload, previews work; and what it reads and how to take it away.
 
 ## 0.4.0 (2026-11-14)
 

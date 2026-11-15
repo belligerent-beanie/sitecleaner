@@ -53,7 +53,7 @@ const css = shrink(fs.readFileSync(path.join(root, "src", "picker.css"), "utf8")
 fs.writeFileSync(path.join(out, "designer-css.js"), `window.__designerCss = ${JSON.stringify(css)};\n`);
 
 // ---- the extension's own files
-for (const file of ["restore.js", "readable.js", "apply.js", "keep.html", "keep.js", "background.js", "options.html"]) fs.copyFileSync(path.join(ext, file), path.join(out, file));
+for (const file of ["restore.js", "readable.js", "apply.js", "keep.html", "keep.js", "background.js", "options.html", "cannot.html", "cannot.js"]) fs.copyFileSync(path.join(ext, file), path.join(out, file));
 const marked = /\/\*edition\*\/[\s\S]*?\/\*end\*\//;
 for (const file of ["host.js", "options.js"]) {   // the files that need to know which edition they are in
   const source = fs.readFileSync(path.join(ext, file), "utf8");

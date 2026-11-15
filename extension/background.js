@@ -19,10 +19,18 @@ async function toggle(tab) {
       await inject(tab.id);
       await chrome.tabs.sendMessage(tab.id, { type: "toggle" });
     } catch (_error) {   // chrome:// pages, the Web Store, a PDF: the browser does not allow it
-      chrome.action.setBadgeText({ tabId: tab.id, text: "×" });
-      chrome.action.setTitle({ tabId: tab.id, title: "The SiteCleaner cannot run on this page" });
+      explainRefusal(tab);
     }
   }
+}
+/** The page refused us: say so, and why, instead of doing nothing. Chrome often hides the address of such a page, so the explanation may be general. */
+async function explainRefusal(tab) {
+  const name = chrome.runtime.getManifest().name;
+  chrome.action.setBadgeText({ tabId: tab.id, text: "×" });
+  chrome.action.setTitle({ tabId: tab.id, title: `${name} cannot run on this page (click to see why)` });
+  const popup = "cannot.html" + (tab.url ? "?u=" + encodeURIComponent(tab.url) : "");
+  try { await chrome.action.setPopup({ tabId: tab.id, popup }); } catch (_) { return; }   // from now on, clicking the icon on this tab shows the explanation (it is forgotten when the tab goes elsewhere)
+  try { await chrome.action.openPopup(); } catch (_) { /* older Chrome, or no window to show it in: the badge and the next click still say it */ }
 }
 chrome.action.onClicked.addListener(toggle);
 

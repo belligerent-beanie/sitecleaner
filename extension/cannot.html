@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cannot run on this page</title>
+<style>
+  :root { color-scheme: light dark; --bg: #ffffff; --ink: #1d1d1f; --muted: #555a63; --accent: #0b57d0; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #202124; --ink: #f1f3f4; --muted: #b4b9c0; --accent: #8ab4f8; } }
+  body { margin: 0; padding: 16px; width: 320px; background: var(--bg); color: var(--ink); font: 14px/1.45 system-ui, sans-serif; }
+  h1 { font-size: 16px; margin: 0 0 8px; }
+  p { margin: 0 0 10px; }
+  .why { font-weight: 600; }
+  .tip { color: var(--muted); }
+  ul { margin: 0 0 10px; padding-left: 20px; color: var(--muted); }
+  a { color: var(--accent); }
+</style>
+</head>
+<body>
+<h1 id="title"></h1>
+<p class="why" id="why"></p>
+<p class="tip" id="tip"></p>
+<p class="tip">Chrome does not let any extension change:</p>
+<ul>
+  <li>its own pages (they start with chrome://),</li>
+  <li>the Chrome Web Store,</li>
+  <li>the new-tab page,</li>
+  <li>PDF files and other pages that are not web pages.</li>
+</ul>
+<p class="tip">Open an ordinary website and click the icon again.</p>
+<script src="cannot.js"></script>
+</body>
+</html>
