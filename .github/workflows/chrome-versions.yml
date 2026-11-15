@@ -1,0 +1,61 @@
+# The `chrome-versions` workflow (docs/CI_DESIGN.md): the browser tests (end to end, editions, keep, easier to read) run against several versions of Chrome,
+# not only the Chromium that Playwright installs: the oldest the extension claims to support (minimum_chrome_version in the manifest), the first with
+# chrome.action.openPopup (127), the current stable, and the beta (an early warning of what the next Chrome will break).
+# The Chromes are Google's "Chrome for Testing" builds, which, unlike the branded Chrome people install, accept --load-extension.
+# This is not part of the check that is required for merging (`result` in test.yml): it reports on versions, it does not decide a merge.
+name: chrome-versions
+
+on:
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: "41 5 * * 1"   # Mondays: a new Chrome may have been released since the last change
+
+permissions:
+  contents: read
+
+concurrency:
+  group: chrome-versions-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  versions:
+    name: Chrome ${{ matrix.chrome }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        chrome: ["114", "127", "stable", "beta"]
+    steps:
+      # Actions are pinned to commits, as in test.yml.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
+      - run: bun install --frozen-lockfile
+      - run: bunx playwright install --with-deps chromium   # for the system libraries every Chrome needs
+
+      - name: Get Chrome ${{ matrix.chrome }}
+        id: chrome
+        shell: bash
+        run: |
+          path=$(bunx @puppeteer/browsers install "chrome@${{ matrix.chrome }}" --path "$RUNNER_TEMP/chrome" --format "{{path}}" | tail -1)
+          echo "path=$path" >> "$GITHUB_OUTPUT"
+          version=$("$path" --version)
+          echo "$version"
+          echo "### $version" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Browser tests in that Chrome, under a virtual display
+        shell: bash
+        env:
+          CI: "true"
+          CHROME_PATH: ${{ steps.chrome.outputs.path }}
+        run: xvfb-run --auto-servernum --server-args="-screen 0 1280x1024x24" bun run test:browser 2>&1 | tee test-output.txt
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: output-chrome-${{ matrix.chrome }}
+          path: |
+            test-output.txt
+            test-artifacts/
+          retention-days: 14

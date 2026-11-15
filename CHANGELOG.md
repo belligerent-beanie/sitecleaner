@@ -19,6 +19,8 @@ Changes in waiting:
 - **Classes the picker cannot read are explained.** The classes panel says which style sheets the browser keeps closed (another site's), says the classes still work (select and restyle), and what is missing (the original rules in the list and the export).
 - **"Allow all sites" says what it does for you** (the Options page and the install instructions): edits come back and the picker switches on by itself after a reload, previews work; and what it reads and how to take it away.
 - **Making a beta is one command** (`bun run beta`): it builds both editions as the next patch version, `-beta.N`, checks the zips by unzipping them and loading both extensions into a real browser (`scripts/verify-share.mjs`), and writes the release notes from this list. `bun run beta --publish` also creates the GitHub prerelease, and refuses unless the work is committed and pushed. The build takes `--beta=N`.
+- **A beta can be made on GitHub** (Actions, beta, Run workflow), and the browser tests run against Chrome 114, 127, the current stable and the beta on every pull request (`chrome-versions`), not only the Chromium Playwright installs.
+- **Fixed on Chrome before about 123 (Personal edition):** the right-click menu entry for switching a site's changes off or on stopped updating, because the code expected a result that older Chrome does not return. Found by the Chrome 114 run.
 
 ## 0.4.0 (2026-11-14)
 

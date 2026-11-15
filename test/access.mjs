@@ -6,7 +6,7 @@ import path from "node:path";
 import http from "node:http";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { chromium } from "playwright";
+import { chromium } from "./browser.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 let failures = 0;

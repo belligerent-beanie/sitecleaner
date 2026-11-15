@@ -317,7 +317,8 @@ async function refreshSiteUi(tabId) {
   const host = site ? new URL(site.origin).host : "";
   const lost = site && site.entry.stale ? site.entry.stale.length : 0;
   chrome.action.setTitle({ tabId, title: site ? `${chrome.runtime.getManifest().name}: my changes are ${site.entry.enabled ? "on" : "off"} for ${host} (${site.entry.rules.length})${lost ? `; ${lost} no longer match this page` : ""}` : defaultTitle() }).catch(() => { /* a tab that is gone */ });
-  if (chrome.contextMenus) chrome.contextMenus.update(SITE_MENU, { enabled: !!site, title: site ? `${site.entry.enabled ? "Switch off" : "Switch on"} my changes on ${host}` : "My changes on this site (nothing kept yet)" }).catch(() => { /* not made yet */ });
+  if (chrome.contextMenus) chrome.contextMenus.update(SITE_MENU, { enabled: !!site, title: site ? `${site.entry.enabled ? "Switch off" : "Switch on"} my changes on ${host}` : "My changes on this site (nothing kept yet)" },
+    () => void chrome.runtime.lastError);   // the callback form, not a promise: Chrome before about 123 returns nothing from this call, so `.catch` on it threw; and a menu not made yet is only an error to be read
 }
 async function toggleSite(tab) {
   const site = tab && (await siteOf(tab.url));

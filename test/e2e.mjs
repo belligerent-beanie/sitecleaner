@@ -13,7 +13,7 @@ import fs from "node:fs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "..");
-const { chromium } = createRequire(path.join(root, "package.json"))("playwright");
+import { chromium } from "./browser.mjs";
 
 const results = [];
 const check = (name, ok, detail = "") => { results.push({ name, ok }); console.log(`${ok ? "PASS" : "FAIL"}  ${name}${ok ? "" : "  -> " + detail}`); };
