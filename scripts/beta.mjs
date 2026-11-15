@@ -4,6 +4,7 @@
 // What it does: builds both editions' zips with --beta, checks the zips the way a person would use them (scripts/verify-share.mjs), writes
 // releases/notes-<version>.md from the changes waiting in CHANGELOG.md, and with --publish creates the prerelease from the commit you are on.
 // Publishing needs a clean working tree and the commit pushed, so that the beta is exactly something that can be rebuilt from the branch.
+// The same script is what the "beta" workflow on GitHub runs (Actions tab > beta > Run workflow, choosing the branch): no one's computer is involved.
 import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
@@ -18,7 +19,8 @@ const fail = (message) => { console.error("\n" + message); process.exit(1); };
 
 const released = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8")).version;
 const next = released.replace(/[0-9]+$/, (n) => String(Number(n) + 1));
-const branch = run("git", ["branch", "--show-current"]);
+const inCI = process.env.GITHUB_ACTIONS === "true";   // run by the beta workflow (.github/workflows/beta.yml): the commit is on GitHub by definition
+const branch = run("git", ["branch", "--show-current"]) || process.env.GITHUB_REF_NAME || "(no branch)";
 const sha = run("git", ["rev-parse", "HEAD"]);
 const dirty = run("git", ["status", "--porcelain"]).split("\n").filter((line) => line && !line.startsWith("??"));   // new, untracked files do not go into a build
 
@@ -34,8 +36,8 @@ console.log(`Beta ${label} from ${branch} at ${sha.slice(0, 7)}${dirty.length ? 
 
 if (publish) {
   if (dirty.length) fail("There are changes that are not committed. Commit them first: a published beta must be something the branch can rebuild.");
-  let pushed = "";
-  try { pushed = run("git", ["rev-parse", `origin/${branch}`]); } catch (_) { /* never pushed */ }
+  let pushed = inCI ? sha : "";
+  if (!inCI) { try { pushed = run("git", ["rev-parse", `origin/${branch}`]); } catch (_) { /* never pushed */ } }
   if (pushed !== sha) fail(`This commit is not on GitHub yet. Push ${branch} first (git push -u origin ${branch}), then run this again.`);
 }
 
