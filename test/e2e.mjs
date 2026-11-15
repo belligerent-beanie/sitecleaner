@@ -469,10 +469,14 @@ try {
     check("Screenshot saved a PNG of just the selected element, at the screen's pixel density", one.signature === "89504e470d0a1a0a" && Math.abs(one.width - Math.round(box.width * dpr)) <= 2 && Math.abs(one.height - Math.round(box.height * dpr)) <= 2 && /\.png$/.test(one.name), JSON.stringify({ one, box, dpr }));
     check("the picker's dock and outlines are back on screen after the shot", await sh.evaluate(() => document.querySelector("#design-picker-extension-root").shadowRoot.querySelector(".dz-root").style.visibility === ""), "still hidden");
     await sh.keyboard.press("Escape"); await sh.keyboard.press("Escape"); await sh.keyboard.press("Escape");
+    // The picture is as tall as the page's viewport was when it was taken. Chrome 114 on Linux shows an info bar a moment after it starts (a warning about the
+    // --no-sandbox flag Playwright passes) that makes the viewport shorter, so measure it before and after, and accept the picture matching either.
+    const viewBefore = await sh.evaluate(() => [innerWidth, innerHeight]);
     const [whole] = await Promise.all([sh.waitForEvent("download", { timeout: 15000 }), sh.keyboard.press("Alt+Shift+KeyS")]);
     const all = await pngSize(whole);
     const view = await sh.evaluate(() => [innerWidth, innerHeight]);
-    check("with nothing selected, Alt+Shift+S saves the whole visible page", Math.abs(all.width - Math.round(view[0] * dpr)) <= 2 && Math.abs(all.height - Math.round(view[1] * dpr)) <= 2, JSON.stringify({ all, view, dpr }));
+    const matches = (v) => Math.abs(all.width - Math.round(v[0] * dpr)) <= 2 && Math.abs(all.height - Math.round(v[1] * dpr)) <= 2;
+    check("with nothing selected, Alt+Shift+S saves the whole visible page", matches(viewBefore) || matches(view), JSON.stringify({ all, viewBefore, view, dpr }));
     await sh.close();
   }
 
