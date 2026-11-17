@@ -62,7 +62,8 @@
   }
   function insertOp(parent, html, before) {
     const nodes = [...cleanMarkup(html).childNodes];
-    const desc = { type: "insert", parentSelector: selectorFor(parent), index: before ? [...parent.children].indexOf(before) : parent.children.length, html: html.slice(0, MAX_HTML), whole: html.length <= MAX_HTML };
+    const limit = /src="data:image\//.test(html) ? MAX_ATTR : MAX_HTML;   // a picture that was added is kept whole when it fits like a replaced one does
+    const desc = { type: "insert", parentSelector: selectorFor(parent), index: before ? [...parent.children].indexOf(before) : parent.children.length, html: html.slice(0, limit), whole: html.length <= limit };
     return { desc, nodes, redo: () => { for (const node of nodes) parent.insertBefore(node, before); }, undo: () => { for (const node of nodes) node.remove(); } };
   }
   /** Set (or with null remove) an attribute: an image's address, its alt text. An image's srcset would hide a new src, so it goes too. */
@@ -122,6 +123,11 @@
         doOps([insertOp(parent, d.html, parent.children[d.index] || null)]);
         return true;
       }
+      case "retag": {
+        if (!el || !/^[a-z][a-z0-9-]*$/.test(d.tag || "") || el.tagName.toLowerCase() === d.tag) return !!el;
+        doOps([retagOp(el, d.tag)]);
+        return true;
+      }
       case "attr":
         if (!d.whole) return true;   // a local file that was too big to keep
         if (!el || typeof d.name !== "string" || !/^[a-z][a-z0-9-]*$/i.test(d.name) || /^on/i.test(d.name)) return false;
@@ -141,7 +147,8 @@
       case "move": return `moved ${named(d.selector, d.snippet)} from child ${d.from.index + 1} of \`${d.from.parentSelector}\` to child ${(d.to.final === undefined ? d.to.index : d.to.final) + 1} of \`${d.to.parentSelector}\``;
       case "wrap": return `grouped ${d.selectors.map((s) => `\`${s}\``).join(", ")} in a new \`${d.tag}\``;
       case "unwrap": return `ungrouped ${named(d.selector, d.snippet)}: its children now sit where it was`;
-      case "insert": return `inserted markup as child ${d.index + 1} of \`${d.parentSelector}\`: \`${shorten(d.html.replace(/\s+/g, " "), 120)}\``;
+      case "retag": return `changed ${named(d.selector, d.snippet)} from \`<${d.from}>\` to \`<${d.tag}>\` (a box that can hold other elements): its attributes and children moved with it`;
+      case "insert": return `inserted markup as child ${d.index + 1} of \`${d.parentSelector}\`: \`${shorten(d.html.replace(/data:image\/[^"')\s]+/g, (uri) => `data:image… (${Math.round(uri.length / 1024)} KB)`).replace(/\s+/g, " "), 120)}\`${d.whole ? "" : " (too large to keep across reloads)"}`;
       case "attr": return `${named(d.selector, d.snippet)}: ${d.name} ${d.before === null ? "(none)" : "\"" + shorten(d.before) + "\""} → ${d.after === null ? "(removed)" : d.label ? "\"" + shorten(d.label, 60) + "\"" + (d.whole ? "" : " (too large to keep across reloads)") : d.whole ? "\"" + shorten(d.after) + "\"" : "a local file (too large to keep across reloads)"}${d.dropsSrcset ? "; its srcset is dropped, or it would hide the new picture" : ""}`;
       default: return `${d.type}`;
     }

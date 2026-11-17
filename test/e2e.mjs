@@ -298,6 +298,18 @@ try {
     const undoKey = async () => { await mp.evaluate(() => { const a = document.querySelector("#design-picker-extension-root").shadowRoot.activeElement; if (a) a.blur(); }); await mp.keyboard.press("Control+z"); };
 
     await mp.locator("ul.items li:nth-child(2)").click();
+    const which = () => mp.evaluate(() => { const box = document.querySelector("#design-picker-extension-root").shadowRoot.querySelector(".dz-picked:not(.dz-more)").getBoundingClientRect(); return [...document.querySelectorAll("ul.items > li")].findIndex((li) => Math.abs(li.getBoundingClientRect().top - box.top) < 4); });
+    const before = await which();
+    await mp.keyboard.press("ArrowLeft");
+    const first = await which();
+    await mp.keyboard.press("ArrowLeft");
+    const stays = await which();
+    await mp.keyboard.press("ArrowRight"); await mp.keyboard.press("ArrowRight");
+    const third = await which();
+    await mp.keyboard.press("ArrowRight");
+    check("← → select the previous and next sibling, and stop at the ends", first !== before && stays === first && third !== first && third !== before && (await which()) === third, [before, first, stays, third].join(" | "));
+    await mp.keyboard.press("ArrowLeft");
+    eq("and ← from the last brings back the middle one", await which(), before);
     await mp.keyboard.press("Enter");
     await mp.locator(".dz-dock button:text-is('Move')").click();
     await mp.keyboard.press("ArrowLeft");
@@ -653,6 +665,47 @@ try {
     await np.close();
   }
 
+  // ---- changesets: save the page's edits under a name, load any of them, flip between two
+  {
+    const vp = await context.newPage();
+    vp.on("pageerror", (error) => console.log("      [page error]", error.message));
+    await vp.goto(url + "versions");
+    await vp.bringToFront();
+    await worker.evaluate(async () => { const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true }); await toggle(tab); });
+    await vp.locator(".dz-toggle").waitFor({ timeout: 8000 });
+    await vp.keyboard.press("Escape");
+    const bg = async () => { await vp.waitForTimeout(700); return vp.evaluate(() => getComputedStyle(document.querySelector(".cta")).backgroundColor); };
+    const blurDock = () => vp.evaluate(() => { const a = document.querySelector("#design-picker-extension-root").shadowRoot.activeElement; if (a) a.blur(); });
+    const sets = vp.locator(".dz-dock .dz-head button:text-is('Versions')");
+    await vp.locator(".cta").click();
+    await vp.keyboard.press("Enter");
+    await vp.locator(".dz-dock button:text-is('Fill')").click();
+    await vp.locator(".dz-chip[title*='--ink']").click();
+    eq("a fill makes the link dark", await bg(), "rgb(34, 34, 34)");
+    await sets.click();
+    await vp.locator(".dz-dock input[aria-label='Name']").fill("Dark");
+    await vp.locator(".dz-dock button:text-is('Save')").click();
+    await sets.click();   // close the panel; the link is still selected
+    await vp.locator(".dz-chip[title*='--brand']").click();
+    eq("another fill makes it blue", await bg(), "rgb(51, 102, 204)");
+    await sets.click();
+    await vp.locator(".dz-dock input[aria-label='Name']").fill("Blue");
+    await vp.locator(".dz-dock button:text-is('Save')").click();
+    check("both changesets are listed, the second one open", /Dark/.test(await vp.locator(".dz-dock").innerText()) && /● Blue/.test(await vp.locator(".dz-dock").innerText()));
+    await vp.locator(".dz-dock .dz-change:has-text('Dark') button:text-is('Show')").click();
+    eq("Show puts the page in the Dark changeset", await bg(), "rgb(34, 34, 34)");
+    await blurDock();
+    await vp.keyboard.press("Alt+Shift+B");
+    eq("Alt+Shift+B flips to B (Blue)", await bg(), "rgb(51, 102, 204)");
+    await blurDock();
+    await vp.keyboard.press("Alt+Shift+B");
+    eq("and flips back to A (Dark)", await bg(), "rgb(34, 34, 34)");
+    await vp.reload();
+    await vp.locator(".dz-toggle").waitFor({ timeout: 8000 });
+    eq("the page keeps the changeset that was showing across a reload", await bg(), "rgb(34, 34, 34)");
+    await vp.close();
+  }
+
   // ---- hover and focus states: edited while shown, written as a rule for the state, undoable, exported, kept across a reload
   {
     const sp = await context.newPage();
@@ -748,23 +801,6 @@ try {
     await sp.waitForTimeout(900);
     const grey = (await bg()).match(/\d+/g).map(Number);   // the link's own transition makes the exact start colour vary: it is darker than white and still grey
     eq("arrow keys in the colour square darken the fill, and the selection stays", [grey[0] < 250 && grey[0] === grey[1] && grey[1] === grey[2], (await sp.locator(".dz-head strong").first().innerText()).startsWith("a")], [true, true]);
-    // Tab selects elements, not the picker's own controls; F6 is the way into the panel and back out
-    await sp.keyboard.press("Escape"); await sp.keyboard.press("Escape"); await sp.keyboard.press("Escape");
-    await sp.evaluate(() => { const a = document.querySelector("#design-picker-extension-root").shadowRoot.activeElement; if (a) a.blur(); document.body.focus(); });
-    await sp.keyboard.press("Tab");
-    const label = () => sp.locator(".dz-head strong").first().innerText();
-    check("Tab with nothing selected selects the first element on the page", (await label()).startsWith("main"), await label());
-    const inDock = () => sp.evaluate(() => !!document.querySelector("#design-picker-extension-root").shadowRoot.activeElement);
-    await sp.keyboard.press("F6");
-    eq("F6 moves focus into the picker's panel", await inDock(), true);
-    await sp.keyboard.press("F6");
-    eq("and F6 again moves it back to the page", await inDock(), false);
-    // Tab walks the page's elements and then carries on into the panel (not a dead end); Shift+Tab on the panel's first control comes back
-    let reached = false;
-    for (let i = 0; i < 12 && !reached; i++) { await sp.keyboard.press("Tab"); reached = await inDock(); }
-    check("Tab past the last element goes on into the panel", reached);
-    await sp.keyboard.press("Shift+Tab");
-    eq("and Shift+Tab on the panel's first control goes back to the page", await inDock(), false);
     await sp.close();
   }
 

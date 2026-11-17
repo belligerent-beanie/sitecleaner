@@ -4,3 +4,4 @@ releases/
 *.log
 test-artifacts/
 dist-consumer/
+dist-studio/

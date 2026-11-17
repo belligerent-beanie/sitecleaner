@@ -120,7 +120,11 @@
       for (const prop of ["top", "left"]) if (/^-?\d+(\.\d+)?px$/.test(after[prop] || "")) place[prop] = after[prop];
       if (/^-?\d+$/.test(after["z-index"] || "")) place["z-index"] = after["z-index"];
       if (Object.keys(place).length) applyPositionOne(element, place);
-      if (/^url\("?(https?:|data:image\/)/i.test(after["background-image"] || "")) applyBackgroundOne(element, { "background-image": after["background-image"] });
+      if (/^url\("?(https?:|data:image\/)/i.test(after["background-image"] || "")) {
+        const bg = { "background-image": after["background-image"] };
+        for (const prop of ["background-size", "background-position", "background-repeat"]) if (/^[a-z0-9%., -]{1,40}$/i.test(after[prop] || "")) bg[prop] = after[prop];
+        applyBackgroundOne(element, bg);
+      }
       if (item.text && typeof item.text.after === "string" && !element.children.length) applyText(element, item.text.after);
       const rec = changes.get(element);
       if (rec) {   // "before" is how it was when the designer first changed it, not how it looks after a reload

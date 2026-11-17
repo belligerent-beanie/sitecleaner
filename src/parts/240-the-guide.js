@@ -8,7 +8,7 @@
       "Turn it on with the toolbar icon or Alt+Shift+P. The Tutorial button at the top of this panel brings these pages back whenever you like."] },
     { title: "Select", lines: [
       "Click an element: a label shows its name and size. Shift-click adds more, and the tools then change all of them.",
-      "↑ ↓ go to the parent and child, Tab to the next sibling (or the first element, if nothing is selected). / finds everything that matches a selector or some words. F6 moves between the page and this panel. Esc clears.",
+      "↑ ↓ go to the parent and child, ← → to the previous and next sibling. / finds everything that matches a selector or some words. Esc clears.",
       "The Classes link lists the page's classes, most used first: click one to select every element that has it."],
       action: { label: "Try Find", run: () => { showFind = true; } } },
     { title: "Style", lines: [
@@ -102,6 +102,10 @@
       onclick: () => { showClasses = !showClasses; showFind = false; showAccess = false; showChanges = false; showPreview = false; showKeys = false; renderDock(); } });
     const previewLink = h("button", { type: "button", class: "dz-link", text: "Preview", title: "See this page at phone, tablet and laptop sizes",
       onclick: () => { showPreview = !showPreview; showChanges = false; showAccess = false; showFind = false; showKeys = false; showClasses = false; renderDock(); } });
+    const versionsLink = h("button", { type: "button", class: "dz-link", text: setLabel(), title: "Save the page as it looks now, and flip between two saved looks to see which you prefer", "aria-pressed": String(showVersions),
+      onclick: () => { showVersions = !showVersions; showChanges = false; showAccess = false; showPreview = false; showFind = false; showKeys = false; showClasses = false; renderDock(); } });
+    const paletteLink = h("button", { type: "button", class: "dz-link", text: "Elements", title: "Known elements to drag onto the page: the page's own components, and basics", "aria-pressed": String(showPalette),
+      onclick: () => { showPalette = !showPalette; showVersions = false; showChanges = false; showAccess = false; showPreview = false; showFind = false; showKeys = false; showClasses = false; if (showPalette) palette = null; renderDock(); } });
     const head = h("div", { class: "dz-head" },
       h("strong", { text: selection.length > 1 ? `${selection.length} elements` : selected ? label(selected) : "SiteCleaner" }),
       h("button", { type: "button", class: "dz-menu-button dz-tutorial", text: "Tutorial", title: "A short tutorial: what SiteCleaner can do, and how", onclick: () => { tourStep = 0; renderDock(); } }),
@@ -110,12 +114,19 @@
       has("find") && findLink, has("classes") && classesLink, has("inspector") && inspectLink, has("compare") && compareLink, has("preview") && previewLink,
       host.features && host.features.access === true && h("button", { type: "button", class: "dz-link", text: "Easier to read", title: "Bigger text, clearer links, calmer pages: kept for this site if you like", "aria-pressed": String(showAccess),
         onclick: () => { if (showAccess) { showAccess = false; renderDock(); } else openAccess(); } }),
-      changesLink,
+      paletteOn() && paletteLink, changesLink, has("versions") && versionsLink,
+      friendly() && h("button", { type: "button", class: "dz-link", text: exactElements() ? "Exact elements" : "Whole objects", "aria-pressed": String(!exactElements()),
+        title: "Whole objects: a click picks the thing you see, not the page's wrappers around it. Exact elements: a click picks the page's own element (Alt-click does that once).",
+        onclick: () => { host.setPref("exact", exactElements() ? "0" : "1"); setSelection([]); climbed = []; renderDock(); refreshBoxes(); } }),
       h("button", { type: "button", class: "dz-link", text: "Keys", title: "Every keyboard shortcut (?)", "aria-pressed": String(showKeys),
                     onclick: () => { showKeys = !showKeys; showChanges = false; showAccess = false; showPreview = false; showFind = false; showClasses = false; renderDock(); } }),
       h("button", { type: "button", class: "dz-link", text: "Off", title: "Turn picker mode off", onclick: () => setOn(false) }));
     dock.append(head);
 
+    if (showAccess || showPreview || showKeys || showClasses || showFind || showChanges || showVersions) showPalette = false;   // opening another panel closes this one
+    if (showAccess || showPreview || showKeys || showClasses || showFind || showChanges) showVersions = false;
+    if (showPalette && paletteOn()) { dock.append(palettePanel()); return; }
+    if (showVersions && has("versions")) { dock.append(setsPanel()); return; }
     if (showAccess && has("access")) { dock.append(accessPanel()); return; }
     if (showPreview) { dock.append(previewPanel()); return; }
     if (showKeys) { dock.append(keysPanel()); return; }
@@ -123,7 +134,7 @@
     if (showFind) { const panel = findPanel(); dock.append(panel); panel.querySelector(".dz-find").focus(); return; }   // focus at once: keys typed straight after / must land in the field
     if (showChanges) { dock.append(changesPanel()); return; }
     if (!selected) {
-      dock.append(h("p", { class: "dz-hint", text: plain() ? "Click anything on the page to change it. Shift-click picks several. Press Keep when you like it." : "Click any element to select it; Shift-click adds more. ↑ parent, ↓ child, Enter for the tools, Esc to clear." + (has("find") ? " / to find." : "") + (has("measure") ? " Hold M to measure or G for alignment guides." : "") + (has("inspector") ? " I to inspect." : "") + (has("export") ? " Alt+Shift+E copies your changes." : "") }));
+      dock.append(h("p", { class: "dz-hint", text: plain() ? "Click anything on the page to change it. Shift-click picks several. Press Keep when you like it." : "Click any element to select it; Shift-click adds more. ↑ parent, ↓ child, ← → siblings, Enter for the tools, Esc to clear." + (has("find") ? " / to find." : "") + (has("measure") ? " Hold M to measure or G for alignment guides." : "") + (has("inspector") ? " I to inspect." : "") + (has("export") ? " Alt+Shift+E copies your changes." : "") }));
       return;
     }
     const lookRow = () => h("div", { class: "dz-menu dz-look" },

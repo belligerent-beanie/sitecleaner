@@ -76,27 +76,6 @@
     const kids = selection.flatMap((el) => [...el.children]).filter((el) => !ours(el));
     if (kids.length) structureDone(kids);
   }
-  function walkSiblings(back) {
-    if (!selection.length) {   // nothing selected yet: Tab picks the first element (Shift+Tab the last) instead of wandering into the picker's own controls
-      const top = [...document.body.children].filter((el) => !ours(el) && !/^(SCRIPT|STYLE|LINK|META|NOSCRIPT|TEMPLATE)$/.test(el.tagName) && el.getClientRects().length);
-      const pick = back ? top[top.length - 1] : top[0];
-      if (pick) structureDone([pick]);
-      return;
-    }
-    const next = new Set();
-    for (const el of selection) {
-      const sibling = back ? el.previousElementSibling : el.nextElementSibling;
-      next.add(sibling && !ours(sibling) ? sibling : el);
-    }
-    if (!back && selection.every((el) => next.has(el)) && next.size === selection.length) {   // already on the last one: Tab carries on into the panel, so it is never a dead end
-      focusPanel();
-      return;
-    }
-    structureDone([...next]);
-    if (selected) selected.scrollIntoView({ block: "nearest", inline: "nearest" });
-  }
-  const firstControl = () => dock.querySelector("button:not(:disabled), input, select");
-  function focusPanel() { const first = firstControl(); if (first) first.focus(); }
 
   // copy, cut and paste work on the page's elements as the browser's own clipboard events (so the menu works too), but only when
   // the picker is on, something is selected and no text is selected or being typed
@@ -141,20 +120,6 @@
     structureDone(list.flatMap((op) => op.nodes.filter((node) => node.nodeType === 1)));
   }, true);
 
-  keyHooks.push((event) => {   // Shift+Tab on the panel's first control goes back to the page (the way in is Tab from the last element, or F6)
-    if (event.key !== "Tab" || !event.shiftKey || event.ctrlKey || event.metaKey || event.altKey || !ours(eventTarget(event))) return false;
-    const first = firstControl();
-    if (!first || activeEl() !== first) return false;
-    event.preventDefault();
-    first.blur();
-    return true;
-  });
-  keyHooks.push((event) => {   // Tab with nothing selected: select an element, rather than let the browser walk into the picker's own controls
-    if (event.key !== "Tab" || selection.length || event.ctrlKey || event.metaKey || event.altKey || ours(eventTarget(event)) || isEditingField(eventTarget(event))) return false;
-    event.preventDefault();
-    walkSiblings(event.shiftKey);
-    return true;
-  });
   keyHooks.push((event) => {
     if (!selection.length || isEditingField(eventTarget(event))) return false;
     const mod = event.ctrlKey || event.metaKey, key = event.key;
@@ -167,6 +132,5 @@
     if (mod && !event.altKey && has("structure") && key.toLowerCase() === "g") { event.preventDefault(); if (event.shiftKey) ungroupSelected(); else groupSelected(); return true; }
     if (mod && !event.altKey && key.toLowerCase() === "e") { event.preventDefault(); selectSimilar(event.shiftKey); return true; }
     if (mod && event.shiftKey && key === "Enter") { event.preventDefault(); selectChildren(); return true; }
-    if (key === "Tab" && !mod && !event.altKey && !ours(eventTarget(event))) { event.preventDefault(); walkSiblings(event.shiftKey); return true; }
     return false;
   });
