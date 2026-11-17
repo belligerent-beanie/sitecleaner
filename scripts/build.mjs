@@ -174,7 +174,7 @@ if (makeZip) {
 // What goes in the zip for people, per edition. (File names differ by more than case: on Windows "SiteCleaner-x.zip" and "sitecleaner-x.zip" are the same file.)
 const SHARE = {
   designer: { folder: "SiteCleaner", readme: "SHARE_README.txt", skill: true },
-  studio: { folder: "SiteCleaner-Studio", readme: "SHARE_README.txt", skill: false },   // the instructions are the designer edition's for now
+  studio: { folder: "SiteCleaner-Studio", readme: "SHARE_README.txt", skill: false, title: "SiteCleaner Studio" },   // the instructions are the designer edition's for now, under the studio name
   consumer: { folder: "SiteCleaner-Personal", readme: "SHARE_README_PERSONAL.txt", skill: false },
 };
 if (makeShare) {
@@ -184,7 +184,9 @@ if (makeShare) {
   const top = path.join(stage, `${share.folder}-${label}`);
   fs.mkdirSync(top, { recursive: true });
   fs.cpSync(out, path.join(top, "extension"), { recursive: true });
-  const instructions = fs.readFileSync(path.join(root, "store", share.readme), "utf8").replace(/__VERSION__/g, label).replace(/\r?\n/g, "\r\n");   // CRLF: opens cleanly in Notepad
+  let text = fs.readFileSync(path.join(root, "store", share.readme), "utf8");
+  if (share.title) text = text.replace(/^SiteCleaner __VERSION__\n=+/, `${share.title} __VERSION__\n${"=".repeat(share.title.length + 1 + "__VERSION__".length)}`);   // the heading carries this edition's name
+  const instructions = text.replace(/__VERSION__/g, label).replace(/\r?\n/g, "\r\n");   // CRLF: opens cleanly in Notepad
   fs.writeFileSync(path.join(top, "README - START HERE.txt"), instructions);
   for (const file of ["LICENSE", "NOTICE"]) fs.copyFileSync(path.join(root, file), path.join(top, file));
   fs.mkdirSync(path.join(top, "third_party", "visbug"), { recursive: true });
