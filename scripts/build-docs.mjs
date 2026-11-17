@@ -29,13 +29,24 @@ const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, 
 const slug = (text) => text.toLowerCase().replace(/`/g, "").replace(/[^\p{L}\p{N}\s-]/gu, "").trim().replace(/\s/g, "-");   // GitHub's anchors, the ones the documents link to
 const copied = new Set();
 
+// Small helpers instead of one big pattern each: patterns with neighbouring quantifiers that can match the same characters backtrack badly on odd input.
+const OPEN_HEADING = /^(#{1,6}) +(\S.*)$/;
+function headingText(text) {   // "Title ##" is "Title" (CommonMark: the closing hashes must follow a space)
+  let t = text.trimEnd(), k = t.length;
+  while (k > 0 && t[k - 1] === "#") k--;
+  if (k < t.length && (k === 0 || t[k - 1] === " ")) t = t.slice(0, k).trimEnd();
+  return t;
+}
+const cells = (line) => line.trim().replace(/^\||\|$/g, "").split(/(?<!\\)\|/).map((c) => c.trim().replace(/\\\|/g, "|"));
+const isSeparator = (line, columns) => { const cs = cells(line); return cs.length === columns && cs.every((c) => /^:?-{3,}:?$/.test(c)); };   // | --- | :---: |
+
 // ---- inline: code first (nothing inside it is touched), then images, links, bold, italic
 function inline(text, from) {
   const codes = [];
   let t = text.replace(/`([^`]+)`/g, (_, c) => { codes.push(`<code>${esc(c)}</code>`); return `\uE000${codes.length - 1}\uE001`; });
   t = esc(t);
-  t = t.replace(/!\[([^\]]*)\]\(([^)\s]+)(?:\s+&quot;[^&]*&quot;)?\)/g, (_, alt, src) => `<img src="${asset(src, from)}" alt="${alt}" loading="lazy">`);
-  t = t.replace(/\[([^\]]+)\]\(([^)\s]+)(?:\s+&quot;[^&]*&quot;)?\)/g, (_, label, href) => `<a href="${link(href, from)}">${label}</a>`);
+  t = t.replace(/!\[([^\]]{0,1000})\]\(([^)\s]{1,1000})(?:\s+&quot;[^&]{0,1000}&quot;)?\)/g, (_, alt, src) => `<img src="${asset(src, from)}" alt="${alt}" loading="lazy">`);
+  t = t.replace(/\[([^\]]{1,1000})\]\(([^)\s]{1,1000})(?:\s+&quot;[^&]{0,1000}&quot;)?\)/g, (_, label, href) => `<a href="${link(href, from)}">${label}</a>`);
   t = t.replace(/\*\*([^*]+?)\*\*/g, "<strong>$1</strong>").replace(/(^|[^\w*])\*([^*\s][^*]*?)\*(?![\w*])/g, "$1<em>$2</em>").replace(/(^|[^\w])_([^_\s][^_]*?)_(?![\w])/g, "$1<em>$2</em>");
   t = t.replace(/(^|[\s(])(https?:\/\/[^\s<)]+[^\s<).,;:])/g, '$1<a href="$2">$2</a>');
   return t.replace(/\uE000(\d+)\uE001/g, (_, i) => codes[Number(i)]);
@@ -62,8 +73,7 @@ function asset(src, from) {
 }
 
 // ---- blocks
-const marker = /^(\s*)([-*+]|\d+[.)])\s+(.*)$/;
-const cells = (line) => line.trim().replace(/^\||\|$/g, "").split(/(?<!\\)\|/).map((c) => c.trim().replace(/\\\|/g, "|"));
+const marker = /^( *)([-*+]|\d+[.)]) +(\S.*)$/;   // a list item: indent, bullet or number, the text
 function blocks(lines, from, ids) {
   const html = [];
   let i = 0;
@@ -78,7 +88,8 @@ function blocks(lines, from, ids) {
       while (i < lines.length && !lines[i].trim().startsWith(m[1])) body.push(lines[i++]);
       i++;
       html.push(`<pre><code${m[2] ? ` class="language-${esc(m[2])}"` : ""}>${esc(body.join("\n"))}</code></pre>`);
-    } else if ((m = /^(#{1,6})\s+(.*?)\s*#*\s*$/.exec(line))) {
+    } else if ((m = OPEN_HEADING.exec(line))) {
+      m[2] = headingText(m[2]);
       const level = m[1].length;
       let id = slug(m[2]);
       const n = ids.get(id) || 0;
@@ -92,7 +103,7 @@ function blocks(lines, from, ids) {
       const quote = [];
       while (i < lines.length && /^\s*>/.test(lines[i])) quote.push(lines[i++].replace(/^\s*>\s?/, ""));
       html.push(`<blockquote>${blocks(quote, from, ids)}</blockquote>`);
-    } else if (line.includes("|") && i + 1 < lines.length && /^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)*\|?\s*$/.test(lines[i + 1])) {   // a table
+    } else if (line.includes("|") && i + 1 < lines.length && isSeparator(lines[i + 1], cells(line).length)) {   // a table
       const head = cells(line);
       i += 2;
       const rows = [];
@@ -129,7 +140,9 @@ function blocks(lines, from, ids) {
       html.push(`<${ordered ? "ol" : "ul"}>${items.join("")}</${ordered ? "ol" : "ul"}>`);
     } else {   // a paragraph, up to a blank line or the start of another block
       const para = [];
-      while (i < lines.length && !blank(lines[i]) && !(para.length && (/^(#{1,6}\s|```|~~~|\s*>|\s*[-*+]\s|\s*\d+[.)]\s)/.test(lines[i]) || (lines[i].includes("|") && lines[i + 1] && /^\s*\|?\s*:?-{3,}/.test(lines[i + 1]))))) para.push(lines[i++].trim());
+      const startsBlock = (k) => OPEN_HEADING.test(lines[k]) || lines[k].startsWith("```") || lines[k].startsWith("~~~") || lines[k].trimStart().startsWith(">") || marker.test(lines[k])
+        || (lines[k].includes("|") && k + 1 < lines.length && isSeparator(lines[k + 1], cells(lines[k]).length));
+      while (i < lines.length && !blank(lines[i]) && !(para.length && startsBlock(i))) para.push(lines[i++].trim());
       html.push(`<p>${inline(para.join(" "), from)}</p>`);
     }
   }
@@ -158,7 +171,7 @@ footer{max-width:60rem;margin:0 auto;padding:1rem;border-top:1px solid var(--lin
 function render([src, page, label]) {
   const ids = new Map();
   const body = blocks(read(src).split("\n"), src, ids);
-  const title = (/^#\s+(.*)$/m.exec(read(src)) || [, label])[1].replace(/`/g, "");
+  const title = (/^# +(\S.*)$/m.exec(read(src)) || [, label])[1].replace(/`/g, "");
   const nav = PAGES.map(([, p, l]) => `<a href="${p}"${p === page ? ' aria-current="page"' : ""}>${esc(l)}</a>`).join("");
   const doc = `<!doctype html>
 <html lang="en">
@@ -179,7 +192,11 @@ ${body}
 `;
   // Markdown that was not converted would be published as it is: stop instead.
   const visible = doc.replace(/<pre>[\s\S]*?<\/pre>/g, "").replace(/<code>[\s\S]*?<\/code>/g, "").replace(/<style>[\s\S]*?<\/style>/g, "");
-  const left = visible.split("\n").filter((l) => /(\*\*[^*\s]|^\s*\|.*\|\s*$|^#{1,6}\s|^\s*[-*]\s+\S|\]\([^)]*\))/.test(l.replace(/<[^>]+>/g, "")));
+  const unconverted = (line) => {   // a line of the page (tags removed) that still looks like Markdown
+    const text = line.replace(/<[^>]{1,4000}>/g, ""), t = text.trim();
+    return /\*\*[^*\s]/.test(text) || (t.startsWith("|") && t.endsWith("|")) || /^#{1,6} /.test(text) || /^ *[-*] +\S/.test(text) || text.includes("](");
+  };
+  const left = visible.split("\n").filter(unconverted);
   if (left.length) throw new Error(`${src}: Markdown left in the page (this builder does not handle it):\n  ${left.slice(0, 5).join("\n  ")}`);
   return doc;
 }

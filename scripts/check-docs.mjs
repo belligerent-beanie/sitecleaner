@@ -44,12 +44,18 @@ function parse(rel) {
   lines.forEach((text, i) => {
     if (/^\s*(```|~~~)/.test(text)) { fenced = !fenced; return; }
     if (fenced) return;
-    const h = /^(#{1,6})\s+(.*?)\s*#*\s*$/.exec(text);
-    if (h) { section = h[2]; headings.push({ line: i + 1, text: h[2] }); }
+    const h = /^(#{1,6}) +(\S.*)$/.exec(text);
+    if (h) { section = headingText(h[2]); headings.push({ line: i + 1, text: section }); }
     for (const m of text.matchAll(/`([^`]+)`/g)) spans.push({ line: i + 1, text: m[1], section });
-    for (const m of text.replace(/`[^`]*`/g, "").matchAll(/\[[^\]]*\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g)) links.push({ line: i + 1, target: m[1] });
+    for (const m of text.replace(/`[^`]*`/g, "").matchAll(/\[[^\]]{0,1000}\]\(([^)\s]{1,1000})(?:\s+"[^"]{0,1000}")?\)/g)) links.push({ line: i + 1, target: m[1] });
   });
   return { lines, spans, links, headings };
+}
+function headingText(text) {   // "Title ##" is "Title" (CommonMark: the closing hashes must follow a space)
+  const t = text.trimEnd();
+  let k = t.length;
+  while (k > 0 && t[k - 1] === "#") k--;
+  return k < t.length && (k === 0 || t[k - 1] === " ") ? t.slice(0, k).trimEnd() : t;
 }
 const slug = (text) => text.toLowerCase().replace(/`/g, "").replace(/[^\p{L}\p{N}\s-]/gu, "").trim().replace(/\s/g, "-");   // GitHub's anchors
 const anchorsOf = (parsed) => { const seen = new Map(), out = new Set(); for (const h of parsed.headings) { const s = slug(h.text); const n = seen.get(s) || 0; seen.set(s, n + 1); out.add(n ? `${s}-${n}` : s); } return out; };
@@ -99,12 +105,13 @@ for (const doc of DOCS) {
     if (/[<>{}$…]|\.\.\./.test(text) && !/^`?bun run/.test(text)) continue;   // placeholders and ellipses are not names
     let m;
     if ((m = /^bun run ([\w:-]+)/.exec(text))) { if (!pkg.scripts[m[1]]) fail(doc, line, `\`${text}\`: package.json has no script "${m[1]}"`); continue; }
-    if ((m = /^node (scripts\/[\w.-]+\.mjs)((?:\s+\[?--?[\w=|-]+.*)?)$/.exec(text))) {
-      if (!fileSet.has(m[1])) { fail(doc, line, `\`${text}\`: no such script`); continue; }
-      const source = read(m[1]);
-      for (const flag of m[2].matchAll(/--[a-z][\w-]*/g)) if (!source.includes(flag[0])) fail(doc, line, `\`${text}\`: ${m[1]} does not mention ${flag[0]}`);
-      const ed = /--edition\s+([a-z|]+)/.exec(m[2]);
-      if (ed && m[1] === "scripts/build.mjs") for (const name of ed[1].split("|")) if (!editions.includes(name)) fail(doc, line, `\`${text}\`: no edition called "${name}" (build.mjs has ${editions.join(", ")})`);
+    const words = text.split(" ").filter(Boolean);
+    if (words[0] === "node" && /^scripts\/[\w-]+\.mjs$/.test(words[1] || "")) {   // a command: the script is there and knows every flag
+      if (!fileSet.has(words[1])) { fail(doc, line, `\`${text}\`: no such script`); continue; }
+      const source = read(words[1]), rest = words.slice(2).join(" ");
+      for (const flag of rest.matchAll(/--[a-z][\w-]*/g)) if (!source.includes(flag[0])) fail(doc, line, `\`${text}\`: ${words[1]} does not mention ${flag[0]}`);
+      const ed = /--edition +([a-z|]+)/.exec(rest);
+      if (ed && words[1] === "scripts/build.mjs") for (const name of ed[1].split("|")) if (!editions.includes(name)) fail(doc, line, `\`${text}\`: no edition called "${name}" (build.mjs has ${editions.join(", ")})`);
       continue;
     }
     if (/^\d{3}$/.test(text)) { if (!files.some((f) => f.startsWith(`src/parts/${text}-`))) fail(doc, line, `\`${text}\`: no file src/parts/${text}-*.js`); continue; }
@@ -124,7 +131,8 @@ if (parsed.has(ARCHITECTURE)) {
   const inSection = (name) => arch.spans.filter((s) => s.section === name);
 
   // chrome.* APIs: every namespace.member used must be mentioned (by its member name) in the document; every `ns.member` the document names must still be used
-  const used = new Set([...ext.replace(/\/\/.*$/gm, "").matchAll(/chrome\.([a-zA-Z]+)\.([a-zA-Z]+)/g)].map((m) => `${m[1]}.${m[2]}`).filter((a) => a !== "google.com"));   // (chrome.google.com is a web address)
+  const noComments = ext.split("\n").map((l) => (l.includes("//") ? l.slice(0, l.indexOf("//")) : l)).join("\n");   // (a line comment, and a web address's // too: harmless here)
+  const used = new Set([...noComments.matchAll(/chrome\.([a-zA-Z]{1,40})\.([a-zA-Z]{1,60})/g)].map((m) => `${m[1]}.${m[2]}`).filter((a) => a !== "google.com"));   // (chrome.google.com is a web address)
   const namespaces = new Set([...used].map((a) => a.split(".")[0]));
   const manifest = read("extension/manifest.template.json");
   const nameInDoc = (n) => new RegExp("(^|[^\\w])" + n + "([^\\w]|$)").test(archText);
