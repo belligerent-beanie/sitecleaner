@@ -1,158 +1,168 @@
-# Continuous integration: design
+# Continuous integration
 
-Status: **proposal, nothing built.** No workflow file exists. This document is for approval first.
+Status: **built** (updated 17 November 2026). This began as a proposal; the first half now describes what runs. The decisions, the proof on Linux and the later
+additions are kept as a dated history at the end. How the documentation is checked and published is in [ARCHITECTURE.md](ARCHITECTURE.md#documentation).
 
-## Why
+## What runs
 
-The project has three kinds of check, and today a person has to remember to run them:
-
-| Check | Command | Needs | Runs for | Today |
-|---|---|---|---|---|
-| End-to-end suite (188 checks) | `bun run test:e2e` | a real browser with the extension loaded | roughly 2 minutes | by hand |
-| Accessibility audit of the dock (41 audits, both looks) | `bun run test:a11y` | the same | roughly 1 minute | by hand |
-| Smoke test on six real sites | `bun run smoke` | the same, plus the network and live sites | roughly 3 minutes | by hand |
-
-The first two are deterministic and offline: they decide whether a change may be merged. The third depends on websites we do not control, so it can only
-ever warn. A fourth job, building the zip for the Web Store, is cheap and should leave an artifact.
-
-## Goals and non-goals
-
-Goals
-1. A change that breaks the end-to-end suite or the accessibility audit cannot be merged unnoticed.
-2. The same commands run in CI and on a designer's or developer's own machine (`bun run test`), so a failure can be reproduced locally.
-3. Every green build on `main` leaves the installable zip and the screenshots as downloadable artifacts.
-4. Real-site breakage is noticed within a day, without blocking anyone.
-
-Non-goals
-- **Publishing to the Chrome Web Store.** It needs a developer account, an API credential and a human decision about every release. Nothing here holds a secret.
-- Testing in branded Google Chrome. Chrome 157 no longer loads unpacked extensions from the command line, so the suite uses Playwright's bundled Chromium, here as everywhere.
-- Cross-browser runs (Firefox, Safari). The extension is Chrome and Edge only for now.
-
-## The constraint that shapes it
-
-Extensions do not load in the old headless mode, and this suite opens real windows (it tests dragging, previews that open a second window, a screenshot of
-the visible tab). On a Linux runner that means a virtual display: run the commands under `xvfb-run`. Playwright's Chromium with a persistent context
-and `--load-extension` is the same setup used here on Windows, so no test needs to change. **This is unverified on Linux**: the first step of the
-work is a branch that proves the whole suite passes there, before anything is made required.
-
-## Proposed jobs
-
-Platform: GitHub Actions on `ubuntu-latest` (cheapest, and the only runner with `xvfb`). The project has no repository yet, so nothing can run until the
-owner creates one; this document assumes GitHub, and the jobs are plain shell commands, so another host would need only the wrapper changed.
-
-| Job | Trigger | Blocks merging | Steps |
+| Workflow | File | Runs on | Blocks merging |
 |---|---|---|---|
-| `test` | every push and pull request | **yes** | install Bun; `bun install --frozen-lockfile`; install Playwright's Chromium; `xvfb-run bun run test` |
-| `package` | after `test` passes, on `main` and on tags | no | `bun run zip`; upload `releases/*.zip` as an artifact (kept 30 days) |
-| `smoke` | nightly, and by hand | **no** (reports only) | `xvfb-run bun run smoke`; on failure open or update one issue titled "Real-site smoke test failing" with the output |
+| `test` | `.github/workflows/test.yml` | every pull request, every push to `main`, `v*` tags, by hand | **yes**, through its `result` job |
+| `chrome-versions` | `.github/workflows/chrome-versions.yml` | every pull request, Mondays, by hand | no |
+| `smoke` | `.github/workflows/smoke.yml` | nightly at 04:17 UTC, by hand | no |
+| `beta` | `.github/workflows/beta.yml` | by hand only | no |
+| `pages` | `.github/workflows/pages.yml` | pushes to `main` that change the documents, by hand | no |
+| SonarCloud | a GitHub App, not a workflow in this repository | every pull request | no |
 
-Details that matter
-- **Caching:** Bun's install cache and Playwright's browser download, keyed on the lockfile and the Playwright version, so a run does not download 150 MB each time.
-- **Timeouts:** 15 minutes for `test`, 10 for `smoke`. A hung browser must not hold a runner for hours.
-- **Artifacts on failure:** the suite's console output, plus a screenshot on a failed check (a small addition to `test/e2e.mjs`, not yet written).
-- **Permissions:** the default token, read-only (`contents: read`), except `smoke`, which also needs `issues: write` to file its issue. No secrets.
-- **Concurrency:** a new push to a branch cancels the older run of the same branch.
-- **Pinning:** Bun and Playwright at the versions in the lockfile. Actions pinned to a full commit hash, not a tag, since this is the supply chain of a tool that runs on people's pages.
+Everything runs on `ubuntu-latest`. Actions are pinned to full commit hashes, not tags, because this is the supply chain of a tool that runs on people's pages.
+
+## How a change reaches `main`
+
+1. A branch and a pull request. Nobody pushes to `main` directly: the branch rule binds administrators too.
+2. `test` and `chrome-versions` run; SonarCloud reports. The required check is `result` alone, and the branch must be up to date with `main`.
+3. With auto-merge on (the repository allows it), the pull request merges itself when `result` passes (so far with a squash).
+4. The pull request's branch is deleted on merge (a repository setting).
+5. On `main`, `test` runs again, `package` leaves the zip, and `pages` republishes the documentation if a document changed.
+
+## The jobs in `test.yml`
+
+| Job | Does | Notes |
+|---|---|---|
+| `plan` | Works out how many times to run the suite | One, unless started by hand with `repeats` (used to measure flakiness) |
+| `changes` | Decides whether anything other than documentation changed | Documentation is `*.md`, `docs/` and the licences. If only those changed the browser suite is skipped. When it cannot tell (no base commit, a failed diff) it says the change is code |
+| `docs` | Checks the documents against the code, builds the site, lints the Markdown | Runs on every change, code or not; about 5 minutes at most, in practice seconds. See [ARCHITECTURE.md](ARCHITECTURE.md#documentation) |
+| `test` | Installs Bun and Playwright's Chromium, then runs `bun run test` under `xvfb-run` | 20-minute timeout; skipped for documentation-only changes; the console output and screenshots of failed pages are kept as an artifact for 14 days |
+| `result` | The one stable name the branch rule requires | Passes when `changes` and `docs` passed and, if code changed, `test` passed. A documentation-only change passes in seconds |
+| `package` | `bun run zip`, uploads the Web Store zip | Only after `result`, only on a push (so on `main` and tags), kept 30 days |
+
+`result` exists so the branch rule does not depend on how many jobs sit behind it. The `docs` job is part of it, so a wrong document cannot be merged and
+needed no change to the rule.
+
+**Why the documentation skip is decided inside the workflow.** A `paths-ignore` filter on the workflow leaves the required check missing, and a pull request that
+never reports it can never merge. Here `result` always reports.
+
+`bun run test` runs the end-to-end suite, the editions, keep, easier-to-read and stress suites, and the accessibility audit of both looks of the dock.
+
+## The other workflows
+
+**`chrome-versions`.** Runs four suites (end to end, editions, keep, easier to read) in Chrome 114 (the manifest's `minimum_chrome_version`), 127 (the first with
+`chrome.action.openPopup`), the current stable and the beta, using Google's "Chrome for Testing" builds, which accept `--load-extension` where branded Chrome does not. Every
+suite runs even after one fails. 30-minute timeout. It reports; it never decides a merge. The accessibility audit and the stress suite do not depend on the browser's version and are not repeated.
+
+**`smoke`.** `bun run smoke` on six real sites (strict security policies, web components, single-page apps), each retried once, since a live site may be down. On failure
+it opens one issue, "Real-site smoke test failing", and updates it each night; when the run passes again it closes it. 15-minute timeout; needs `issues: write`. It fails the job (red in the Actions tab) but is never required.
+
+**`beta`.** Started by hand: choose the branch, run. It runs `bun run beta --publish` (`scripts/beta.mjs`): builds all three editions as the next patch version `-beta.N`, checks the zips the way a
+person would use them (`scripts/verify-share.mjs`), writes the notes from the Unreleased list in `CHANGELOG.md`, and creates a GitHub prerelease. It refuses a commit whose `test`
+workflow has not succeeded unless `allow_untested` is ticked. Needs `contents: write`. Keep `--publish` out of anything that is not meant to publish.
+
+**`pages`.** Builds the documentation site with `scripts/build-docs.mjs` and deploys it to GitHub Pages when `main` changes a document. It has no dependency on a package registry. Needs
+`pages: write` and `id-token: write` for the deploy job only.
+
+**SonarCloud.** Runs as a GitHub App, with no `sonar-project.properties` and no workflow here. It posts the "SonarCloud Code Analysis" check on a pull request and a link to its
+dashboard; the findings stay on sonarcloud.io. Its quality gate is not a required check. It has caught real problems in new code, so a failed gate is worth reading.
+
+## Repository settings that matter
+
+- **Branch rule on `main`:** required status check `result`; the branch must be up to date; no required reviewers (one contributor); force pushes and deletion refused; administrators bound too (`enforce_admins`).
+  In an emergency the owner can switch that off for the duration (`gh api -X DELETE repos/belligerent-beanie/sitecleaner/branches/main/protection/enforce_admins`) and back on with `-X POST`.
+  A required check cannot pass on a commit that is not yet on GitHub, so even a documentation change goes through a pull request; auto-merge makes that quick.
+- **Auto-merge** allowed; **delete branch on merge** on.
+- **Pages:** the source is GitHub Actions.
+- **Permissions:** the default token is read-only (`contents: read`); a workflow asks for more only where it needs it (`smoke`, `beta`, `pages`). No secrets in `test`.
+- `test` uses `pull_request`, not `pull_request_target`, so code from a pull request never runs with more than a read-only token.
+
+## Goals, and where they stand
+
+| Goal | State |
+|---|---|
+| A change that breaks the suite or the accessibility audit cannot be merged unnoticed | met: `result` is required and binds administrators |
+| The same commands run in CI and on a developer's machine (`bun run test`) | met |
+| Every green build on `main` leaves the installable zip | met: `package`, 30 days (the screenshots are made by hand, `bun run screenshots`) |
+| Real-site breakage is noticed within a day, without blocking anyone | met: `smoke`, nightly, one issue |
+| A document that no longer matches the code cannot be merged | met since 17 November 2026: the `docs` job |
+
+Non-goals, still: publishing to the Chrome Web Store (needs a developer account, a credential and a human decision per release; nothing here holds a secret); testing in branded
+Chrome (it no longer loads unpacked extensions from the command line, so a manual checklist in `store/STORE_LISTING.md` is part of every release); cross-browser runs (Chrome and Edge only for now).
+
+## The constraint that shaped it
+
+Extensions do not load in the old headless mode, and the suite opens real windows (dragging, previews in a second window, a screenshot of the visible tab). On Linux that means a virtual
+display: every browser command runs under `xvfb-run`. Playwright's Chromium with a persistent context and `--load-extension` is the same setup used on Windows, so no test needed
+to change. This was unverified when proposed and has since been proved (see the history below).
 
 ## Flakiness policy
 
-The suite has produced one flaky run so far (a test that pressed a shortcut while a control in the dock had focus; fixed). The rule:
-
-1. A failure is **never retried automatically** in `test`. A retry that turns red into green hides the very race the user would meet.
-2. A check that fails intermittently is a bug in the test or the product, and is fixed or the check is removed, with the reason in the commit.
+1. A failure is **never retried automatically** in `test`. A retry that turns red into green hides the race a user would meet.
+2. A check that fails intermittently is a bug in the test or the product. It is fixed, or the check is removed, with the reason in the commit.
 3. `smoke` may retry each site once, since a live site is allowed to be down.
 
-## Risks and how each is handled
+## Risks
 
 | Risk | Handling |
 |---|---|
-| Extensions or multiple windows do not work under Xvfb | proven on a branch first; fallback is a self-hosted Windows runner (the machine where the suite already passes) |
-| Runner is slower, so timing-based checks flake | the suite waits on conditions, not fixed delays, apart from a few 600 ms transition waits; measure over 20 runs before making `test` required |
-| Playwright's Chromium version moves | pinned in the lockfile; upgraded by a pull request that has to pass |
-| Smoke test noise trains people to ignore CI | it never blocks, files one issue (not one per night), and closes it when it passes again |
-| A malicious or careless pull request runs code with the token | `pull_request` (not `pull_request_target`), read-only token, no secrets in the `test` job |
+| Extensions or several windows do not work under Xvfb | proved on a branch (below) |
+| A slower runner makes timing-based checks flake | the suite waits on conditions, not fixed delays, apart from a few 600 ms transition waits; measured over 20 runs before `test` was required (`repeats`) |
+| Playwright's Chromium moves | pinned in the lockfile; upgraded by a pull request that has to pass |
+| Smoke noise trains people to ignore CI | it never blocks, files one issue (not one per night) and closes it when it passes |
+| A careless or malicious pull request runs code with the token | `pull_request`, read-only token, no secrets in `test` |
 
-## Rollout
+## Not done
 
-1. Create the repository (owner's decision; see below) and push `main`.
-2. Branch `ci-proof`: add only the `test` job; run it 20 times; record the failure rate. Stop here if it is not zero.
-3. Make `test` a required check; add `package`.
-4. Add `smoke`, nightly, report-only.
-5. Revisit in a month: how many red runs were product bugs, how many were infrastructure.
+- A screenshot on a smoke failure (the console output is kept; the end-to-end job already keeps screenshots).
+- Windows and macOS runners (the extension is the same, but file paths and the line ends of the zips differ).
+- An automatic issue when the Monday `chrome-versions` run fails (`smoke` does this).
+- Turning SonarCloud findings into GitHub issues, for an agent to pick up. Discussed and deferred; today the findings are read on sonarcloud.io.
+- A required reviewer on the branch rule (with one contributor, probably not needed).
 
-## Decisions (owner, 14 November 2026)
+## History
 
-1. **Host:** GitHub. The repository exists, private, as `belligerent-beanie/sitecleaner` (renamed from `design-picker` on 14 November 2026; GitHub redirects the old address).
-2. **Visibility:** private for now. Private repositories are metered, so the cost of three jobs per run matters until the repository is made public.
-3. **Required check:** yes. `test` becomes mandatory for merging, once it has passed 20 runs in a row on the runner (rollout step 3).
-4. **Smoke issues:** a failing nightly `smoke` opens a GitHub issue (one issue, updated while it fails, closed when it passes).
-5. **Real Chrome:** a manual checklist is part of every release; it is in `store/STORE_LISTING.md`.
+### Decisions (owner, 14 November 2026)
 
-Still to decide, not blocking: whether the branch-protection rule that makes `test` required needs a second reviewer (with one contributor, probably not).
+1. **Host:** GitHub, as `belligerent-beanie/sitecleaner` (renamed from `design-picker`; GitHub redirects the old address).
+2. **Visibility:** private at first, because private repositories are metered. It was made public the same day (see below).
+3. **Required check:** yes, once the suite had passed 20 runs in a row on the runner.
+4. **Smoke issues:** one issue, updated while it fails, closed when it passes.
+5. **Real Chrome:** a manual checklist in every release.
 
-Status: approved in principle. **Not built**: rollout step 1 is done (the repository exists); step 2, the proof branch that shows the suite passes under Xvfb
-on a Linux runner, is the next piece of work, and nothing is made required before it has passed.
+Rollout as planned: the repository, a proof branch that runs the suite 20 times, then the required check and `package`, then the nightly smoke, then a review after a month.
 
-## Result of the proof (14 November 2026, branch `ci-proof`)
+### Result of the proof (14 November 2026, branch `ci-proof`)
 
-The suite and the accessibility audit **pass on `ubuntu-latest` under Xvfb**: 132 of 132 checks and 41 audits with no violations. Twenty runs of the
-same commit, as 20 parallel jobs (`bun run test` under `xvfb-run`): **20 passed, 0 failed.** Each job took 87 to 131 seconds, 102 on average, including the
-browser install, so a run costs roughly two runner-minutes. (Twenty parallel jobs of one commit measure flakiness within a commit; they are not twenty
-successive commits.)
+The suite and the accessibility audit **passed on `ubuntu-latest` under Xvfb**: 132 of 132 checks and 41 audits with no violations (the suite has grown since). Twenty runs of the same commit, as
+20 parallel jobs: **20 passed, 0 failed.** Each took 87 to 131 seconds, 102 on average, including the browser install, so a run costs roughly two runner-minutes. (Twenty parallel jobs of
+one commit measure flakiness within a commit, not across twenty successive commits.)
 
-The first runs on the runner were not green. Three failures, each a fault in a test and not in the extension, and each fixed on this branch:
+The first runs were not green. Three failures, each a fault in a test and not in the extension, fixed on that branch:
 
 | Failure on Linux | Cause | Fix |
 |---|---|---|
 | Choosing an image file did not show the new source yet | the file is read asynchronously; Windows was just fast enough | the test waits for the new source |
-| The `:active` check saw white while the button was held | the runner's taller window put the "Design: on" tab over the point the test pressed; the press turned the picker off, which also caused the next timeout | the test presses the right end of the link and waits for the colour transition to settle |
+| The `:active` check saw white while the button was held | the runner's taller window put the "Design: on" tab over the point the test pressed; the press turned the picker off | the test presses the right end of the link and waits for the colour transition to settle |
 | A later click timed out | a consequence of the previous one | none needed |
 
-What it shows, and what it does not: the Windows-only suite is not Windows-specific, an extension loads and is driven in Playwright's Chromium on Linux, and
-the tests' dependence on window size and timing was real. It does not replace a run in branded Chrome (the checklist in `store/STORE_LISTING.md`).
+What it shows: the Windows-only suite was not Windows-specific, an extension loads and is driven in Playwright's Chromium on Linux, and the tests' dependence on window size and timing was real. It does not replace a run in branded Chrome.
 
-On failure the job uploads the console output, and a screenshot of each open page plus what the dock said (`test-artifacts/`).
+### Branch protection (14 November 2026)
 
-## What is built (14 November 2026)
+On the free plan a private repository cannot have branch protection ("Upgrade to GitHub Pro or make this repository public"). The repository was made public on 14 November 2026 and the rule set the same day.
+`enforce_admins` was switched on the same day at the owner's request, so nobody pushes to `main` directly.
 
-| Piece | State |
-|---|---|
-| `.github/workflows/test.yml`: the suite and the audit on pull requests, on pushes to `main` and on `v*` tags; a stable `result` job; `package` leaves the zip as an artifact (30 days) | built, merged, green on `main` |
-| `.github/workflows/smoke.yml`: nightly at 04:17 UTC and by hand; each site gets one retry; on failure it opens or updates one issue, on a pass it closes it; never required | built, run by hand; see below |
-| `result` as a **required check** for merging | **on** since the repository became public (14 November 2026): `result` required, branch up to date, admins bound too |
+### The first smoke run from GitHub's runners
 
-**Branch protection.** On the free plan a private repository cannot have it (GitHub: "Upgrade to GitHub Pro or make this repository public"). The repository
-was made public on 14 November 2026 and the rule was set the same day: required status check `result`, branch must be up to date, no required reviewers, force
-pushes and deletion refused. `enforce_admins` was switched on the same day at the owner's request, so nobody pushes to `main` directly: every change goes through a pull request and waits for `result`.
-In an emergency the owner can switch it off for the duration (`gh api -X DELETE repos/belligerent-beanie/sitecleaner/branches/main/protection/enforce_admins`) and back on (`-X POST`).
+Five of six sites held. The BBC page failed both attempts (the picker could not click its heading) and the workflow opened issue #1 as designed. The likeliest cause is a consent banner covering the page,
+not confirmed. The site was replaced by gov.uk, and the script now keeps the "what was in the way" line of a click error, so the next failure of this kind says what it was.
 
-**The first smoke run from GitHub's runners:** five of six sites held. The BBC page failed both attempts (the picker could not click its heading), and the
-workflow opened issue #1 as designed. The cause is not confirmed (the likeliest is a consent banner covering the page). The site was replaced by gov.uk, and
-the script now keeps the "what was in the way" line of a click error, so the next failure of this kind says what it was.
+### Betas and Chrome versions (15 November 2026)
 
-### Not done yet
+Two workflows so that less of the release process depends on one person's computer. `beta` could not be run before it was merged, because GitHub only lists a manual workflow once its file is on `main`;
+its steps were run from a throwaway branch first, which, through a mistake in how that trial file was made, published a prerelease that was then deleted. That is why `--publish` stays out of anything that is not meant to publish.
 
-- A screenshot on a smoke failure (the console output is kept; the end-to-end job already keeps screenshots).
+The first local run on Chrome 114 found a real bug that no other run could show: Chrome before about 123 returns nothing from `chrome.contextMenus.update` when called without a callback, so calling `.catch`
+on it threw, and the Personal edition's right-click entry never updated. It now uses the callback form. That is what `chrome-versions` is for.
 
-## Betas and Chrome versions (15 November 2026)
+### Documentation checks, Pages, auto-merge (17 November 2026)
 
-Two further workflows, so that less of the release process depends on one person's computer.
-
-**`beta`** (`.github/workflows/beta.yml`, started by hand: Actions, beta, Run workflow, choose the branch). It runs `bun run beta --publish` (`scripts/beta.mjs`):
-builds both editions as the next patch version `-beta.N`, checks the zips the way a person would use them (`scripts/verify-share.mjs`: unzips each, checks the manifest,
-the instructions and the contents, and loads both extensions into one browser), writes the notes from the Unreleased list in `CHANGELOG.md`, and creates the GitHub
-prerelease. It refuses a commit whose `test` workflow has not succeeded, unless `allow_untested` is ticked. The link is in the run's summary. The same command works on
-a computer (`bun run beta` builds and checks without publishing). GitHub only lists a manual workflow once its file is on `main`, so the workflow itself could not be
-run before it was merged; its steps were run from a throwaway branch first (which, through a mistake in how that trial file was made, published a prerelease that was then
-deleted: a reason to keep `--publish` out of anything that is not meant to publish).
-
-**`chrome-versions`** (`.github/workflows/chrome-versions.yml`, on every pull request, by hand, and on Mondays). The browser tests (`bun run test:browser`: end to end, editions,
-keep, easier to read) run in Chrome 114 (the manifest's `minimum_chrome_version`), 127 (the first with `chrome.action.openPopup`), the current stable and the beta. These are Google's
-"Chrome for Testing" builds, which, unlike branded Chrome, accept `--load-extension`; `test/browser.mjs` makes every test launch the program named by `CHROME_PATH`. It reports; it is not
-part of the required check `result`. The accessibility audit does not depend on the browser's version and is not repeated.
-
-What the first local run on Chrome 114 found: the end-to-end suite passed (193 of 193), and the keep suite stopped on a real bug that no other run could show: Chrome before about 123 returns
-nothing from `chrome.contextMenus.update` when called without a callback, so calling `.catch` on it threw, and the Personal edition's right-click entry never updated. It now uses the callback
-form. That is what this workflow is for.
-
-Not done: Windows and macOS runners (the extension is the same, but file paths and the line ends of the zips differ), and an automatic issue when the Monday run fails (the smoke workflow does this).
+Pull requests 21 and 22. `changes` lets documentation-only changes skip the browser suite; the `docs` job checks the documents against the code on every change and is part of `result`; `pages` publishes the
+site; auto-merge and delete-on-merge were switched on. SonarCloud's quality gate failed on the first version of the new scripts (a control character in a regular expression, a lookup of `git` through the path)
+and passed after they were fixed; the regular expressions it flagged as slow were rewritten as small functions.
