@@ -60,7 +60,8 @@ workflow has not succeeded unless `allow_untested` is ticked. Needs `contents: w
 `pages: write` and `id-token: write` for the deploy job only.
 
 **SonarCloud.** Runs as a GitHub App, with no `sonar-project.properties` and no workflow here. It posts the "SonarCloud Code Analysis" check on a pull request and a link to its
-dashboard; the findings stay on sonarcloud.io. Its quality gate is not a required check. It has caught real problems in new code, so a failed gate is worth reading.
+dashboard; the findings stay on sonarcloud.io. Its quality gate is not a required check. `.sonarcloud.properties` leaves Markdown, `docs/` and the licences out of its analysis, so a
+documentation-only pull request gives it nothing to analyse; a GitHub App cannot be switched off per pull request from a workflow, so the analysis scope is the control there is. It has caught real problems in new code, so a failed gate is worth reading.
 
 ## Repository settings that matter
 
