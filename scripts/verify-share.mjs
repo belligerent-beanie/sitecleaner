@@ -16,8 +16,8 @@ let failures = 0;
 const check = (name, ok, detail = "") => { console.log(`${ok ? "PASS" : "FAIL"}  ${name}${ok ? "" : "  " + detail}`); if (!ok) failures++; };
 
 const unzip = (zip, to) => {
-  if (process.platform === "win32") execFileSync("powershell", ["-NoProfile", "-Command", `Expand-Archive -LiteralPath "${zip}" -DestinationPath "${to}" -Force`]);
-  else execFileSync("unzip", ["-q", "-o", zip, "-d", to]);
+  if (process.platform === "win32") execFileSync(path.join(process.env.SystemRoot || "C:/Windows", "System32", "WindowsPowerShell", "v1.0", "powershell.exe"), ["-NoProfile", "-Command", `Expand-Archive -LiteralPath "${zip}" -DestinationPath "${to}" -Force`]);
+  else execFileSync("/usr/bin/unzip", ["-q", "-o", zip, "-d", to]);
 };
 const tree = (dir, prefix = "") => fs.readdirSync(dir).flatMap((name) => { const full = path.join(dir, name); return fs.statSync(full).isDirectory() ? tree(full, prefix + name + "/") : [prefix + name]; });
 const editions = [
