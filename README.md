@@ -58,6 +58,15 @@ any AI tool's rules) that teaches an AI how to read a list and apply it to a pro
 
 Press `?` in the picker for every shortcut.
 
+## Documentation
+
+| | |
+|---|---|
+| [docs/OVERVIEW.md](docs/OVERVIEW.md) | What it is, who it is for, what it can do, where it is meant to be used, the three editions side by side |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Layers, the browser APIs it depends on, data and messages, flows, build, tests, porting notes |
+| [docs/EDITIONS.md](docs/EDITIONS.md) | Why there are several editions and how Keep works |
+| [docs/CI_DESIGN.md](docs/CI_DESIGN.md), [docs/PERFORMANCE.md](docs/PERFORMANCE.md) | Continuous integration; performance |
+
 ## Install
 
     node scripts/build.mjs        # makes dist/
