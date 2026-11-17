@@ -18,7 +18,7 @@
       .replace(/#[0-9a-f]{6}\b/gi, (hex) => { const [r, g, b] = parseHex(hex); return mode === "rgb" ? `rgb(${r}, ${g}, ${b})` : hslText(r, g, b); })
       .replace(/rgba\((\d+), (\d+), (\d+), ([\d.]+)\)/g, (all, r, g, b, a) => (mode === "rgb" ? all : hslText(+r, +g, +b, a)));
   };
-  const EXPORT_PROPS = ["background-color", "color", "font-size", "font-weight", "font-style", "line-height", "letter-spacing", "text-align", "border", "border-radius", "box-shadow", "padding", "margin", "width", "height", "display", "flex-direction", "flex-wrap", "justify-content", "align-items", "justify-items", "gap", "opacity", "position", "top", "left", "z-index", "background-image"];
+  const EXPORT_PROPS = ["background-color", "color", "font-size", "font-weight", "font-style", "line-height", "letter-spacing", "text-align", "border", "border-radius", "box-shadow", "padding", "margin", "width", "height", "display", "flex-direction", "flex-wrap", "justify-content", "align-items", "justify-items", "gap", "opacity", "position", "top", "left", "z-index", "background-image", "background-size", "background-position", "background-repeat", "overflow", "max-height"];
   /** One text block per changed element: its selector (and a snippet of its text to confirm it), then each before → after. */
   function exportBlocks() {
     const blocks = [];

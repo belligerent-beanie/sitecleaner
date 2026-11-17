@@ -128,7 +128,7 @@
 .dz-head strong { flex: 1 1 calc(100% - 104px); }   /* the Tutorial button sits beside it, on the same row */   /* the name of what is selected gets its own row: the links beside it would squeeze it to nothing ("3 elements" read "3.") */
 
 /* Find, Tone, alignment guides */
-.dz-find { width: 100% !important; }
+.dz-find, .dz-wide { width: 100% !important; }
 .dz-guides { position: fixed; inset: 0; pointer-events: none; }
 .dz-g-line { position: fixed; background: #ff5ca8; opacity: 0.7; pointer-events: none; }
 .dz-g-box { position: fixed; outline: 1px dashed #ff5ca8; background: rgba(255, 92, 168, 0.08); pointer-events: none; }
@@ -138,7 +138,7 @@
 
 /* Replacing images: the picture a dropped file would replace, and the file chooser */
 .dz-drop { outline: 3px solid #2ecc71; background: rgba(46, 204, 113, 0.12); }
-.dz-file { width: 100%; color: var(--dz-fg); font: inherit; }
+.dz-file, .dz-filewide { width: 100%; color: var(--dz-fg); font: inherit; }
 
 /* The shortcuts panel */
 .dz-keys { gap: 3px; }
@@ -183,3 +183,26 @@
 .dz-lost code { color: var(--dz-accent-text); }
 .dz-kept-intro { padding: 6px 8px; border: 1px solid var(--dz-border); border-radius: 8px; }
 @media (pointer: coarse) { .dz-menu-button, .dz-link { min-height: 40px !important; padding-left: 12px !important; padding-right: 12px !important; } }   /* a finger, not a pointer */
+
+/* the element palette */
+.dz-elements { max-height: 60vh; overflow: auto; }
+.dz-group-title { margin: 6px 0 2px; color: var(--dz-muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
+.dz-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 6px; }
+.dz-tile { display: grid; grid-template-columns: minmax(0, 1fr); gap: 3px; min-width: 0; margin: 0 !important; padding: 6px !important; border: 1px solid var(--dz-border) !important; border-radius: 8px !important; background: var(--dz-field) !important; color: var(--dz-fg) !important; font: inherit !important; text-align: left !important; cursor: grab !important; touch-action: none; user-select: none; }
+.dz-tile:hover { background: var(--dz-field-hover) !important; }
+.dz-tile-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
+.dz-tile-note { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--dz-muted); font-size: 11px; }
+.dz-swatch { display: flex; width: 100%; min-width: 0; align-items: center; justify-content: center; height: 40px; overflow: hidden; padding: 0 6px; border-radius: 4px; background: #ffffff; color: #1b1b21; white-space: nowrap; line-height: 1.1; }
+.dz-swatch img { max-width: 100%; max-height: 100%; pointer-events: none; -webkit-user-drag: none; }
+.dz-dropparent { outline: 2px dashed #3ecf8e; background: rgba(62, 207, 142, 0.08); }
+.dz-droptag { position: absolute; left: 0; top: -20px; padding: 1px 6px; border-radius: 4px; background: #3ecf8e; color: #10231a; font-size: 11px; white-space: nowrap; }
+.dz-dropline { background: #3ecf8e; box-shadow: 0 0 0 1px rgba(16, 35, 26, 0.6); }
+.dz-ghost { position: fixed; z-index: 3; pointer-events: none; padding: 4px 8px; border-radius: 6px; background: #3ecf8e; color: #10231a; font-size: 12px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35); }
+.dz-ghost-no { background: #ff8a80; }
+.dz-dropblocked { outline: 2px dashed #ffb84d; background: rgba(255, 184, 77, 0.12); }
+.dz-dropconvert { outline-color: #ffb84d; background: rgba(255, 184, 77, 0.10); }
+.dz-dropconvert .dz-droptag { background: #ffb84d; }
+.dz-ghost { max-width: 280px; }
+.dz-ghost-warn { display: none; margin-top: 2px; font-size: 11px; white-space: normal; }
+.dz-ghost-warn-on { background: #ffb84d; }
+.dz-ghost-warn-on .dz-ghost-warn { display: block; }

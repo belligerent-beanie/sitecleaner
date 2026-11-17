@@ -45,6 +45,25 @@
     else showToast(`Replaced ${images.length + backgrounds.length > 1 ? images.length + backgrounds.length + " pictures" : "the picture"} with ${shorten(label, 40)}. Ctrl+Z undoes it.`);
     renderDock();
   }
+  // A picture as the background of any element (not only one that has a picture already): cover, contain or tiled; undone, kept and exported like any edit.
+  const bgFit = () => ({ cover: "cover", contain: "contain", tile: "tile" }[host.getPref("bgfit")] || "cover");
+  const bgValues = (src) => { const fit = bgFit(); return { "background-image": `url("${src.replace(/"/g, "%22")}")`, "background-size": fit === "tile" ? "auto" : fit, "background-position": "center", "background-repeat": fit === "tile" ? "repeat" : "no-repeat" }; };
+  function addBackground(list, src, label) {
+    const els = list.filter((el) => el && el.nodeType === 1 && !ours(el) && el !== document.documentElement && el.tagName !== "IMG");
+    if (!els.length) { showToast("Select an element to put the picture behind."); return; }
+    applyBackground(els, bgValues(src));
+    setSelection(els); climbed = [];
+    showToast(`Set ${shorten(label, 30)} as the background of ${els.length > 1 ? els.length + " elements" : label_(els[0])}. Ctrl+Z undoes it.`);
+    renderDock(); refreshBoxes();
+  }
+  const label_ = (el) => label(el);
+  function clearBackground(list) {
+    const els = list.filter((el) => el && el.nodeType === 1 && !ours(el) && hasPicture(el));
+    if (!els.length) { showToast("Nothing to remove: no background picture here."); return; }
+    applyBackground(els, { "background-image": "none" });
+    showToast("Removed the background picture. Ctrl+Z puts it back.");
+    renderDock(); refreshBoxes();
+  }
   const readAsDataUrl = (file) => new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(reader.result);
@@ -70,6 +89,7 @@
   const carriesFiles = (event) => !!event.dataTransfer && [...event.dataTransfer.types].includes("Files");
   window.addEventListener("dragover", (event) => {
     if (!on || !carriesFiles(event) || ours(eventTarget(event))) return;
+    if (paletteFileOver(event)) return;   // the element palette is open: a file is a new picture, unless it is over a picture
     event.preventDefault();   // without this the browser would open the file instead
     const targets = dropTargets(event);
     place(dropBox, targets[0] || null);
@@ -78,6 +98,7 @@
   window.addEventListener("drop", (event) => {
     place(dropBox, null);
     if (!on || !carriesFiles(event) || ours(eventTarget(event))) return;
+    if (paletteFileDrop(event)) return;
     event.preventDefault();
     event.stopPropagation();
     swapFromFiles(event.dataTransfer.files, dropTargets(event));
@@ -97,6 +118,28 @@
       swapImages(imageTargetsOf(selection), value, value);
     };
     address.addEventListener("keydown", (event) => { if (event.key === "Enter") { event.preventDefault(); use(); } });
-    return h("div", { class: "dz-panel" }, note, file, address,
+    const panel = h("div", { class: "dz-panel" }, note, file, address,
       h("div", { class: "dz-menu" }, h("button", { type: "button", class: "dz-menu-button", text: "Use this address", disabled: !found.length, onclick: use })));
+    // a picture behind any element
+    const anyTarget = selection.filter((el) => !ours(el) && el.tagName !== "IMG");
+    const bgFile = h("input", { type: "file", accept: "image/*", class: "dz-filewide", "aria-label": "Choose a background picture", disabled: !anyTarget.length });
+    bgFile.addEventListener("change", async () => {
+      const f = bgFile.files[0];
+      bgFile.value = "";
+      if (!f || !/^image\//.test(f.type)) return;
+      try { const item = await pictureFromFile(f); keepPicture(item); addBackground(selection, item.src, item.label); } catch (_) { showToast("The file could not be read."); }
+    });
+    const bgAddress = h("input", { type: "url", class: "dz-hex dz-wide", placeholder: "https://…/background.jpg", "aria-label": "Background picture address", disabled: !anyTarget.length });
+    const useBg = () => { const item = pictureFromAddress(bgAddress.value.trim()); if (item) { keepPicture(item); addBackground(selection, item.src, item.label); } };
+    bgAddress.addEventListener("keydown", (event) => { if (event.key === "Enter") { event.preventDefault(); useBg(); } event.stopPropagation(); });
+    panel.append(h("div", { class: "dz-group-title", text: "Background picture" }),
+      h("p", { class: "dz-hint", text: anyTarget.length ? `A picture behind ${selection.length > 1 ? "the selection" : label(selected)}. It is also a drop target: choose "Background" in the Elements panel and drop pictures on the page.` : "Select an element to put a picture behind it." }),
+      bgFile, bgAddress,
+      h("div", { class: "dz-menu" },
+        ...[["cover", "Fill"], ["contain", "Fit"], ["tile", "Tile"]].map(([fit, text]) => h("button", { type: "button", class: "dz-menu-button" + (bgFit() === fit ? " dz-active" : ""), text, "aria-pressed": String(bgFit() === fit), disabled: !anyTarget.length,
+          title: { cover: "Fill the element, cropping if needed", contain: "Show the whole picture inside the element", tile: "Repeat the picture at its own size" }[fit],
+          onclick: () => { host.setPref("bgfit", fit); const picked = anyTarget.filter((el) => hasPicture(el)); if (picked.length) { const cur = picked[0]; const m = /url\((.*)\)/.exec(getComputedStyle(cur).backgroundImage); if (m) applyBackground(picked, bgValues(m[1].replace(/^"|"$/g, ""))); } renderDock(); } })),
+        h("button", { type: "button", class: "dz-menu-button", text: "Remove", disabled: !anyTarget.some((el) => hasPicture(el)), onclick: () => clearBackground(selection) })));
+    if (ownPictures.length) panel.append(h("div", { class: "dz-menu" }, ...ownPictures.slice(0, 4).map((item) => h("button", { type: "button", class: "dz-menu-button", text: item.label, disabled: !anyTarget.length, title: "Use this picture as the background", onclick: () => addBackground(selection, item.src, item.label) }))));
+    return panel;
   }

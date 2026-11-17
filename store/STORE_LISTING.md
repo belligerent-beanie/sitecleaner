@@ -81,8 +81,7 @@ and on a site with its own hover and focus styles (CSS Zen Garden is a good one)
 
 1. The shortcut turns the picker on (`chrome://extensions/shortcuts` shows the key; the options page shows it too). The toolbar button does the same.
 2. Click an element, press Enter, change a fill from the palette, read the contrast, undo with Ctrl+Z.
-3. With nothing selected, Tab selects the first element (it does not move into the panel); F6 moves into the panel and back out. Check F6 reaches
-   the page: Chrome may keep the key for itself on some systems.
+3. Tab walks the page as the browser does and carries on into the panel; Shift+Tab on the panel's first control comes back. ← → move between siblings.
 4. Hover and focus: switch the State row to hover, change the fill, move the real pointer over the element; the same with focus and the Tab key.
 5. Delete a paragraph and undo; drag with the Move tool.
 6. Reload: the Changes count is the same, and the edits are back. With **Allow all sites** on, the picker is also still on; without it, press the toolbar button.

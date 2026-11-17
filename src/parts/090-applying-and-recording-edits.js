@@ -37,6 +37,11 @@
           left: cs.left,
           "z-index": cs.zIndex,
           "background-image": cs.backgroundImage,
+          "background-size": cs.backgroundSize,
+          "background-position": cs.backgroundPosition,
+          "background-repeat": cs.backgroundRepeat,
+          overflow: cs.overflow,
+          "max-height": cs.maxHeight,
         },
       };
       };

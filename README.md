@@ -21,7 +21,7 @@ the panel opens it again at any time; page numbers jump to a page, and some page
 other grouping rules, and also lists classes the elements have whose rules it cannot read (a style sheet from another site, or a script): those say so.
 
 **Select.** Click an element; a label with its name and size appears next to it (and stays at the edge of the window, pointing the way, when it is scrolled out of view). Shift-click adds or removes elements and the tools then change all of them at once. `/` finds everything
-that matches a CSS selector (or some words). Walk the page with ↑ parent, ↓ child, Tab siblings; Ctrl+E selects the similar ones.
+that matches a CSS selector (or some words). Walk the page with ↑ parent, ↓ child, ← → siblings; Ctrl+E selects the similar ones. Versions saves the page's edits under a name; flip between two with Alt+Shift+B to see which you prefer.
 
 **Style.** Fill, border, shadow, corner radius, tone (shift the hue, saturation and brightness of a whole selection together); text, font
 (colour, size, weight, bold and italic with Ctrl+B and Ctrl+I, line height, letter spacing, alignment); size (type it, or drag the handles), padding and margin, flex and grid layout,

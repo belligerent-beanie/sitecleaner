@@ -112,13 +112,20 @@
       for (const prop of Object.keys(LAYOUT_OPTIONS)) if (/^[a-z]+(-[a-z]+)*$/.test(after[prop] || "")) layout[prop] = after[prop];
       if (/^\d+(\.\d+)?px$/.test(after.gap || "")) layout.gap = after.gap;
       if (/^(0|1|0?\.\d+)$/.test(after.opacity || "")) layout.opacity = after.opacity;
+      if (/^(visible|hidden|clip|auto|scroll)( (visible|hidden|clip|auto|scroll))?$/.test(after.overflow || "")) layout.overflow = after.overflow;
+      if (/^(none|\d+(\.\d+)?px)$/.test(after["max-height"] || "")) layout["max-height"] = after["max-height"];
+      if (after.height === "auto") layout.height = "auto";
       if (Object.keys(layout).length) applyLayout(element, layout);
       const place = {};
       if (POSITIONS.includes(after.position)) place.position = after.position;
       for (const prop of ["top", "left"]) if (/^-?\d+(\.\d+)?px$/.test(after[prop] || "")) place[prop] = after[prop];
       if (/^-?\d+$/.test(after["z-index"] || "")) place["z-index"] = after["z-index"];
       if (Object.keys(place).length) applyPositionOne(element, place);
-      if (/^url\("?(https?:|data:image\/)/i.test(after["background-image"] || "")) applyBackgroundOne(element, { "background-image": after["background-image"] });
+      if (/^url\("?(https?:|data:image\/)/i.test(after["background-image"] || "")) {
+        const bg = { "background-image": after["background-image"] };
+        for (const prop of ["background-size", "background-position", "background-repeat"]) if (/^[a-z0-9%., -]{1,40}$/i.test(after[prop] || "")) bg[prop] = after[prop];
+        applyBackgroundOne(element, bg);
+      }
       if (item.text && typeof item.text.after === "string" && !element.children.length) applyText(element, item.text.after);
       const rec = changes.get(element);
       if (rec) {   // "before" is how it was when the designer first changed it, not how it looks after a reload
