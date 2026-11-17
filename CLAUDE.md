@@ -28,6 +28,11 @@ For hypotheticals specifically:
 
 ## Keep the docs current
 
+`bun run test:docs` checks the documents against the code and the `docs` job in CI requires it. Run it after touching docs or the code they describe. It fails on a broken
+link or anchor, a path, `file:line`, script, flag or part number that does not exist, and on a `chrome.*` API, message type or storage key that `docs/ARCHITECTURE.md`
+and `extension/` disagree on. **When it fails, fix the document or the reference, not the check.** Write file references in `code` so they are checked;
+`bun run docs` builds the site from the same files (published to GitHub Pages when `main` changes).
+
 When a change alters what the docs describe, update them in the same commit:
 - a feature added, removed or moved between editions: `docs/OVERVIEW.md` (capabilities and the edition matrix) and the `EDITIONS` list in `scripts/build.mjs`
 - a browser API, storage key, message type or content script added or removed: `docs/ARCHITECTURE.md`
@@ -38,5 +43,5 @@ When a change alters what the docs describe, update them in the same commit:
 - Keep browser API calls out of `src/parts/`; they belong in `extension/` behind the host adapter (`src/parts/010-where-it-runs.js`).
 - Avoid Chrome-only APIs (`sidePanel`, `offscreen`, `debugger`, `userScripts`) so a port stays small.
 - Changes to the page go through the `apply…` functions and `doOps`, so they are undone, kept and exported for free.
-- Tests: `bun run test` must pass (end-to-end, editions, keep, access, stress, accessibility). `bun run smoke` is by hand, before a release.
+- Tests: `bun run test` must pass (end-to-end, editions, keep, access, stress, accessibility), and `bun run test:docs` for anything that touches documents or the code they describe. `bun run smoke` is by hand, before a release.
 - Build: `node scripts/build.mjs [--edition designer|studio|consumer]`.

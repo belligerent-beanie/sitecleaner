@@ -1,0 +1,23 @@
+// Markdown lint for the documents (README.md, CLAUDE.md, docs/, store/PRIVACY.md). Deliberately a short list: only rules that catch a document that is
+// broken (a table with the wrong number of columns, a link with nothing in it, a picture with no description, reversed link syntax), not matters of taste.
+// Add a rule here only after running the linter on every document, so a new rule does not fail work nobody touched.
+{
+  "config": {
+    "default": false,
+    "MD011": true,   // reversed link syntax: (text)[url]
+    "MD018": true,   // a space after the # of a heading
+    "MD019": true,   // only one space after it
+    "MD023": true,   // headings start at the beginning of the line
+    "MD037": true,   // no spaces inside emphasis markers
+    "MD039": true,   // no spaces inside link text
+    "MD042": true,   // no empty links
+    "MD045": true,   // pictures have a description
+    "MD052": true,   // reference links point at a definition
+    "MD053": true,   // and every definition is used
+    "MD056": true    // every row of a table has the same number of columns
+  },
+  "globs": ["README.md", "CLAUDE.md", "docs/*.md", "store/PRIVACY.md"],
+  "gitignore": true,
+  "noBanner": true,
+  "noProgress": true
+}

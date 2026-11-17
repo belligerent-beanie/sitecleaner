@@ -6,20 +6,20 @@ How the extension is built, what it needs from the browser, and what would have 
 ## The layers
 
 ```
- ┌──────────────────────────────────────────────────────────────┐
- │ Editor (src/parts/*.js → designer.js)      plain DOM code      │  no chrome.* calls
- │   tools, history, selectors, export, UI in a Shadow DOM        │
- ├──────────────────────────────────────────────────────────────┤
- │ Host adapter (src/parts/010 + extension/host.js)               │  the only bridge
- │   storage, mounting, previews, screenshots, keep               │
- ├──────────────────────────────────────────────────────────────┤
- │ Content scripts: host.js, readable.js, restore.js, apply.js    │  chrome.storage, runtime
- ├──────────────────────────────────────────────────────────────┤
- │ Service worker (extension/background.js)                       │  tabs, scripting, permissions,
- │   toolbar, injection, permissions, previews, kept sites        │  windows, action, contextMenus
- ├──────────────────────────────────────────────────────────────┤
- │ Extension pages: options, keep, cannot (.html + .js)           │
- └──────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│ Editor (src/parts/*.js -> designer.js): plain DOM code       │  no chrome.* calls
+│   tools, history, selectors, export, UI in a Shadow DOM      │
+├──────────────────────────────────────────────────────────────┤
+│ Host adapter (src/parts/010 + extension/host.js)             │  the only bridge
+│   storage, mounting, previews, screenshots, keep             │
+├──────────────────────────────────────────────────────────────┤
+│ Content scripts: host.js, readable.js, restore.js, apply.js  │  chrome.storage, runtime
+├──────────────────────────────────────────────────────────────┤
+│ Service worker (extension/background.js)                     │  tabs, scripting, permissions,
+│   toolbar, injection, permissions, previews, kept sites      │  windows, action, contextMenus
+├──────────────────────────────────────────────────────────────┤
+│ Extension pages: options, keep, cannot (.html + .js)         │
+└──────────────────────────────────────────────────────────────┘
 ```
 
 **The editor knows nothing about the browser's extension system.** It asks a `host` object for storage, a place to mount, previews and screenshots.
@@ -88,8 +88,10 @@ at most 2,000 rules) because the page cannot be trusted, and the origin always c
 
 ## Messages
 
-Content script → worker (`chrome.runtime.sendMessage`): `who`, `on`, `restore`, `preview`, `capture`, `keep`, `keep-info`, `keep-confirm`,
-`keep-remove`, `keep-enable`, `keep-remove-preset`, `keep-repick`.
+Editor and content scripts → worker (`chrome.runtime.sendMessage`): `who`, `on`, `restore`, `preview`, `capture`, `keep`, `keep-remove`, `keep-enable`, `keep-remove-preset`, `keep-repick`.
+Loader → worker: `stale` (rules that match nothing on this page).
+Keep window → worker: `keep-info`, `keep-confirm`, `keep-cancel`.
+Options page → worker: `site-sync` (a site was switched on or off, or forgotten).
 Worker → content script (`chrome.tabs.sendMessage`): `toggle`, `ping`, `set`.
 
 ## Flows
@@ -118,15 +120,15 @@ This table is the starting point for a port. "Where" is the only place to change
 | API | Used for | Where |
 |---|---|---|
 | `action.onClicked`, `setBadgeText`, `setTitle`, `setPopup`, `openPopup` | Toolbar toggle; "cannot run here" explanation | `background.js` |
-| `commands` (`_execute_action`, Alt+Shift+P) | Keyboard toggle | manifest |
+| `commands` (`_execute_action`, Alt+Shift+P); `commands.getAll` | Keyboard toggle; the options page shows the shortcut in use | manifest, `options.js` |
 | `scripting.executeScript` | Inject the editor; measure window frame for previews | `background.js` |
-| `scripting.registerContentScripts`, `update…`, `unregister…`, `getRegistered…` | Restorer (all sites); per-site loader | `background.js` |
+| `scripting.registerContentScripts`, `scripting.updateContentScripts`, `scripting.unregisterContentScripts`, `scripting.getRegisteredContentScripts` | Restorer (all sites); per-site loader | `background.js` |
 | `permissions.contains`, `request`, `remove`, `onAdded`, `onRemoved`; `optional_host_permissions` | All-sites switch; per-site allow | `background.js`, `options.js`, `keep.js` |
 | `storage.local`, `storage.session`, `storage.onChanged` | Edits, kept sites, state that must outlive the worker | `host.js`, `background.js`, `options.js` |
-| `runtime.sendMessage`, `onMessage`, `getURL`, `getManifest`, `onInstalled`, `onStartup`; `tabs.sendMessage` | Messaging and lifecycle | all |
-| `tabs.query`, `onUpdated`, `onRemoved`, `onActivated`, `captureVisibleTab` | Re-enable after reload, previews, screenshots | `background.js` |
+| `runtime.sendMessage`, `runtime.onMessage`, `runtime.getURL`, `runtime.getManifest`, `runtime.onInstalled`, `runtime.onStartup`, `runtime.lastError`; `tabs.sendMessage` | Messaging and lifecycle (`lastError` is read in the callback form `contextMenus` needs on older Chrome) | all |
+| `tabs.query`, `tabs.get`, `tabs.onUpdated`, `tabs.onRemoved`, `tabs.onActivated`, `tabs.captureVisibleTab` | Re-enable after reload, previews, screenshots, the icon's state on the active tab | `background.js` |
 | `windows.create`, `windows.update` | Preview windows; keep window; fallback explanation window | `background.js` |
-| `contextMenus` | Personal: switch a site's changes off or on | `background.js` |
+| `contextMenus.create`, `contextMenus.update`, `contextMenus.removeAll`, `contextMenus.onClicked` | Personal: switch a site's changes off or on | `background.js` |
 | `options_ui` (opens in a tab) | Options page | manifest |
 
 Web platform features it also depends on: Shadow DOM (the UI is isolated from the page's CSS), constructed stylesheets and `adoptedStyleSheets` (immune to page
@@ -163,9 +165,25 @@ Minimum Chrome version is 114. Branded Chrome no longer loads unpacked extension
 | `bun run test:keep`, `test:access` | Keep and the loader; the Easier-to-read settings |
 | `bun run test:stress` | Many kept sites, many edits, many rules, a full store |
 | `bun run test:a11y`, `test:a11y:consumer` | axe-core audit of every tool and panel, both looks, no violations allowed |
+| `bun run test:docs` | The documentation against the code (see Documentation below) |
 | `bun run smoke` | Real sites; needs the network; run by hand before a release |
 
 CI design: [CI_DESIGN.md](CI_DESIGN.md). Performance notes: [PERFORMANCE.md](PERFORMANCE.md).
+
+## Documentation
+
+The documents are checked and published like code. Sources: `README.md`, `docs/*.md`, `CLAUDE.md` and `store/PRIVACY.md`.
+
+| Step | Where it runs | What it catches |
+|---|---|---|
+| `bun run test:docs` (`scripts/check-docs.mjs`) | The `docs` job in `.github/workflows/test.yml`, on every pull request and push | Links and `#anchors` that point nowhere; a file written in `code` that does not exist, or a `file:line` past the end of the file; a `bun run` script or a `node scripts/...` flag or edition that is not there; a `010`-style part number with no file; a function or variable name that is not in the source |
+| The same script, against this file | Same | **Both ways:** a `chrome.*` API, a message type or a storage key used in `extension/` but missing here, or listed here but no longer used. This is what stops this document going stale |
+| markdownlint (`.markdownlint-cli2.jsonc`) | Same | A short list of rules that find broken Markdown (table columns, empty links, pictures without a description). It is not a style guide |
+| `bun run docs` (`scripts/build-docs.mjs`) | Same, and `.github/workflows/pages.yml` | The site builds, every picture exists, and no Markdown is left unconverted |
+| Publish | `.github/workflows/pages.yml`, when `main` changes | Deploys the site to GitHub Pages |
+
+The `docs` job is part of the required `result` check in `test.yml`, so a document that is wrong cannot be merged. A change that touches only documentation skips the
+browser suite and runs these steps alone, which takes seconds. A change to the code that makes a document wrong fails the same way, which is the point.
 
 ## Provenance
 
