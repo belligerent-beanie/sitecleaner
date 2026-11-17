@@ -19,9 +19,25 @@ async function toggle(tab) {
       await inject(tab.id);
       await chrome.tabs.sendMessage(tab.id, { type: "toggle" });
     } catch (_error) {   // chrome:// pages, the Web Store, a PDF: the browser does not allow it
-      chrome.action.setBadgeText({ tabId: tab.id, text: "×" });
-      chrome.action.setTitle({ tabId: tab.id, title: "The SiteCleaner cannot run on this page" });
+      await explainRefusal(tab);
     }
+  }
+}
+/** The page refused us: say so, and why, instead of doing nothing. Chrome often hides the address of such a page, so the explanation may be general. */
+async function explainRefusal(tab) {
+  const name = chrome.runtime.getManifest().name;
+  try {   // awaited, so the cross and the tooltip are both in place before anything reads them (Chrome 114 sometimes lagged on the tooltip); a tab that has gone is not an error
+    await chrome.action.setBadgeText({ tabId: tab.id, text: "×" });
+    await chrome.action.setTitle({ tabId: tab.id, title: `${name} cannot run on this page (click to see why)` });
+  } catch (_) { return; }
+  const popup = "cannot.html" + (tab.url ? "?u=" + encodeURIComponent(tab.url) : "");
+  try { await chrome.action.setPopup({ tabId: tab.id, popup }); } catch (_) { return; }   // from now on, clicking the icon on this tab shows the explanation (it is forgotten when the tab goes elsewhere)
+  // Chrome 127 and later can open the toolbar popup from here. Older ones cannot (and a popup can be refused for other reasons): show the same page in a small window instead.
+  try {
+    if (typeof chrome.action.openPopup !== "function") throw new Error("openPopup is not there");
+    await chrome.action.openPopup();
+  } catch (_) {
+    try { await chrome.windows.create({ url: chrome.runtime.getURL(popup), type: "popup", width: 380, height: 420 }); } catch (__) { /* no window to show it in: the badge, the tooltip and the next click still say it */ }
   }
 }
 chrome.action.onClicked.addListener(toggle);
@@ -303,7 +319,8 @@ async function refreshSiteUi(tabId) {
   const host = site ? new URL(site.origin).host : "";
   const lost = site && site.entry.stale ? site.entry.stale.length : 0;
   chrome.action.setTitle({ tabId, title: site ? `${chrome.runtime.getManifest().name}: my changes are ${site.entry.enabled ? "on" : "off"} for ${host} (${site.entry.rules.length})${lost ? `; ${lost} no longer match this page` : ""}` : defaultTitle() }).catch(() => { /* a tab that is gone */ });
-  if (chrome.contextMenus) chrome.contextMenus.update(SITE_MENU, { enabled: !!site, title: site ? `${site.entry.enabled ? "Switch off" : "Switch on"} my changes on ${host}` : "My changes on this site (nothing kept yet)" }).catch(() => { /* not made yet */ });
+  if (chrome.contextMenus) chrome.contextMenus.update(SITE_MENU, { enabled: !!site, title: site ? `${site.entry.enabled ? "Switch off" : "Switch on"} my changes on ${host}` : "My changes on this site (nothing kept yet)" },
+    () => void chrome.runtime.lastError);   // the callback form, not a promise: Chrome before about 123 returns nothing from this call, so `.catch` on it threw; and a menu not made yet is only an error to be read
 }
 async function toggleSite(tab) {
   const site = tab && (await siteOf(tab.url));

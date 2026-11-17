@@ -1,4 +1,4 @@
-// Builds the unpacked extension: node scripts/build.mjs [--edition designer|consumer] [--out DIR] [--test] [--zip] [--share]
+// Builds the unpacked extension: node scripts/build.mjs [--edition designer|consumer] [--out DIR] [--test] [--zip] [--share] [--beta=N]
 // Two editions are built from the same files: the designer edition (everything; dist/) and the consumer edition (a smaller set of tools; dist-consumer/).
 // An edition is a name, a description and a list of features the picker leaves out (see `has` in src/parts/010-where-it-runs.js).
 // --zip also writes releases/sitecleaner-<version>.zip, the file the Chrome Web Store takes.
@@ -41,7 +41,15 @@ const editionName = args.includes("--edition") ? args[args.indexOf("--edition") 
 if (!EDITIONS[editionName]) throw new Error(`unknown edition "${editionName}": use ${Object.keys(EDITIONS).join(" or ")}`);
 const edition = EDITIONS[editionName];
 const out = path.resolve(args.includes("--out") ? args[args.indexOf("--out") + 1] : path.join(root, edition.dir));
-const version = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8")).version;
+const released = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8")).version;
+// --beta=N builds a test version of what comes after the release in package.json: the next patch number (Chrome needs plain digits there), shown as
+// "0.4.1-beta.N" in chrome://extensions (version_name), in the file names and in the instructions.
+const betaArg = args.find((a) => a.startsWith("--beta="));
+const beta = betaArg ? Number(betaArg.slice(7)) : 0;
+if (betaArg && !(Number.isInteger(beta) && beta > 0)) throw new Error("--beta=N needs a whole number, 1 or more");
+const bumpPatch = (version) => { const dot = version.lastIndexOf("."); return version.slice(0, dot + 1) + (Number(version.slice(dot + 1)) + 1); };   // 0.4.0 -> 0.4.1 (no regular expression to backtrack)
+const version = beta ? bumpPatch(released) : released;
+const label = beta ? `${version}-beta.${beta}` : version;   // what people see: file names, the instructions, version_name
 
 fs.rmSync(out, { recursive: true, force: true });
 fs.mkdirSync(path.join(out, "icons"), { recursive: true });
@@ -53,7 +61,7 @@ const css = shrink(fs.readFileSync(path.join(root, "src", "picker.css"), "utf8")
 fs.writeFileSync(path.join(out, "designer-css.js"), `window.__designerCss = ${JSON.stringify(css)};\n`);
 
 // ---- the extension's own files
-for (const file of ["restore.js", "readable.js", "apply.js", "keep.html", "keep.js", "background.js", "options.html"]) fs.copyFileSync(path.join(ext, file), path.join(out, file));
+for (const file of ["restore.js", "readable.js", "apply.js", "keep.html", "keep.js", "background.js", "options.html", "cannot.html", "cannot.js"]) fs.copyFileSync(path.join(ext, file), path.join(out, file));
 const marked = /\/\*edition\*\/[\s\S]*?\/\*end\*\//;
 for (const file of ["host.js", "options.js"]) {   // the files that need to know which edition they are in
   const source = fs.readFileSync(path.join(ext, file), "utf8");
@@ -62,6 +70,7 @@ for (const file of ["host.js", "options.js"]) {   // the files that need to know
 }
 const manifest = JSON.parse(fs.readFileSync(path.join(ext, "manifest.template.json"), "utf8").replace("__VERSION__", version));
 manifest.name = edition.name;
+if (beta) manifest.version_name = label;
 manifest.permissions = [...manifest.permissions, ...(edition.permissions || [])];
 manifest.description = edition.description;
 if (manifest.description.length > 132) throw new Error(`the manifest description is ${manifest.description.length} characters; the Chrome Web Store allows 132`);
@@ -154,7 +163,7 @@ function zipDirectory(dir) {
 }
 if (makeZip) {
   fs.mkdirSync(path.join(root, "releases"), { recursive: true });
-  const zipPath = path.join(root, "releases", `${edition.zip}-${version}.zip`);
+  const zipPath = path.join(root, "releases", `${edition.zip}-${label}.zip`);
   fs.writeFileSync(zipPath, zipDirectory(out));
   console.log(`Wrote ${zipPath}`);
 }
@@ -168,20 +177,20 @@ if (makeShare) {
   if (test) throw new Error("--share makes the zip for people, which must be the real build: not with --test");
   const share = SHARE[editionName];   // each edition has its own folder name, instructions and zip name
   const stage = fs.mkdtempSync(path.join(os.tmpdir(), "sitecleaner-share-"));
-  const top = path.join(stage, `${share.folder}-${version}`);
+  const top = path.join(stage, `${share.folder}-${label}`);
   fs.mkdirSync(top, { recursive: true });
   fs.cpSync(out, path.join(top, "extension"), { recursive: true });
-  const instructions = fs.readFileSync(path.join(root, "store", share.readme), "utf8").replace(/__VERSION__/g, version).replace(/\r?\n/g, "\r\n");   // CRLF: opens cleanly in Notepad
+  const instructions = fs.readFileSync(path.join(root, "store", share.readme), "utf8").replace(/__VERSION__/g, label).replace(/\r?\n/g, "\r\n");   // CRLF: opens cleanly in Notepad
   fs.writeFileSync(path.join(top, "README - START HERE.txt"), instructions);
   for (const file of ["LICENSE", "NOTICE"]) fs.copyFileSync(path.join(root, file), path.join(top, file));
   fs.mkdirSync(path.join(top, "third_party", "visbug"), { recursive: true });
   for (const file of ["LICENSE", "README.md"]) fs.copyFileSync(path.join(root, "third_party", "visbug", file), path.join(top, "third_party", "visbug", file));
   if (share.skill) fs.cpSync(path.join(root, "skills", "sitecleaner-apply"), path.join(top, "for-AI", "sitecleaner-apply"), { recursive: true });   // the skill reads the designer edition's change lists
   fs.mkdirSync(path.join(root, "releases"), { recursive: true });
-  const sharePath = path.join(root, "releases", `${share.folder}-${version}-share.zip`);
+  const sharePath = path.join(root, "releases", `${share.folder}-${label}-share.zip`);
   fs.writeFileSync(sharePath, zipDirectory(stage));
   fs.rmSync(stage, { recursive: true, force: true });
   console.log(`Wrote ${sharePath}`);
 }
 
-console.log(`Built the ${editionName} extension (version ${version}${test ? ", test build" : ""}) in ${out}`);
+console.log(`Built the ${editionName} extension (version ${label}${test ? ", test build" : ""}) in ${out}`);

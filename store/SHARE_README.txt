@@ -111,9 +111,14 @@ IF SOMETHING GOES WRONG
    Store, the new-tab page or PDF files. Try an ordinary website.
 
  * After reloading a page your edits are back, but SiteCleaner is off - this
-   is normal. To have it come back on by itself, right-click its icon, choose
-   "Options", and press "Allow all sites". SiteCleaner then only checks
-   whether the page you open has saved edits; it reads nothing else.
+   is normal. Out of the box SiteCleaner works only on the tab you click it
+   on (the most private setting). If you would rather not click after every
+   reload, right-click its icon, choose "Options", and press "Allow all
+   sites". Then, for pages you have edited: the edits are put back by
+   themselves, the picker comes back on if it was on, and the screen-size
+   previews work. When a page opens, SiteCleaner only checks whether you
+   have saved edits for it; it reads nothing else, and nothing leaves your
+   computer. You can take the permission away in the same place.
 
  * Chrome shows "Disable developer mode extensions" when it starts - Chrome
    shows this for every extension installed this way. Close the message; do

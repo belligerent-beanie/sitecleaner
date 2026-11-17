@@ -133,3 +133,26 @@ the script now keeps the "what was in the way" line of a click error, so the nex
 ### Not done yet
 
 - A screenshot on a smoke failure (the console output is kept; the end-to-end job already keeps screenshots).
+
+## Betas and Chrome versions (15 November 2026)
+
+Two further workflows, so that less of the release process depends on one person's computer.
+
+**`beta`** (`.github/workflows/beta.yml`, started by hand: Actions, beta, Run workflow, choose the branch). It runs `bun run beta --publish` (`scripts/beta.mjs`):
+builds both editions as the next patch version `-beta.N`, checks the zips the way a person would use them (`scripts/verify-share.mjs`: unzips each, checks the manifest,
+the instructions and the contents, and loads both extensions into one browser), writes the notes from the Unreleased list in `CHANGELOG.md`, and creates the GitHub
+prerelease. It refuses a commit whose `test` workflow has not succeeded, unless `allow_untested` is ticked. The link is in the run's summary. The same command works on
+a computer (`bun run beta` builds and checks without publishing). GitHub only lists a manual workflow once its file is on `main`, so the workflow itself could not be
+run before it was merged; its steps were run from a throwaway branch first (which, through a mistake in how that trial file was made, published a prerelease that was then
+deleted: a reason to keep `--publish` out of anything that is not meant to publish).
+
+**`chrome-versions`** (`.github/workflows/chrome-versions.yml`, on every pull request, by hand, and on Mondays). The browser tests (`bun run test:browser`: end to end, editions,
+keep, easier to read) run in Chrome 114 (the manifest's `minimum_chrome_version`), 127 (the first with `chrome.action.openPopup`), the current stable and the beta. These are Google's
+"Chrome for Testing" builds, which, unlike branded Chrome, accept `--load-extension`; `test/browser.mjs` makes every test launch the program named by `CHROME_PATH`. It reports; it is not
+part of the required check `result`. The accessibility audit does not depend on the browser's version and is not repeated.
+
+What the first local run on Chrome 114 found: the end-to-end suite passed (193 of 193), and the keep suite stopped on a real bug that no other run could show: Chrome before about 123 returns
+nothing from `chrome.contextMenus.update` when called without a callback, so calling `.catch` on it threw, and the Personal edition's right-click entry never updated. It now uses the callback
+form. That is what this workflow is for.
+
+Not done: Windows and macOS runners (the extension is the same, but file paths and the line ends of the zips differ), and an automatic issue when the Monday run fails (the smoke workflow does this).

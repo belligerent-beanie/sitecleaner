@@ -13,7 +13,7 @@ import fs from "node:fs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "..");
-const { chromium } = createRequire(path.join(root, "package.json"))("playwright");
+import { chromium } from "./browser.mjs";
 
 const results = [];
 const check = (name, ok, detail = "") => { results.push({ name, ok }); console.log(`${ok ? "PASS" : "FAIL"}  ${name}${ok ? "" : "  -> " + detail}`); };
@@ -469,10 +469,14 @@ try {
     check("Screenshot saved a PNG of just the selected element, at the screen's pixel density", one.signature === "89504e470d0a1a0a" && Math.abs(one.width - Math.round(box.width * dpr)) <= 2 && Math.abs(one.height - Math.round(box.height * dpr)) <= 2 && /\.png$/.test(one.name), JSON.stringify({ one, box, dpr }));
     check("the picker's dock and outlines are back on screen after the shot", await sh.evaluate(() => document.querySelector("#design-picker-extension-root").shadowRoot.querySelector(".dz-root").style.visibility === ""), "still hidden");
     await sh.keyboard.press("Escape"); await sh.keyboard.press("Escape"); await sh.keyboard.press("Escape");
+    // The picture is as tall as the page's viewport was when it was taken. Chrome 114 on Linux shows an info bar a moment after it starts (a warning about the
+    // --no-sandbox flag Playwright passes) that makes the viewport shorter, so measure it before and after, and accept the picture matching either.
+    const viewBefore = await sh.evaluate(() => [innerWidth, innerHeight]);
     const [whole] = await Promise.all([sh.waitForEvent("download", { timeout: 15000 }), sh.keyboard.press("Alt+Shift+KeyS")]);
     const all = await pngSize(whole);
     const view = await sh.evaluate(() => [innerWidth, innerHeight]);
-    check("with nothing selected, Alt+Shift+S saves the whole visible page", Math.abs(all.width - Math.round(view[0] * dpr)) <= 2 && Math.abs(all.height - Math.round(view[1] * dpr)) <= 2, JSON.stringify({ all, view, dpr }));
+    const matches = (v) => Math.abs(all.width - Math.round(v[0] * dpr)) <= 2 && Math.abs(all.height - Math.round(v[1] * dpr)) <= 2;
+    check("with nothing selected, Alt+Shift+S saves the whole visible page", matches(viewBefore) || matches(view), JSON.stringify({ all, viewBefore, view, dpr }));
     await sh.close();
   }
 
@@ -729,6 +733,12 @@ try {
     eq("F6 moves focus into the picker's panel", await inDock(), true);
     await sp.keyboard.press("F6");
     eq("and F6 again moves it back to the page", await inDock(), false);
+    // Tab walks the page's elements and then carries on into the panel (not a dead end); Shift+Tab on the panel's first control comes back
+    let reached = false;
+    for (let i = 0; i < 12 && !reached; i++) { await sp.keyboard.press("Tab"); reached = await inDock(); }
+    check("Tab past the last element goes on into the panel", reached);
+    await sp.keyboard.press("Shift+Tab");
+    eq("and Shift+Tab on the panel's first control goes back to the page", await inDock(), false);
     await sp.close();
   }
 
@@ -927,7 +937,7 @@ try {
     await cp.locator(".dz-class-filter").fill("til");
     eq("the filter narrows the list", await cp.locator(".dz-class-name").allInnerTexts(), [".tile", ".tiles"]);
     const tilesRow = cp.locator(".dz-class", { has: cp.locator(".dz-class-name:text-is('.tiles')") });
-    check("a class that elements have but no readable rule defines is listed, and says so", /no rule I can read/.test(await tilesRow.locator(".dz-class-file").innerText()) && (await tilesRow.locator("button:text-is('Rules')").count()) === 0, await tilesRow.innerText());
+    check("a class that elements have but no readable rule defines is listed, and says so", /rules not shown/.test(await tilesRow.locator(".dz-class-file").innerText()) && (await tilesRow.locator("button:text-is('Rules')").count()) === 0, await tilesRow.innerText());
     await cp.locator(".dz-class-filter").fill("chip");
     const chipRow = cp.locator(".dz-class", { has: cp.locator(".dz-class-name:text-is('.chip')") });
     check("a rule inside @layer is read too", (await chipRow.locator(".dz-class-file").innerText()) === "/fixture.css", await chipRow.innerText());
@@ -1010,7 +1020,7 @@ try {
     await rp.locator(".dz-dock .dz-head button:text-is('Classes')").click();
     const remoteRow = rp.locator(".dz-class", { has: rp.locator(".dz-class-name:text-is('.remote')") });
     eq("its classes are listed with how many elements have them", [await remoteRow.locator(".dz-num").innerText(), await rp.locator(".dz-class-name").count()], ["×2", 3]);
-    check("each says no rule can be read, and the summary counts them", /no rule I can read/.test(await remoteRow.locator(".dz-class-file").innerText()) && /no rule can be read/.test(await rp.locator(".dz-classes .dz-hint").first().innerText()), await rp.locator(".dz-classes").innerText());
+    check("each says no rule can be read, and the summary counts them", /rules not shown: they are probably in a style sheet from another site/.test(await remoteRow.locator(".dz-class-file").innerText()) && /cannot be shown.*another site.*still work here/s.test(await rp.locator(".dz-classes .dz-hint").first().innerText()), await rp.locator(".dz-classes").innerText());
     await rp.locator(".dz-class-name:text-is('.remote')").click();
     eq("and a click still selects them", await rp.locator(".dz-head strong").first().innerText(), "2 elements");
     await rp.close();
@@ -1068,6 +1078,24 @@ try {
     const options = await second.newPage();
     await options.goto(`chrome-extension://${new URL(worker2.url()).host}/options.html`);
     eq("its options page says previews are not allowed until asked for", await options.locator("#state").innerText(), "not allowed");
+    // a page the browser keeps closed to extensions: the click says so, and why, instead of doing nothing
+    const closed = await second.newPage();
+    await closed.goto("chrome://version");
+    await closed.bringToFront();
+    const closedId = await worker2.evaluate(async () => { const [t] = await chrome.tabs.query({ active: true, lastFocusedWindow: true }); await toggle({ id: t.id }); return t.id; });
+    await closed.waitForTimeout(500);
+    const state = await worker2.evaluate(async (id) => ({ badge: await chrome.action.getBadgeText({ tabId: id }), popup: await chrome.action.getPopup({ tabId: id }), title: await chrome.action.getTitle({ tabId: id }) }), closedId);
+    check("on a page closed to extensions the icon shows a cross and says why when clicked", state.badge === "×" && /cannot\.html$/.test(state.popup) && /cannot run on this page/.test(state.title), JSON.stringify(state));
+    const explain = async (address) => { const ep = await second.newPage(); await ep.goto(`chrome-extension://${new URL(worker2.url()).host}/cannot.html` + (address ? "?u=" + encodeURIComponent(address) : "")); const text = await ep.locator("#why").innerText(); await ep.close(); return text; };
+    const reasons = [await explain("chrome://settings"), await explain("https://chromewebstore.google.com/detail/x"), await explain("https://example.com/paper.pdf"), await explain("file:///C:/a.html"), await explain("https://example.com/"), await explain("")];
+    check("the explanation names the kind of page", /browser's own pages/.test(reasons[0]) && /extension store/.test(reasons[1]) && /PDF/.test(reasons[2]) && /file on your computer/.test(reasons[3]) && /did not allow/.test(reasons[4]) && /does not allow extensions/.test(reasons[5]), reasons.join(" | "));
+    // Chrome before 127 cannot open the toolbar popup from the worker: the same explanation then opens in a small window
+    for (const page of second.pages()) if (/cannot\.html/.test(page.url())) await page.close();
+    await worker2.evaluate(() => { chrome.action.openPopup = undefined; });
+    await worker2.evaluate(async (id) => { await explainRefusal({ id, url: "chrome://version/" }); }, closedId);
+    let windowed = false;
+    for (let i = 0; i < 30 && !windowed; i++) { windowed = second.pages().some((page) => /cannot\.html\?u=chrome/.test(page.url())); if (!windowed) await closed.waitForTimeout(100); }
+    check("without openPopup (older Chrome) the explanation opens in a small window instead", windowed);
   } catch (error) {
     check("the shipping build loads", false, error.message);
   } finally {

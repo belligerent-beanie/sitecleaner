@@ -1,0 +1,67 @@
+# The `beta` workflow (docs/CI_DESIGN.md): makes a beta of a branch on GitHub's computers and publishes it as a prerelease.
+# Start it from the Actions tab: beta > Run workflow, and choose the branch in "Use workflow from". It runs `bun run beta --publish`
+# (scripts/beta.mjs): builds both editions as the next patch `-beta.N`, checks the zips by unzipping them and loading both extensions
+# into a real browser, and creates the prerelease with the notes taken from CHANGELOG.md. The link is in the run's summary.
+# It refuses a commit whose `test` workflow has not succeeded, unless told otherwise.
+name: beta
+
+on:
+  workflow_dispatch:
+    inputs:
+      allow_untested:
+        description: Make the beta even though the tests have not passed for this commit (a beta of work in progress)
+        type: boolean
+        default: false
+
+permissions:
+  contents: write   # creates the prerelease and its tag
+  actions: read     # reads whether the tests passed for this commit
+
+concurrency:
+  group: beta
+  cancel-in-progress: false   # two betas at once would pick the same number
+
+jobs:
+  beta:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      # Actions are pinned to commits, as in test.yml.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
+      - run: bun install --frozen-lockfile --ignore-scripts
+      - run: bunx playwright@1.65.0 install --with-deps chromium
+
+      - name: The tests passed for this commit
+        if: ${{ !inputs.allow_untested }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          passed=$(gh run list --workflow test.yml --commit "$GITHUB_SHA" --json conclusion --jq '[.[] | select(.conclusion == "success")] | length')
+          if [ "$passed" = "0" ]; then
+            echo "::error::The tests have not passed for ${GITHUB_SHA::7}. Wait for the test workflow on this commit to finish, or run this again with allow_untested ticked."
+            exit 1
+          fi
+
+      - name: Build, check and publish the beta, under a virtual display
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: xvfb-run --auto-servernum --server-args="-screen 0 1280x1024x24" bun run beta --publish 2>&1 | tee beta-output.txt
+
+      - name: Put the link in the run's summary
+        if: success()
+        shell: bash
+        run: |
+          url=$(grep -o 'https://github.com/[^ ]*releases/tag/[^ ]*' beta-output.txt | tail -1)
+          { echo "### Beta published"; echo; echo "$url"; echo; echo "Download both zips from that page, unzip, and load the \`extension\` folder as the instructions inside say."; } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: beta-output
+          path: |
+            beta-output.txt
+            releases/notes-*.md
+          retention-days: 14

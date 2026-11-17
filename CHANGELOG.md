@@ -7,11 +7,20 @@ Every released version, and everything that is waiting for one. Newest first. Da
 - **The number** lives in `package.json` (the build copies it into the extension's manifest). It changes only in a pull request that is about a release.
 - **A release** is a git tag `vX.Y.Z` on `main` and a [GitHub release](https://github.com/belligerent-beanie/sitecleaner/releases) with two files: `SiteCleaner-X.Y.Z-share.zip` (for people: extension, install instructions, licences, skill) and `sitecleaner-X.Y.Z.zip` (the Web Store package). Both are built by `bun run share` and carry a checksum in the release notes.
 - **Changes in waiting** are listed under "Unreleased" below, each with the pull request that holds it. When one merges, its entry moves under the version that ships it. Pull requests that change behaviour add their entry here.
+- **A beta** is a prerelease tagged `vX.Y.Z-beta.N`, made with `bun run beta`. A pull request that changes behaviour is merged only after the beta has been tried in real Chrome.
 - **The tutorial** (`TUTORIAL_VERSION` in `src/parts/240-the-guide.js`) has its own number: people who have seen an older one see the new one once.
 
 ## Unreleased
 
-Nothing: everything merged is in 0.4.0.
+Changes in waiting:
+
+- **Tab is no longer a dead end.** Tab walked the page's blocks and stopped at the last one. It now carries on into the picker's panel, and Shift+Tab on the panel's first control comes back to the page. F6 still jumps in and out at once.
+- **Pages that cannot be changed are recognised.** On a page the browser keeps closed to extensions (its own pages, the Web Store, PDFs, files), clicking the icon now opens a small explanation of why and what to do, and the icon says so when you hover it. Before, it only showed a cross. Chrome before 127 cannot open the toolbar popup from the extension, so there the same explanation opens in a small window.
+- **Classes the picker cannot read are explained.** The classes panel says which style sheets the browser keeps closed (another site's), says the classes still work (select and restyle), and what is missing (the original rules in the list and the export).
+- **"Allow all sites" says what it does for you** (the Options page and the install instructions): edits come back and the picker switches on by itself after a reload, previews work; and what it reads and how to take it away.
+- **Making a beta is one command** (`bun run beta`): it builds both editions as the next patch version, `-beta.N`, checks the zips by unzipping them and loading both extensions into a real browser (`scripts/verify-share.mjs`), and writes the release notes from this list. `bun run beta --publish` also creates the GitHub prerelease, and refuses unless the work is committed and pushed. The build takes `--beta=N`.
+- **A beta can be made on GitHub** (Actions, beta, Run workflow), and the browser tests run against Chrome 114, 127, the current stable and the beta on every pull request (`chrome-versions`), not only the Chromium Playwright installs.
+- **Fixed on Chrome before about 123 (Personal edition):** the right-click menu entry for switching a site's changes off or on stopped updating, because the code expected a result that older Chrome does not return. Found by the Chrome 114 run.
 
 ## 0.4.0 (2026-11-14)
 

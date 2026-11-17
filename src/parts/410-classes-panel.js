@@ -4,6 +4,7 @@
   let classCache = null;     // [{name, count, files, rules}], built when the panel is opened (or refreshed): reading every style sheet is not free
   let classFilter = "";
   let classUnused = false;   // also list classes no element has
+  let classBlocked = [];     // the style sheets the browser would not let us read (another site's), by name: the reason some classes have no rules to show
   const CLASS_SHOWN = 80;    // rows drawn at once; the filter finds the rest
   const LINE = String.fromCharCode(10);
 
@@ -30,7 +31,8 @@
         } catch (_) { /* a rule the browser will not let us read */ }
       }
     };
-    for (const sheet of document.styleSheets) { try { visit(sheet.cssRules, sheetName(sheet)); } catch (_) { /* another origin's style sheet: its classes still show below, from the elements that have them */ } }
+    classBlocked = [];
+    for (const sheet of document.styleSheets) { try { visit(sheet.cssRules, sheetName(sheet)); } catch (_) { classBlocked.push(sheetName(sheet)); /* another origin's style sheet: its classes still show below, from the elements that have them */ } }
     // What the elements have: the count of each class, and the classes whose rules could not be read (another site's style sheet, a script)
     const used = new Map();
     for (const element of document.querySelectorAll("[class]")) {
@@ -57,7 +59,7 @@
       const all = classCache.filter((entry) => (classUnused || entry.count > 0) && entry.name.toLowerCase().includes(needle));
       const inUse = classCache.filter((entry) => entry.count > 0).length;
       const blind = classCache.filter((entry) => entry.unreadable).length;
-      summary.textContent = `${inUse} classes in use, ${classCache.length - inUse} defined but not used on this page.${blind ? ` For ${blind} of the ones in use no rule can be read.` : ""} Click one to select every element that has it.`;
+      summary.textContent = `${inUse} classes in use, ${classCache.length - inUse} defined but not used on this page.${blind ? ` For ${blind} of the ones in use the rules cannot be shown${classBlocked.length ? `: the browser does not let the picker read ${classBlocked.length === 1 ? "this style sheet from another site" : "these style sheets from other sites"} (${[...new Set(classBlocked)].slice(0, 3).join(", ")}${new Set(classBlocked).size > 3 ? ", …" : ""})` : " (set by a script, or in a style sheet the browser keeps closed)"}. They still work here: click one to select its elements and restyle them; only the original rules are missing from the list and the export.` : ""} Click one to select every element that has it.`;
       list.replaceChildren();
       for (const entry of all.slice(0, CLASS_SHOWN)) {
         const rule = h("pre", { class: "dz-preview dz-class-rule", hidden: true, tabindex: "0", role: "region", "aria-label": `Rules for .${entry.name}`,
@@ -76,7 +78,7 @@
           } });
         list.append(h("div", { class: "dz-class" },
           h("div", { class: "dz-class-row" }, name, h("span", { class: "dz-num", text: `×${entry.count}` }), ...(toggle ? [toggle] : [])),
-          h("p", { class: "dz-hint dz-class-file", text: entry.files.size ? [...entry.files].join(", ") : "no rule I can read: another site's style sheet, or set by a script" }), ...(toggle ? [rule] : [])));
+          h("p", { class: "dz-hint dz-class-file", text: entry.files.size ? [...entry.files].join(", ") : classBlocked.length ? "rules not shown: they are probably in a style sheet from another site" : "rules not shown: set by a script, or in a style sheet the browser keeps closed" }), ...(toggle ? [rule] : [])));
       }
       if (all.length > CLASS_SHOWN) list.append(h("p", { class: "dz-hint", text: `… and ${all.length - CLASS_SHOWN} more: type to narrow the list.` }));
       if (!all.length) list.append(h("p", { class: "dz-hint", text: classCache.length ? "No class matches." : "This page's style sheets define no classes that can be read." }));
