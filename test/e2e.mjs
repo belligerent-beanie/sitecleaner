@@ -322,7 +322,8 @@ try {
       for (let i = 0; i < 12; i++) { const p = document.createElement("p"); p.textContent = "line " + i; box.append(p); }
       document.querySelector("main").append(box);
     });
-    await mp.locator("#scroller").click({ position: { x: 3, y: 3 } });
+    await mp.locator("#scroller").scrollIntoViewIfNeeded();
+    await mp.locator("#scroller").click({ position: { x: 3, y: 3 }, force: true });   // CI's click timed out waiting for the box to be "stable" (it passed locally); the position is explicit, so skip that wait
     await mp.keyboard.press("Enter");
     await mp.locator(".dz-dock button:text-is('Layout')").click();
     const scrollerNow = () => mp.evaluate(() => { const el = document.querySelector("#scroller"), cs = getComputedStyle(el); return [cs.overflowY, el.offsetHeight > 150]; });
