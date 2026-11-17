@@ -3,6 +3,7 @@
 # chrome.action.openPopup (127), the current stable, and the beta (an early warning of what the next Chrome will break).
 # The Chromes are Google's "Chrome for Testing" builds, which, unlike the branded Chrome people install, accept --load-extension.
 # This is not part of the check that is required for merging (`result` in test.yml): it reports on versions, it does not decide a merge.
+# It is skipped for a change that touches only documentation (.github/actions/changed-code).
 name: chrome-versions
 
 on:
@@ -19,7 +20,21 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
+  # A change to documentation only cannot change how the extension behaves in any Chrome, so the browsers are not started (the rule is shared with test.yml).
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.diff.outputs.code }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+      - id: diff
+        uses: ./.github/actions/changed-code
+
   versions:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     name: Chrome ${{ matrix.chrome }}
     runs-on: ubuntu-latest
     timeout-minutes: 30

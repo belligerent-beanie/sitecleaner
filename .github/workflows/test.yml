@@ -43,18 +43,7 @@ jobs:
         with:
           fetch-depth: 0
       - id: diff
-        env:
-          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
-        run: |
-          code=true
-          if [ -n "$BASE" ] && ! echo "$BASE" | grep -qE '^0+$' && git cat-file -e "$BASE^{commit}" 2>/dev/null; then
-            if files=$(git diff --name-only "$BASE" "$GITHUB_SHA"); then
-              other=$(printf '%s\n' "$files" | grep -vE '^(docs/.*|.*\.md|LICENSE|NOTICE)$' || true)
-              if [ -n "$files" ] && [ -z "$other" ]; then code=false; fi
-            fi
-          fi
-          echo "code=$code" >> "$GITHUB_OUTPUT"
-          echo "code changed: $code"
+        uses: ./.github/actions/changed-code
 
   # The documentation is checked on every change, code or not: a code change can make a document wrong, a document change can break a link or a reference.
   # (docs/ARCHITECTURE.md, "Documentation": what each step catches.) It is part of `result`, so it is required for merging without any change to the branch rule.

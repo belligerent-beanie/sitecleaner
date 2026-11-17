@@ -1,0 +1,30 @@
+# Did anything other than documentation change? Used by `test` and `chrome-versions` so both skip the browser tests for a documentation-only change by the same rule.
+# Documentation is *.md, docs/ and the licences. The output `code` is "false" only when that is certain; with no base commit to compare with (a scheduled or manual run,
+# a new branch) or a failed diff it is "true". The caller checks out the repository first, with fetch-depth 0.
+name: Changed code
+description: Whether anything other than documentation changed
+inputs:
+  base:
+    description: The commit to compare with
+    default: ${{ github.event.pull_request.base.sha || github.event.before }}
+outputs:
+  code:
+    description: '"false" if only documentation changed, otherwise "true"'
+    value: ${{ steps.diff.outputs.code }}
+runs:
+  using: composite
+  steps:
+    - id: diff
+      shell: bash
+      env:
+        BASE: ${{ inputs.base }}
+      run: |
+        code=true
+        if [ -n "$BASE" ] && ! echo "$BASE" | grep -qE '^0+$' && git cat-file -e "$BASE^{commit}" 2>/dev/null; then
+          if files=$(git diff --name-only "$BASE" "$GITHUB_SHA"); then
+            other=$(printf '%s\n' "$files" | grep -vE '^(docs/.*|.*\.md|LICENSE|NOTICE)$' || true)
+            if [ -n "$files" ] && [ -z "$other" ]; then code=false; fi
+          fi
+        fi
+        echo "code=$code" >> "$GITHUB_OUTPUT"
+        echo "code changed: $code"

@@ -29,7 +29,7 @@ Everything runs on `ubuntu-latest`. Actions are pinned to full commit hashes, no
 | Job | Does | Notes |
 |---|---|---|
 | `plan` | Works out how many times to run the suite | One, unless started by hand with `repeats` (used to measure flakiness) |
-| `changes` | Decides whether anything other than documentation changed | Documentation is `*.md`, `docs/` and the licences. If only those changed the browser suite is skipped. When it cannot tell (no base commit, a failed diff) it says the change is code |
+| `changes` | Decides whether anything other than documentation changed | Documentation is `*.md`, `docs/` and the licences. If only those changed the browser suite is skipped. When it cannot tell (no base commit, a failed diff) it says the change is code. The rule is one shared action, `.github/actions/changed-code`, also used by `chrome-versions` |
 | `docs` | Checks the documents against the code, builds the site, lints the Markdown | Runs on every change, code or not; about 5 minutes at most, in practice seconds. See [ARCHITECTURE.md](ARCHITECTURE.md#documentation) |
 | `test` | Installs Bun and Playwright's Chromium, then runs `bun run test` under `xvfb-run` | 20-minute timeout; skipped for documentation-only changes; the console output and screenshots of failed pages are kept as an artifact for 14 days |
 | `result` | The one stable name the branch rule requires | Passes when `changes` and `docs` passed and, if code changed, `test` passed. A documentation-only change passes in seconds |
@@ -47,7 +47,7 @@ never reports it can never merge. Here `result` always reports.
 
 **`chrome-versions`.** Runs four suites (end to end, editions, keep, easier to read) in Chrome 114 (the manifest's `minimum_chrome_version`), 127 (the first with
 `chrome.action.openPopup`), the current stable and the beta, using Google's "Chrome for Testing" builds, which accept `--load-extension` where branded Chrome does not. Every
-suite runs even after one fails. 30-minute timeout. It reports; it never decides a merge. The accessibility audit and the stress suite do not depend on the browser's version and are not repeated.
+suite runs even after one fails. 30-minute timeout. It reports; it never decides a merge. It uses the same `changes` rule as `test` and is skipped for a documentation-only change; Monday and manual runs have no base to compare with, so they always run. The accessibility audit and the stress suite do not depend on the browser's version and are not repeated.
 
 **`smoke`.** `bun run smoke` on six real sites (strict security policies, web components, single-page apps), each retried once, since a live site may be down. On failure
 it opens one issue, "Real-site smoke test failing", and updates it each night; when the run passes again it closes it. 15-minute timeout; needs `issues: write`. It fails the job (red in the Actions tab) but is never required.
