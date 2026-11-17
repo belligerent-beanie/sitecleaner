@@ -18,7 +18,8 @@ const run = (cmd, a, opts = {}) => { const out = execFileSync(cmd, a, { cwd: roo
 const fail = (message) => { console.error("\n" + message); process.exit(1); };
 
 const released = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8")).version;
-const next = released.replace(/[0-9]+$/, (n) => String(Number(n) + 1));
+const bumpPatch = (version) => { const dot = version.lastIndexOf("."); return version.slice(0, dot + 1) + (Number(version.slice(dot + 1)) + 1); };   // 0.4.0 -> 0.4.1 (no regular expression to backtrack)
+const next = bumpPatch(released);
 const inCI = process.env.GITHUB_ACTIONS === "true";   // run by the beta workflow (.github/workflows/beta.yml): the commit is on GitHub by definition
 const branch = run("git", ["branch", "--show-current"]) || process.env.GITHUB_REF_NAME || "(no branch)";
 const sha = run("git", ["rev-parse", "HEAD"]);
@@ -47,7 +48,7 @@ const files = [`SiteCleaner-${label}-share.zip`, `SiteCleaner-Personal-${label}-
 for (const f of files) if (!fs.existsSync(path.join(root, "releases", f))) fail(`The build did not make ${f}.`);
 
 // check what was built
-try { execFileSync("node", ["scripts/verify-share.mjs", label], { cwd: root, stdio: "inherit" }); } catch (_) { fail("The zips did not pass their checks (above). Nothing was published."); }
+try { execFileSync(process.execPath, ["scripts/verify-share.mjs", label], { cwd: root, stdio: "inherit" }); } catch (_) { fail("The zips did not pass their checks (above). Nothing was published."); }
 
 // the notes: what is waiting in the changelog, how to install, what to do
 const changelog = fs.readFileSync(path.join(root, "CHANGELOG.md"), "utf8").replace(/\r\n/g, "\n");

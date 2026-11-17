@@ -47,7 +47,8 @@ const released = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "ut
 const betaArg = args.find((a) => a.startsWith("--beta="));
 const beta = betaArg ? Number(betaArg.slice(7)) : 0;
 if (betaArg && !(Number.isInteger(beta) && beta > 0)) throw new Error("--beta=N needs a whole number, 1 or more");
-const version = beta ? released.replace(/[0-9]+$/, (n) => String(Number(n) + 1)) : released;
+const bumpPatch = (version) => { const dot = version.lastIndexOf("."); return version.slice(0, dot + 1) + (Number(version.slice(dot + 1)) + 1); };   // 0.4.0 -> 0.4.1 (no regular expression to backtrack)
+const version = beta ? bumpPatch(released) : released;
 const label = beta ? `${version}-beta.${beta}` : version;   // what people see: file names, the instructions, version_name
 
 fs.rmSync(out, { recursive: true, force: true });

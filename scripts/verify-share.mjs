@@ -11,7 +11,7 @@ import { chromium } from "../test/browser.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const label = process.argv[2] || JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8")).version;
-const numeric = label.replace(/-.*$/, "");   // the manifest's version is plain digits; a beta adds version_name
+const numeric = label.split("-")[0];   // the manifest's version is plain digits; a beta adds version_name
 let failures = 0;
 const check = (name, ok, detail = "") => { console.log(`${ok ? "PASS" : "FAIL"}  ${name}${ok ? "" : "  " + detail}`); if (!ok) failures++; };
 
@@ -62,7 +62,7 @@ try {
         names.push(await page.locator("h1").first().innerText());
         await page.close();
       }
-      check("each has its own options page", names.slice().sort().join() === ["SiteCleaner", "SiteCleaner Personal"].join(), names.join(", "));
+      check("each has its own options page", names.slice().sort((a, b) => a.localeCompare(b)).join() === ["SiteCleaner", "SiteCleaner Personal"].join(), names.join(", "));
     } finally { await context.close(); fs.rmSync(profile, { recursive: true, force: true }); }
   }
 } finally { fs.rmSync(work, { recursive: true, force: true }); }

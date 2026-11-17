@@ -19,7 +19,7 @@ async function toggle(tab) {
       await inject(tab.id);
       await chrome.tabs.sendMessage(tab.id, { type: "toggle" });
     } catch (_error) {   // chrome:// pages, the Web Store, a PDF: the browser does not allow it
-      explainRefusal(tab);
+      await explainRefusal(tab);
     }
   }
 }
