@@ -308,6 +308,32 @@ try {
     eq("the up arrow moved it out of its parent, to just before it", await mp.evaluate(() => [document.querySelector("main > li") && document.querySelector("main > li").nextElementSibling.className, document.querySelectorAll("ul.items > li").length]), ["items", 2]);
     await undoKey();
     eq("one Ctrl+Z put it back in the list", await order(), "One Two Three");
+    await mp.locator(".dz-dock button:has-text('Out after')").click();
+    eq("the Out after button popped it out of the list, to just after it", await mp.evaluate(() => [document.querySelector("ul.items").nextElementSibling.textContent.trim(), document.querySelectorAll("ul.items > li").length]), ["Two", 2]);
+    await undoKey();
+    eq("and one Ctrl+Z put it back", await order(), "One Two Three");
+
+    // Layout: a box that scrolls can be opened out to show everything, and put back
+    await mp.keyboard.press("Escape"); await mp.keyboard.press("Escape");
+    await mp.evaluate(() => {
+      const box = document.createElement("div");
+      box.id = "scroller";
+      Object.assign(box.style, { height: "60px", overflow: "auto", padding: "10px" });
+      for (let i = 0; i < 12; i++) { const p = document.createElement("p"); p.textContent = "line " + i; box.append(p); }
+      document.querySelector("main").append(box);
+    });
+    await mp.locator("#scroller").click({ position: { x: 3, y: 3 } });
+    await mp.keyboard.press("Enter");
+    await mp.locator(".dz-dock button:text-is('Layout')").click();
+    const scrollerNow = () => mp.evaluate(() => { const el = document.querySelector("#scroller"), cs = getComputedStyle(el); return [cs.overflowY, el.offsetHeight > 150]; });
+    const scrolling = mp.locator(".dz-dock .dz-row:has(span:text-is('Scrolling')) button");
+    eq("Layout: a scrolling box shows Scrolling as On", await scrolling.textContent(), "On");
+    await scrolling.click();
+    eq("turning scrolling off opens the box out to show everything", await scrollerNow(), ["visible", true]);
+    eq("the button now says Off", await scrolling.textContent(), "Off");
+    await scrolling.click();
+    eq("turning it on again puts the box back as it was", await scrollerNow(), ["auto", false]);
+    eq("and its own inline height is back", await mp.evaluate(() => document.querySelector("#scroller").style.height), "60px");
 
     await mp.keyboard.press("Escape"); await mp.keyboard.press("Escape");
     await mp.locator("ul.items li:nth-child(1)").click();

@@ -23,6 +23,36 @@
     }
     edited();
   }
+  // Scrolling: a box that scrolls (overflow auto or scroll) can be opened out to show everything it holds, and put back. Turning it off sets
+  // overflow visible, no maximum height and an automatic height; turning it on again puts back what the box had before its first edit.
+  const SCROLLS = /\b(auto|scroll)\b/;
+  const scrollsNow = (el) => { const cs = getComputedStyle(el); return SCROLLS.test(cs.overflowX) || SCROLLS.test(cs.overflowY); };
+  const wasScrolling = (el) => { const rec = changes.get(el); return !!rec && SCROLLS.test(rec.before.overflow || "") && !scrollsNow(el); };
+  function applyScrollingOne(element, on) {
+    if (!on) { if (scrollsNow(element)) applyLayoutOne(element, { overflow: "visible", "max-height": "none", height: "auto" }); return; }
+    if (!wasScrolling(element)) return;
+    // back to what the page gave it: the inline values from before the first edit (a measured height would add the padding twice)
+    const rec = changes.get(element), style = styleOf(element);
+    checkpoint("layout:scrolling", element);
+    for (const prop of ["overflow", "max-height", "height"]) {
+      const original = rec.props.get(prop);
+      if (!original) continue;
+      if (original.value) style.setProperty(prop, original.value, original.priority); else style.removeProperty(prop);
+      rec.props.delete(prop);
+      if (rec.after) delete rec.after[prop];
+    }
+    if (!rec.props.size && !rec.text) changes.delete(element);
+    edited();
+  }
+  function scrollingRow() {
+    const list = targets();
+    const turnOff = list.some(scrollsNow);
+    if (!turnOff && !list.some(wasScrolling)) return null;   // nothing here scrolls, and nothing was opened out
+    const button = h("button", { type: "button", class: "dz-menu-button" + (turnOff ? " dz-active" : ""), "aria-pressed": String(turnOff), text: turnOff ? "On" : "Off",
+      title: turnOff ? "This box scrolls. Click to open it out so everything in it shows." : "This box was opened out. Click to make it scroll again.",
+      onclick: () => { applyScrolling(list, !turnOff); renderDock(); } });
+    return h("div", { class: "dz-row" }, h("span", { text: "Scrolling" }), button);
+  }
   function layoutPanel() {
     const element = selected;
     const cs = getComputedStyle(element);
@@ -57,6 +87,7 @@
     opacityRange.addEventListener("input", () => { opacity = +opacityRange.value; showOpacity(); set({ opacity: String(opacity / 100) }); });
     showOpacity();
     rows.push(h("label", { class: "dz-row" }, h("span", { text: "Opacity" }), opacityRange, opacityNumber));
+    rows.push(scrollingRow());
     const hint = flex || grid ? null
       : h("p", { class: "dz-hint dz-note", text: "This is not a flex or grid container. Set Display to flex or grid to line up and space its children." });
     return h("div", { class: "dz-panel dz-layout" }, ...rows, hint);
