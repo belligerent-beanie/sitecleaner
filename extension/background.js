@@ -26,8 +26,10 @@ async function toggle(tab) {
 /** The page refused us: say so, and why, instead of doing nothing. Chrome often hides the address of such a page, so the explanation may be general. */
 async function explainRefusal(tab) {
   const name = chrome.runtime.getManifest().name;
-  chrome.action.setBadgeText({ tabId: tab.id, text: "×" });
-  chrome.action.setTitle({ tabId: tab.id, title: `${name} cannot run on this page (click to see why)` });
+  try {   // awaited, so the cross and the tooltip are both in place before anything reads them (Chrome 114 sometimes lagged on the tooltip); a tab that has gone is not an error
+    await chrome.action.setBadgeText({ tabId: tab.id, text: "×" });
+    await chrome.action.setTitle({ tabId: tab.id, title: `${name} cannot run on this page (click to see why)` });
+  } catch (_) { return; }
   const popup = "cannot.html" + (tab.url ? "?u=" + encodeURIComponent(tab.url) : "");
   try { await chrome.action.setPopup({ tabId: tab.id, popup }); } catch (_) { return; }   // from now on, clicking the icon on this tab shows the explanation (it is forgotten when the tab goes elsewhere)
   // Chrome 127 and later can open the toolbar popup from here. Older ones cannot (and a popup can be refused for other reasons): show the same page in a small window instead.
