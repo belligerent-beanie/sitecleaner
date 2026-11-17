@@ -200,6 +200,19 @@ try {
   check("the picture is taller than the element by a strip that says it is edited", read.height > Math.round(box.height * dpr) + 10 && Math.abs(read.width - Math.round(box.width * dpr)) <= 2, JSON.stringify({ read, box, dpr }));
   check("the strip is dark, so it reads on any page", read.edge[0] < 40 && read.edge[1] < 40 && read.edge[2] < 40 && read.edge[3] === 255, JSON.stringify(read.edge));
 
+  // ---- a full store gets a plain message, not the browser's own words
+  await worker.evaluate(() => { globalThis.__realSet = chrome.storage.local.set.bind(chrome.storage.local); chrome.storage.local.set = () => Promise.reject(new Error("Resource::kQuotaBytes quota exceeded")); });
+  await page.locator(".tile").nth(0).click();
+  await page.keyboard.press("Enter");
+  await page.locator(".dz-dock button:text-is('Background')").click();
+  await page.locator(".dz-hex").fill("#3355cc");
+  await page.locator(".dz-head button:text-is('Keep')").click();
+  await page.waitForFunction(() => /storage for this extension is full/.test(document.getElementById("design-picker-extension-root").shadowRoot.textContent), null, { timeout: 8000 }).catch(() => {});
+  const fullText = await page.evaluate(() => document.getElementById("design-picker-extension-root").shadowRoot.textContent);
+  check("Keep on a full store says so in plain words", /storage for this extension is full/.test(fullText), fullText.slice(0, 200));
+  check("and does not show the browser's raw error", !/kQuotaBytes/.test(fullText));
+  await worker.evaluate(() => { chrome.storage.local.set = globalThis.__realSet; });
+
   // ---- what the worker will accept
   const rejected = await worker.evaluate(async () => (validRules([{ s: "a", b: "a", d: "color:red;}body{display:none" }]) ? "accepted" : "rejected"));
   check("a rule with braces in it is refused", rejected === "rejected");

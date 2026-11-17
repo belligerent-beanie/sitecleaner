@@ -25,6 +25,9 @@ Changes in waiting:
 - **Making a beta is one command** (`bun run beta`): it builds all three editions (designer, studio, consumer) as the next patch version, `-beta.N`, checks the zips by unzipping them and loading both extensions into a real browser (`scripts/verify-share.mjs`), and writes the release notes from this list. `bun run beta --publish` also creates the GitHub prerelease, and refuses unless the work is committed and pushed. The build takes `--beta=N`.
 - **A beta can be made on GitHub** (Actions, beta, Run workflow), and the browser tests run against Chrome 114, 127, the current stable and the beta on every pull request (`chrome-versions`), not only the Chromium Playwright installs.
 - **Fixed on Chrome before about 123 (Personal edition):** the right-click menu entry for switching a site's changes off or on stopped updating, because the code expected a result that older Chrome does not return. Found by the Chrome 114 run.
+- **Edits are written to storage once they pause**, not on every edit. Every edit used to save the whole session, so a session of N edits wrote N times N bytes (394 MB for 1,000 edits). Writing now waits 0.4 s for a pause and also happens when the page is hidden or closed.
+- **A full store says so in plain words.** Keep, and the automatic saving of a session, now show "The browser's storage for this extension is full…" with what to do, instead of the browser's "Resource::kQuotaBytes quota exceeded".
+- **Start-up is faster with many kept sites.** The extension looks at what is registered once and registers, updates and removes loaders in batches, instead of one round trip per site (82 s for 1,000 sites before).
 
 ## 0.4.0 (2026-11-14)
 

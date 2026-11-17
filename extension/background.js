@@ -162,8 +162,30 @@ async function syncSite(origin) {
 async function syncAllSites() {
   const all = await chrome.storage.local.get(null);
   const origins = Object.keys(all).filter((k) => k.startsWith(SITE_PREFIX)).map((k) => k.slice(SITE_PREFIX.length));
-  const registered = (await chrome.scripting.getRegisteredContentScripts()).map((s) => s.id).filter((id) => id.startsWith("site-")).map((id) => id.slice(5));
-  for (const origin of new Set([...origins, ...registered])) { try { await syncSite(origin); } catch (_) { /* one bad entry must not stop the rest */ } }
+  const current = new Map((await chrome.scripting.getRegisteredContentScripts()).filter((s) => s.id.startsWith("site-")).map((s) => [s.id, s]));
+  // One look at what is registered and one call for each kind of change, not a round trip per site: with a thousand kept sites the
+  // per-site way took 82 seconds, growing faster than the number of sites.
+  const toAdd = [], toUpdate = [], toRemove = [];
+  const decide = async (origin) => {
+    const stored = all[SITE_PREFIX + origin];
+    const has = !!(stored && ((stored.rules && stored.rules.length) || (stored.presets && stored.presets.access)));
+    const wanted = !!(stored && stored.enabled && has) && (await chrome.permissions.contains({ origins: [sitePattern(origin)] }));
+    const id = siteScriptId(origin);
+    const have = current.get(id);
+    const script = { id, matches: [sitePattern(origin)], js: LOADER_FILES, runAt: "document_start", persistAcrossSessions: true };
+    if (wanted && !have) toAdd.push(script);
+    else if (wanted && have.js.join() !== LOADER_FILES.join()) toUpdate.push(script);
+    else if (!wanted && have) toRemove.push(id);
+  };
+  const everyOrigin = new Set([...origins, ...[...current.keys()].map((id) => id.slice(5))]);
+  await Promise.all([...everyOrigin].map((origin) => decide(origin).catch(() => { /* one bad entry must not stop the rest */ })));
+  const attempt = async (batch, one) => {   // a batch is refused as a whole if one entry is bad: then fall back to one at a time
+    if (!batch.length) return;
+    try { await one(batch); } catch (_) { for (const item of batch) { try { await one([item]); } catch (__) { /* skip that one */ } } }
+  };
+  await attempt(toAdd, (list) => chrome.scripting.registerContentScripts(list));
+  await attempt(toUpdate, (list) => chrome.scripting.updateContentScripts(list));
+  await attempt(toRemove, (ids) => chrome.scripting.unregisterContentScripts({ ids }));
 }
 chrome.runtime.onInstalled.addListener(syncAllSites);
 chrome.runtime.onStartup.addListener(syncAllSites);
@@ -199,6 +221,11 @@ const skippedNote = (skipped) => {
   return left ? ` (${left} ${left === 1 ? "change" : "changes"} that are not styles were left out)` : "";
 };
 
+/** What the person is told when a write fails: the browser's own text for a full store ("Resource::kQuotaBytes quota exceeded") means nothing to them. */
+const friendlyError = (error) => /quota/i.test(String((error && error.message) || error))
+  ? "The browser's storage for this extension is full, so nothing more could be kept. Remove sites you no longer need (right-click the icon, then Options) and try again."
+  : String((error && error.message) || error);
+
 const pendingKeeps = {
   async get(token) { return (await chrome.storage.session.get("keep:" + token))["keep:" + token]; },
   async set(token, info) { await chrome.storage.session.set({ ["keep:" + token]: info }); },
@@ -219,7 +246,7 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
       await pendingKeeps.set(token, { origin, rules: message.rules, presets: message.presets || null, skipped: message.skipped || null });
       await chrome.windows.create({ url: chrome.runtime.getURL("keep.html?token=" + token), type: "popup", width: 460, height: 330 });
       return { message: "A window opened to ask for this site." };
-    })().then(respond, (error) => respond({ message: String((error && error.message) || error) }));
+    })().then(respond, (error) => respond({ message: friendlyError(error) }));
     return true;
   }
   if (message.type === "keep-info") {
@@ -234,7 +261,7 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
       await saveSite(info.origin, info.rules, info.presets || undefined);
       await pendingKeeps.remove(message.token);
       return { ok: true, message: `Kept: ${keptWhat(info.rules.length, info.presets)}${skippedNote(info.skipped)}. Reload the site to see them apply by themselves.` };
-    })().then(respond, (error) => respond({ message: String((error && error.message) || error) }));
+    })().then(respond, (error) => respond({ message: friendlyError(error) }));
     return true;
   }
   if (message.type === "keep-remove" || message.type === "keep-enable") {   // from the picker: take one rule away, or switch the site's changes off or on

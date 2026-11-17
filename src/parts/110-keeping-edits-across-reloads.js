@@ -4,6 +4,7 @@
   // is not on the page (yet: the game board draws itself later; or any more: the page changed) is kept as it is, listed
   // under Changes and still exported, until it is reset.
   const STORE_KEY = host.storageKey();
+  host.onSaveFailed = (message) => showToast(message);   // the extension's storage is full or refused a write (see host.js)
   let pending = [];   // saved edits whose element is not on the page: {selector, snippet, before, after, text}
   // Saved as {v: 2, edits: [...], ops: [...]} (a bare list of edits, as the first version wrote it, is still read).
   const saved = (rec) => {
