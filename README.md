@@ -60,6 +60,8 @@ Press `?` in the picker for every shortcut.
 
 ## Documentation
 
+Published at https://belligerent-beanie.github.io/sitecleaner/ (built from these files when `main` changes; `bun run docs` builds it here).
+
 | | |
 |---|---|
 | [docs/OVERVIEW.md](docs/OVERVIEW.md) | What it is, who it is for, what it can do, where it is meant to be used, the three editions side by side |

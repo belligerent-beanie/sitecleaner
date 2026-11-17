@@ -56,6 +56,20 @@ jobs:
           echo "code=$code" >> "$GITHUB_OUTPUT"
           echo "code changed: $code"
 
+  # The documentation is checked on every change, code or not: a code change can make a document wrong, a document change can break a link or a reference.
+  # (docs/ARCHITECTURE.md, "Documentation": what each step catches.) It is part of `result`, so it is required for merging without any change to the branch rule.
+  docs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
+      - name: Links, file and line references, commands, and the code against docs/ARCHITECTURE.md
+        run: bun run test:docs
+      - name: The site builds (no Markdown left unconverted, every picture exists)
+        run: bun run docs
+      - uses: DavidAnson/markdownlint-cli2-action@696eb3f2509270d7b882d2aa68347bc676e7af34   # v25.0.0; rules and files in .markdownlint-cli2.jsonc
+
   test:
     needs: [plan, changes]
     if: needs.changes.outputs.code == 'true'
@@ -87,13 +101,14 @@ jobs:
 
   # One stable name for the branch rule to require, whatever the number of matrix jobs behind it.
   result:
-    needs: [changes, test]
+    needs: [changes, docs, test]
     if: always()
     runs-on: ubuntu-latest
     steps:
       - run: |
           if [ "${{ needs.changes.result }}" != "success" ]; then echo "changes: ${{ needs.changes.result }}"; exit 1; fi
-          if [ "${{ needs.changes.outputs.code }}" = "false" ]; then echo "documentation only: the browser suite was skipped"; exit 0; fi
+          if [ "${{ needs.docs.result }}" != "success" ]; then echo "docs: ${{ needs.docs.result }}"; exit 1; fi
+          if [ "${{ needs.changes.outputs.code }}" = "false" ]; then echo "documentation only: the documentation checks passed and the browser suite was skipped"; exit 0; fi
           if [ "${{ needs.test.result }}" != "success" ]; then echo "test: ${{ needs.test.result }}"; exit 1; fi
 
   package:

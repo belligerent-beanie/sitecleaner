@@ -5,3 +5,6 @@ releases/
 test-artifacts/
 dist-consumer/
 dist-studio/
+
+# the documentation site (bun run docs)
+site/

@@ -1,0 +1,50 @@
+# The `pages` workflow: publishes the documentation (README.md, docs/, store/PRIVACY.md) as a web site on GitHub Pages whenever main changes.
+# scripts/build-docs.mjs makes the site; nothing here depends on a package registry. The checks that a document is right (links, references,
+# agreement with the code) are the `docs` job in test.yml and run before anything reaches main; this only builds and publishes.
+# One-time setting: Settings > Pages > Build and deployment > Source: GitHub Actions.
+name: pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - README.md
+      - docs/**
+      - store/PRIVACY.md
+      - store/screenshots/**
+      - scripts/build-docs.mjs
+      - .github/workflows/pages.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false   # let a deploy that has started finish
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # Actions are pinned to commits, as in test.yml (configure-pages v6.0.0, upload-pages-artifact v5.0.0, deploy-pages v5.0.1)
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d
+      - run: node scripts/build-docs.mjs --out site
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346
