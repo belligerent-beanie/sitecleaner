@@ -12,7 +12,6 @@
 //              the document does not mention fails here, so the document cannot quietly go stale; a documented one that is gone fails too.
 import fs from "node:fs";
 import path from "node:path";
-import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -25,7 +24,9 @@ const SOURCE_DIRS = ["src", "extension", "scripts", "test"];
 const problems = [];
 const fail = (file, line, message) => problems.push({ file, line, message });
 const read = (rel) => fs.readFileSync(path.join(root, rel), "utf8");
-const files = execFileSync("git", ["ls-files", "--cached", "--others", "--exclude-standard"], { cwd: root, encoding: "utf8" }).split("\n").filter(Boolean);
+const SKIP_DIRS = new Set([".git", "node_modules", "dist", "dist-studio", "dist-consumer", "releases", "site", "test-artifacts"]);   // not the sources; found by walking the folder, so nothing depends on git being on the PATH
+const walk = (dir) => fs.readdirSync(path.join(root, dir), { withFileTypes: true }).flatMap((e) => e.isDirectory() ? (SKIP_DIRS.has(e.name) ? [] : walk(path.posix.join(dir, e.name))) : [path.posix.join(dir, e.name)]);
+const files = walk(".").map((f) => f.replace(/^\.\//, ""));
 const fileSet = new Set(files);
 const byBase = new Map();
 for (const f of files) { const b = path.basename(f); byBase.set(b, [...(byBase.get(b) || []), f]); }

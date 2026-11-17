@@ -6,7 +6,6 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { execFileSync } from "node:child_process";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const args = process.argv.slice(2);
@@ -24,7 +23,7 @@ const PAGES = [   // [source, page, nav label]; CLAUDE.md is instructions for an
   ["store/PRIVACY.md", "PRIVACY.html", "Privacy"],
 ];
 const pageOf = new Map(PAGES.map(([src, page]) => [src, page]));
-const sha = (() => { try { return execFileSync("git", ["rev-parse", "--short", "HEAD"], { cwd: root, encoding: "utf8" }).trim(); } catch (_) { return ""; } })();
+const sha = (process.env.GITHUB_SHA || "").slice(0, 7);   // set in Actions; empty on a developer's machine, where the footer then leaves it out
 const read = (rel) => fs.readFileSync(path.join(root, rel), "utf8");
 const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 const slug = (text) => text.toLowerCase().replace(/`/g, "").replace(/[^\p{L}\p{N}\s-]/gu, "").trim().replace(/\s/g, "-");   // GitHub's anchors, the ones the documents link to
@@ -33,13 +32,13 @@ const copied = new Set();
 // ---- inline: code first (nothing inside it is touched), then images, links, bold, italic
 function inline(text, from) {
   const codes = [];
-  let t = text.replace(/`([^`]+)`/g, (_, c) => { codes.push(`<code>${esc(c)}</code>`); return `\u0000${codes.length - 1}\u0000`; });
+  let t = text.replace(/`([^`]+)`/g, (_, c) => { codes.push(`<code>${esc(c)}</code>`); return `\uE000${codes.length - 1}\uE001`; });
   t = esc(t);
   t = t.replace(/!\[([^\]]*)\]\(([^)\s]+)(?:\s+&quot;[^&]*&quot;)?\)/g, (_, alt, src) => `<img src="${asset(src, from)}" alt="${alt}" loading="lazy">`);
   t = t.replace(/\[([^\]]+)\]\(([^)\s]+)(?:\s+&quot;[^&]*&quot;)?\)/g, (_, label, href) => `<a href="${link(href, from)}">${label}</a>`);
   t = t.replace(/\*\*([^*]+?)\*\*/g, "<strong>$1</strong>").replace(/(^|[^\w*])\*([^*\s][^*]*?)\*(?![\w*])/g, "$1<em>$2</em>").replace(/(^|[^\w])_([^_\s][^_]*?)_(?![\w])/g, "$1<em>$2</em>");
   t = t.replace(/(^|[\s(])(https?:\/\/[^\s<)]+[^\s<).,;:])/g, '$1<a href="$2">$2</a>');
-  return t.replace(/\u0000(\d+)\u0000/g, (_, i) => codes[Number(i)]);
+  return t.replace(/\uE000(\d+)\uE001/g, (_, i) => codes[Number(i)]);
 }
 const resolveFrom = (target, from) => path.posix.normalize(path.posix.join(path.posix.dirname(from), target));
 function link(href, from) {
