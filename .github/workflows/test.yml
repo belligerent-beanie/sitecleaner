@@ -31,8 +31,34 @@ jobs:
           n="${{ github.event.inputs.repeats || '1' }}"
           echo "runs=$(seq -s, 1 "$n" | sed 's/^/[/; s/$/]/')" >> "$GITHUB_OUTPUT"
 
+  # Documentation-only changes (Markdown, docs/, the licences) cannot break the extension, so they skip the browser suite; `result` still reports, in seconds.
+  # (A `paths-ignore` filter on the workflow would leave the required `result` check missing and block the merge, so the decision is made here instead.)
+  # When in doubt (no base to compare with, a failed diff) it says the change is code.
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.diff.outputs.code }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+      - id: diff
+        env:
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          code=true
+          if [ -n "$BASE" ] && ! echo "$BASE" | grep -qE '^0+$' && git cat-file -e "$BASE^{commit}" 2>/dev/null; then
+            if files=$(git diff --name-only "$BASE" "$GITHUB_SHA"); then
+              other=$(printf '%s\n' "$files" | grep -vE '^(docs/.*|.*\.md|LICENSE|NOTICE)$' || true)
+              if [ -n "$files" ] && [ -z "$other" ]; then code=false; fi
+            fi
+          fi
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          echo "code changed: $code"
+
   test:
-    needs: plan
+    needs: [plan, changes]
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     strategy:
@@ -61,11 +87,13 @@ jobs:
 
   # One stable name for the branch rule to require, whatever the number of matrix jobs behind it.
   result:
-    needs: test
+    needs: [changes, test]
     if: always()
     runs-on: ubuntu-latest
     steps:
       - run: |
+          if [ "${{ needs.changes.result }}" != "success" ]; then echo "changes: ${{ needs.changes.result }}"; exit 1; fi
+          if [ "${{ needs.changes.outputs.code }}" = "false" ]; then echo "documentation only: the browser suite was skipped"; exit 0; fi
           if [ "${{ needs.test.result }}" != "success" ]; then echo "test: ${{ needs.test.result }}"; exit 1; fi
 
   package:
