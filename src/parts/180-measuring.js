@@ -62,3 +62,4 @@
   const clearSize = forAll(() => "size-clear", clearSizeOne);
   const applyType = forAll((values) => "font:" + Object.keys(values).join(), applyTypeOne);
   const applyLayout = forAll((values) => "layout:" + Object.keys(values).join(), applyLayoutOne);
+  const applyScrolling = forAll(() => "layout:scrolling", applyScrollingOne);

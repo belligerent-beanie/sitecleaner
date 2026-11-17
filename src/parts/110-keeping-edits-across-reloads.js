@@ -111,6 +111,9 @@
       for (const prop of Object.keys(LAYOUT_OPTIONS)) if (/^[a-z]+(-[a-z]+)*$/.test(after[prop] || "")) layout[prop] = after[prop];
       if (/^\d+(\.\d+)?px$/.test(after.gap || "")) layout.gap = after.gap;
       if (/^(0|1|0?\.\d+)$/.test(after.opacity || "")) layout.opacity = after.opacity;
+      if (/^(visible|hidden|clip|auto|scroll)( (visible|hidden|clip|auto|scroll))?$/.test(after.overflow || "")) layout.overflow = after.overflow;
+      if (/^(none|\d+(\.\d+)?px)$/.test(after["max-height"] || "")) layout["max-height"] = after["max-height"];
+      if (after.height === "auto") layout.height = "auto";
       if (Object.keys(layout).length) applyLayout(element, layout);
       const place = {};
       if (POSITIONS.includes(after.position)) place.position = after.position;

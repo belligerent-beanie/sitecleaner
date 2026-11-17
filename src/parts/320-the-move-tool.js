@@ -15,6 +15,7 @@
       case "left": return el.previousElementSibling ? moveOp(el, parent, el.previousElementSibling) : null;
       case "right": return el.nextElementSibling ? moveOp(el, parent, el.nextElementSibling.nextElementSibling) : null;
       case "up": return insideFlow(grand) && parent !== document.body ? moveOp(el, grand, parent) : null;
+      case "outAfter": return insideFlow(grand) && parent !== document.body ? moveOp(el, grand, parent.nextElementSibling) : null;   // out of the parent, to just after it, wherever the element sits in it
       case "down":
         if (!el.nextElementSibling) return insideFlow(grand) && parent !== document.body ? moveOp(el, grand, parent.nextElementSibling) : null;
         return el.nextElementSibling.children.length ? moveOp(el, el.nextElementSibling, el.nextElementSibling.firstElementChild) : null;
@@ -111,11 +112,11 @@
     const primary = selected;
     const can = (direction) => !!primary && !!planMoveCheck(primary, direction);
     const button = (symbol, text, direction) => h("button", { type: "button", class: "dz-menu-button", text: `${symbol} ${text}`, disabled: !can(direction),
-      title: { left: "Move past the previous sibling (←)", right: "Move past the next sibling (→)", up: "Move out of its parent, to just before it (↑)", down: "Move into the next sibling, or out to just after the parent (↓)" }[direction],
+      title: { left: "Move past the previous sibling (←)", right: "Move past the next sibling (→)", up: "Pop out of its parent, to just before it (↑)", outAfter: "Pop out of its parent, to just after it", down: "Move into the next sibling, or out to just after the parent (↓)" }[direction],
       onclick: () => moveSelected(direction) });
     return h("div", { class: "dz-panel" },
-      h("p", { class: "dz-hint dz-note", text: "Move the selected elements through the page's structure with the arrow keys or these buttons. Or drag a sibling inside the purple bounds to reorder it." }),
-      h("div", { class: "dz-menu" }, button("◀", "Earlier", "left"), button("▶", "Later", "right"), button("▲", "Out", "up"), button("▼", "In", "down")));
+      h("p", { class: "dz-hint dz-note", text: "Move the selected elements through the page's structure with the arrow keys or these buttons (Out before and Out after pop an element out of its parent, to just before or just after it). Or drag a sibling inside the purple bounds to reorder it." }),
+      h("div", { class: "dz-menu" }, button("◀", "Earlier", "left"), button("▶", "Later", "right"), button("▲", "Out before", "up"), button("⤵", "Out after", "outAfter"), button("▼", "In", "down")));
   }
   /** Whether a move is possible, without doing it. */
   function planMoveCheck(el, direction) {
@@ -125,7 +126,7 @@
     switch (direction) {
       case "left": return !!el.previousElementSibling;
       case "right": return !!el.nextElementSibling;
-      case "up": return insideFlow(grand) && parent !== document.body;
+      case "up": case "outAfter": return insideFlow(grand) && parent !== document.body;
       case "down": return el.nextElementSibling ? el.nextElementSibling.children.length > 0 : insideFlow(grand) && parent !== document.body;
       default: return false;
     }
