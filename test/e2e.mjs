@@ -318,12 +318,11 @@ try {
     await mp.evaluate(() => {
       const box = document.createElement("div");
       box.id = "scroller";
-      Object.assign(box.style, { height: "60px", overflow: "auto", padding: "10px" });
+      Object.assign(box.style, { position: "fixed", top: "8px", left: "8px", width: "200px", zIndex: "2147483000", background: "#fff", height: "60px", overflow: "auto", padding: "10px" });   // top left, clear of the dock (bottom right), whatever the window size
       for (let i = 0; i < 12; i++) { const p = document.createElement("p"); p.textContent = "line " + i; box.append(p); }
       document.querySelector("main").append(box);
     });
-    await mp.locator("#scroller").scrollIntoViewIfNeeded();
-    await mp.locator("#scroller").click({ position: { x: 3, y: 3 }, force: true });   // CI's click timed out waiting for the box to be "stable" (it passed locally); the position is explicit, so skip that wait
+    await mp.locator("#scroller").click({ position: { x: 3, y: 3 } });
     await mp.keyboard.press("Enter");
     await mp.locator(".dz-dock button:text-is('Layout')").click();
     const scrollerNow = () => mp.evaluate(() => { const el = document.querySelector("#scroller"), cs = getComputedStyle(el); return [cs.overflowY, el.offsetHeight > 150]; });
