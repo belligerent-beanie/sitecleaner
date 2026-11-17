@@ -37,6 +37,8 @@
           left: cs.left,
           "z-index": cs.zIndex,
           "background-image": cs.backgroundImage,
+          overflow: cs.overflow,
+          "max-height": cs.maxHeight,
         },
       };
       };

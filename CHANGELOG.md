@@ -14,6 +14,8 @@ Every released version, and everything that is waiting for one. Newest first. Da
 
 Changes in waiting:
 
+- **A scrolling box can be opened out.** In the Layout tool, a box that scrolls shows a Scrolling switch: Off opens it out so everything in it shows (overflow visible, no maximum height, automatic height); On puts it back as the page had it. Both are undoable, kept across reloads and in the export (overflow, max-height, height).
+- **Pop an element out of its parent.** The Move tool has an Out after button beside Out before (renamed from Out): the selected element leaves its parent and sits just after it, wherever it was among its brothers.
 - **Tab is no longer a dead end.** Tab walked the page's blocks and stopped at the last one. It now carries on into the picker's panel, and Shift+Tab on the panel's first control comes back to the page. F6 still jumps in and out at once.
 - **Pages that cannot be changed are recognised.** On a page the browser keeps closed to extensions (its own pages, the Web Store, PDFs, files), clicking the icon now opens a small explanation of why and what to do, and the icon says so when you hover it. Before, it only showed a cross. Chrome before 127 cannot open the toolbar popup from the extension, so there the same explanation opens in a small window.
 - **Classes the picker cannot read are explained.** The classes panel says which style sheets the browser keeps closed (another site's), says the classes still work (select and restyle), and what is missing (the original rules in the list and the export).
