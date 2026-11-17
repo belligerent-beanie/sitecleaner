@@ -1,4 +1,4 @@
-// Checks the zips of a build the way a person would use them: unzip each share zip, look at what is inside, and load both extensions into one
+// Checks the zips of a build the way a person would use them: unzip each share zip, look at what is inside, and load all three extensions into one
 // real browser at the same time from the folders the instructions tell people to choose.
 //   node scripts/verify-share.mjs 0.4.1-beta.1        (the version as it appears in the file names; no argument: the version in package.json)
 // Exit code 1 if anything is wrong. Needs a display (xvfb-run on a server), like the other browser tests.
@@ -22,6 +22,7 @@ const unzip = (zip, to) => {
 const tree = (dir, prefix = "") => fs.readdirSync(dir).flatMap((name) => { const full = path.join(dir, name); return fs.statSync(full).isDirectory() ? tree(full, prefix + name + "/") : [prefix + name]; });
 const editions = [
   { name: "designer", share: `SiteCleaner-${label}-share.zip`, store: `sitecleaner-${label}.zip`, folder: `SiteCleaner-${label}`, title: "SiteCleaner", skill: true, perms: ["activeTab", "scripting", "storage"], mentions: "Classes" },
+  { name: "studio", share: `SiteCleaner-Studio-${label}-share.zip`, store: `sitecleaner-studio-${label}.zip`, folder: `SiteCleaner-Studio-${label}`, title: "SiteCleaner Studio", skill: false, perms: ["activeTab", "scripting", "storage"], mentions: "Studio" },
   { name: "personal", share: `SiteCleaner-Personal-${label}-share.zip`, store: `sitecleaner-personal-${label}.zip`, folder: `SiteCleaner-Personal-${label}`, title: "SiteCleaner Personal", skill: false, perms: ["activeTab", "scripting", "storage", "contextMenus"], mentions: "Keep" },
 ];
 
@@ -53,7 +54,7 @@ try {
       await context.waitForEvent("serviceworker", { timeout: 15000 }).catch(() => {});
       await new Promise((r) => setTimeout(r, 1500));
       const workers = context.serviceWorkers();
-      check("both extensions load at once, each with its own service worker", workers.length === 2, String(workers.length));
+      check("all three extensions load at once, each with its own service worker", workers.length === 3, String(workers.length));
       const names = [];
       for (const w of workers) {
         const page = await context.newPage();
@@ -62,7 +63,7 @@ try {
         names.push(await page.locator("h1").first().innerText());
         await page.close();
       }
-      check("each has its own options page", names.slice().sort((a, b) => a.localeCompare(b)).join() === ["SiteCleaner", "SiteCleaner Personal"].join(), names.join(", "));
+      check("each has its own options page", names.slice().sort((a, b) => a.localeCompare(b)).join() === ["SiteCleaner", "SiteCleaner Personal", "SiteCleaner Studio"].join(), names.join(", "));
     } finally { await context.close(); fs.rmSync(profile, { recursive: true, force: true }); }
   }
 } finally { fs.rmSync(work, { recursive: true, force: true }); }

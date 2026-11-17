@@ -1,6 +1,6 @@
 # The `beta` workflow (docs/CI_DESIGN.md): makes a beta of a branch on GitHub's computers and publishes it as a prerelease.
 # Start it from the Actions tab: beta > Run workflow, and choose the branch in "Use workflow from". It runs `bun run beta --publish`
-# (scripts/beta.mjs): builds both editions as the next patch `-beta.N`, checks the zips by unzipping them and loading both extensions
+# (scripts/beta.mjs): builds all three editions as the next patch `-beta.N`, checks the zips by unzipping them and loading all three extensions
 # into a real browser, and creates the prerelease with the notes taken from CHANGELOG.md. The link is in the run's summary.
 # It refuses a commit whose `test` workflow has not succeeded, unless told otherwise.
 name: beta
@@ -55,7 +55,7 @@ jobs:
         shell: bash
         run: |
           url=$(grep -o 'https://github.com/[^ ]*releases/tag/[^ ]*' beta-output.txt | tail -1)
-          { echo "### Beta published"; echo; echo "$url"; echo; echo "Download both zips from that page, unzip, and load the \`extension\` folder as the instructions inside say."; } >> "$GITHUB_STEP_SUMMARY"
+          { echo "### Beta published"; echo; echo "$url"; echo; echo "Download the three zips from that page, unzip, and load the \`extension\` folder as the instructions inside say."; } >> "$GITHUB_STEP_SUMMARY"
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()

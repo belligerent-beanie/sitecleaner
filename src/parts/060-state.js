@@ -10,6 +10,8 @@
   let showAccess = false;   // the easier-to-read settings (consumer edition)
   let showPreview = false;    // the screen-size preview panel
   let showFind = false;       // the find-by-selector panel
+  let showPalette = false;    // the element palette (studio edition)
+  let showVersions = false;   // the changesets panel
   let showKeys = false;       // the shortcuts panel
   let showClasses = false;    // the page's classes
   let spacingKeys = "padding"; // what the arrow keys change while the Spacing tool is open: padding or margin

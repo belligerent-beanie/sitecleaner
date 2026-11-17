@@ -85,7 +85,7 @@
 
   // the shortcuts panel: ? opens it
   const SHORTCUTS = [
-    ["Select", [["Click", "select; Shift adds or removes"], ["↑ ↓", "parent, child"], ["Tab", "next sibling (Shift: previous); the first element if nothing is selected"], ["F6", "move between the page and the picker's panel"], ["Ctrl E", "select similar (Shift: all)"],
+    ["Select", [["Click", "select; Shift adds or removes"], ["↑ ↓", "parent, child"], ["← →", "previous, next sibling (same parent)"], ["Ctrl E", "select similar (Shift: all)"], ["Alt Shift B", "flip between the two saved versions, A and B"],
                 ["Ctrl Shift Enter", "select the children"], ["/", "find by selector or words"], ["Esc", "clear, close"]]],
     ["Tools (with something selected)", [["C B D E", "fill, border, shadow, text"], ["F S P R", "font, size, spacing, radius"], ["A H", "layout, tone (hue)"], ["V L", "move, position"], ["Enter", "the tool menu"]]],
     ["Nudge, with a tool open", [["Spacing", "arrows change a side; Alt takes away; Shift ten; Ctrl ▲▼ all sides"], ["Font", "Ctrl B, Ctrl I bold, italic; ▲▼ size, ◀▶ letter spacing, Alt ▲▼ line height"], ["Size", "▶◀ width, ▼▲ height"], ["Position / Move", "arrows place or move"]]],
@@ -94,7 +94,7 @@
     ["See", [["I", "inspect on hover"], [";", "gridlines through the selection, on or off"], ["hold M", "measure distances"], ["hold G", "alignment guides"], ["hold \\", "the original"], ["Alt Shift S", "screenshot"]]],
     ["Hand off", [["Alt Shift E", "copy the changes as Markdown"], ["Alt Shift P", "picker on and off"], ["?", "this list"]]],
   ];
-  const SHORTCUT_FEATURE = { "/": "find", "I": "inspector", ";": "measure", "hold M": "measure", "hold G": "measure", "hold \\": "compare", "Alt Shift E": "export", "Ctrl D": "structure", "Ctrl C X V": "structure", "Ctrl G": "structure" };   // the shortcuts an edition can switch off
+  const SHORTCUT_FEATURE = { "/": "find", "I": "inspector", ";": "measure", "hold M": "measure", "hold G": "measure", "hold \\": "compare", "Alt Shift E": "export", "Alt Shift B": "versions", "Ctrl D": "structure", "Ctrl C X V": "structure", "Ctrl G": "structure" };   // the shortcuts an edition can switch off
   const PLAIN_TOOL_ROWS = [["C B D E", "background, border, shadow, edit words"], ["F P R H", "text style, spacing, corners, colour mood"], ["Enter", "the tool menu"]];
   /** The rows of one section; the plain interface lists only the tools it has. */
   function shownRows(title, rows) {
@@ -123,13 +123,6 @@
     event.preventDefault();
     if (key === "b") toggleBold(); else toggleItalic();
     renderDock();
-    return true;
-  });
-  keyHooks.push((event) => {   // F6, the browser's own key for moving between parts of a window: into the panel, and back out to the page
-    if (event.key !== "F6" || event.ctrlKey || event.metaKey || event.altKey) return false;
-    event.preventDefault();
-    if (ours(eventTarget(event))) { const focused = activeEl(); if (focused) focused.blur(); }
-    else { const first = dock.querySelector("button:not(:disabled), input, select"); if (first) first.focus(); }
     return true;
   });
   keyHooks.push((event) => {

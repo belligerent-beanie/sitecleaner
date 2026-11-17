@@ -4,6 +4,10 @@ Status: **built** are the edition switch (`--edition`, the feature list, `test/e
 the loader (`extension/apply.js`), the per-site permission window (`extension/keep.html`), the worker side (`extension/background.js`, "kept sites"), a plain list of kept sites in the
 options page, and `test/keep.mjs`. **Built as a first version, for you to react to**: the consumer interface (see below). **Not built**: everything under "Open questions". The sections below describe the design; "What was built" says where it differs.
 
+## The studio edition (a third)
+
+Built from the same files with `--edition studio` (`dist-studio/`; the name is a placeholder). It is the designer edition for people used to Canva and Figma: the `find`, `classes`, `inspector` and `states` features are left out, and `friendly` turns on whole-object selection (`src/parts/285-whole-objects.js`). Versions (`src/parts/275-changesets.js`) are in the designer edition too. The element palette (`src/parts/290-element-palette.js`, feature `palette`) lists the page's own components and some basics to drag onto the page. Not built: a flat layers list, a studio tutorial and install instructions (it reuses the designer's).
+
 ## The two editions
 
 | | Designer (today) | Consumer (new) |

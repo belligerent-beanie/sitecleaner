@@ -1,5 +1,5 @@
-// Builds the unpacked extension: node scripts/build.mjs [--edition designer|consumer] [--out DIR] [--test] [--zip] [--share] [--beta=N]
-// Two editions are built from the same files: the designer edition (everything; dist/) and the consumer edition (a smaller set of tools; dist-consumer/).
+// Builds the unpacked extension: node scripts/build.mjs [--edition designer|studio|consumer] [--out DIR] [--test] [--zip] [--share] [--beta=N]
+// Three editions are built from the same files: designer (everything; dist/), studio (designer with whole-object selection and no developer panels; dist-studio/) and consumer (a smaller set of tools; dist-consumer/).
 // An edition is a name, a description and a list of features the picker leaves out (see `has` in src/parts/010-where-it-runs.js).
 // --zip also writes releases/sitecleaner-<version>.zip, the file the Chrome Web Store takes.
 // --share also writes releases/SiteCleaner-<version>-share.zip, the one to hand to people: the extension plus plain-language instructions for installing it in Chrome
@@ -30,6 +30,9 @@ const shrink = (code, loader) => (esbuild ? esbuild.transformSync(code, { loader
 const EDITIONS = {
   designer: { name: "SiteCleaner", dir: "dist", zip: "sitecleaner", features: { keep: false },   // the designer edition keeps edits its own way (per page, replayed by the picker)
     description: "Select, restyle, move and measure anything on any page, check contrast, undo it all, and hand the changes to a developer or Claude." },
+  studio: { name: "SiteCleaner Studio", dir: "dist-studio", zip: "sitecleaner-studio",   // the name is a placeholder: check it before publishing
+    features: { keep: false, find: false, classes: false, inspector: false, states: false, friendly: true, palette: true },   // for designers used to Canva and Figma: whole objects, no states, no selectors or classes
+    description: "Restyle any page the way you would a design: pick whole objects, save versions of your changes and flip between them." },
   consumer: { name: "SiteCleaner Personal", dir: "dist-consumer", zip: "sitecleaner-personal",   // the name is a placeholder: check it before publishing
     features: { find: false, classes: false, inspector: false, compare: false, preview: false, measure: false, export: false,
       size: false, layout: false, position: false, move: false, image: false, states: false, structure: false,   // tools whose changes cannot be kept (or are for designers)
@@ -171,6 +174,7 @@ if (makeZip) {
 // What goes in the zip for people, per edition. (File names differ by more than case: on Windows "SiteCleaner-x.zip" and "sitecleaner-x.zip" are the same file.)
 const SHARE = {
   designer: { folder: "SiteCleaner", readme: "SHARE_README.txt", skill: true },
+  studio: { folder: "SiteCleaner-Studio", readme: "SHARE_README.txt", skill: false, title: "SiteCleaner Studio" },   // the instructions are the designer edition's for now, under the studio name
   consumer: { folder: "SiteCleaner-Personal", readme: "SHARE_README_PERSONAL.txt", skill: false },
 };
 if (makeShare) {
@@ -180,7 +184,9 @@ if (makeShare) {
   const top = path.join(stage, `${share.folder}-${label}`);
   fs.mkdirSync(top, { recursive: true });
   fs.cpSync(out, path.join(top, "extension"), { recursive: true });
-  const instructions = fs.readFileSync(path.join(root, "store", share.readme), "utf8").replace(/__VERSION__/g, label).replace(/\r?\n/g, "\r\n");   // CRLF: opens cleanly in Notepad
+  let text = fs.readFileSync(path.join(root, "store", share.readme), "utf8");
+  if (share.title) text = text.replace(/^SiteCleaner __VERSION__\n=+/, `${share.title} __VERSION__\n${"=".repeat(share.title.length + 1 + "__VERSION__".length)}`);   // the heading carries this edition's name
+  const instructions = text.replace(/__VERSION__/g, label).replace(/\r?\n/g, "\r\n");   // CRLF: opens cleanly in Notepad
   fs.writeFileSync(path.join(top, "README - START HERE.txt"), instructions);
   for (const file of ["LICENSE", "NOTICE"]) fs.copyFileSync(path.join(root, file), path.join(top, file));
   fs.mkdirSync(path.join(top, "third_party", "visbug"), { recursive: true });

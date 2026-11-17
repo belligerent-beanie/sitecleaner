@@ -20,11 +20,11 @@
     event.stopImmediatePropagation();
     if (event.type === "click") {
       if (repicking) { const rule = repicking; repicking = null; finishRepick(rule, eventTarget(event)); renderDock(); return; }
-      climbed = []; select(eventTarget(event), event.shiftKey);
+      climbed = []; select(wholeObject(eventTarget(event), event), event.shiftKey);
     }
   }
   function onMove(event) {
-    if (ours(eventTarget(event))) { hovered = null; } else { hovered = eventTarget(event) === document.documentElement ? null : eventTarget(event); }
+    if (ours(eventTarget(event)) || paletteDrag) { hovered = null; } else { hovered = eventTarget(event) === document.documentElement ? null : wholeObject(eventTarget(event), event); }
     refreshBoxes();
   }
   function onKey(event) {
@@ -78,6 +78,8 @@
     if (event.key === "Escape") {
       event.preventDefault();
       if (repicking) { repicking = null; showToast("Cancelled."); }
+      else if (showPalette) showPalette = false;
+      else if (showVersions) showVersions = false;
       else if (showAccess) showAccess = false;
       else if (showKeys) showKeys = false;
       else if (showClasses) showClasses = false;
@@ -93,13 +95,19 @@
     if (typing || event.ctrlKey || event.metaKey || event.altKey) return;
     if (event.key === "ArrowUp" && selected) {
       event.preventDefault();
-      const parent = selected.parentElement;
+      const parent = aboveObject(selected) || selected.parentElement;
       if (parent && parent !== document.documentElement && !ours(parent)) { climbed.push(selected); select(parent); }
     } else if (event.key === "ArrowDown" && selected) {
       event.preventDefault();
       let next = climbed.pop();
-      if (!next || !selected.contains(next) || next === selected) next = [...selected.children].find((c) => !ours(c)) || null;
+      if (!next || !selected.contains(next) || next === selected) next = insideObject(selected) || [...selected.children].find((c) => !ours(c)) || null;
       if (next) select(next);
+    } else if ((event.key === "ArrowLeft" || event.key === "ArrowRight") && selected && !event.shiftKey) {   // ← → the previous and next brother: same parent, same level
+      event.preventDefault();
+      const step = event.key === "ArrowLeft" ? "previousElementSibling" : "nextElementSibling";
+      let next = selected[step];
+      while (next && (ours(next) || /^(SCRIPT|STYLE|LINK|META|NOSCRIPT|TEMPLATE)$/.test(next.tagName))) next = next[step];
+      if (next) { select(next); next.scrollIntoView({ block: "nearest", inline: "nearest" }); }
     } else if (event.key === "Enter" && selected && (!ours(eventTarget(event)) || eventTarget(event) === toggle)) {   // the Design button keeps focus after a mouse click: Enter must not press it
       event.preventDefault();
       menuOpen = true;
@@ -115,7 +123,7 @@
     window[method]("mousemove", onMove, true);
     clearInterval(pollTimer);   // the page may move things around (the board does): poll for it only while the picker is on
     pollTimer = on ? setInterval(() => { if (selected) refreshBoxes(); }, 500) : null;
-    if (!on) { repicking = null; keptIntro = false; for (const hook of offHooks) hook(); inspecting = false; renderInspect(null); hovered = null; setSelection([]); climbed = []; menuOpen = false; tool = null; showChanges = false; showClasses = false; showAccess = false; tourStep = null; }
+    if (!on) { repicking = null; keptIntro = false; for (const hook of offHooks) hook(); inspecting = false; renderInspect(null); hovered = null; setSelection([]); climbed = []; menuOpen = false; tool = null; showChanges = false; showVersions = false; showPalette = false; showClasses = false; showAccess = false; tourStep = null; }
     else {
       if (!host.tourSeen(TUTORIAL_VERSION)) tourStep = 0;   // the first time on this browser, and once after an update that changes the tutorial
     }

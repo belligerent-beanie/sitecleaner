@@ -4,7 +4,7 @@
   // Edits of one kind to one element close together in time (a slider being dragged, digits being typed) are one step.
   const MANAGED = ["background-color", "color", "font-size", "font-weight", "font-style", "line-height", "letter-spacing", "text-align",
     "border-style", "border-width", "border-color", "border-radius", "box-shadow", "width", "height",
-    "display", "flex-direction", "flex-wrap", "justify-content", "align-items", "justify-items", "gap", "opacity", "position", "top", "left", "z-index", "background-image",
+    "display", "flex-direction", "flex-wrap", "justify-content", "align-items", "justify-items", "gap", "opacity", "position", "top", "left", "z-index", "background-image", "background-size", "background-position", "background-repeat",
     ...["padding", "margin"].flatMap((kind) => ["top", "right", "bottom", "left"].map((side) => `${kind}-${side}`))];
   const MERGE_MS = 1200;
   const MAX_STEPS = 100;

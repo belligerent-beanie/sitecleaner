@@ -1,7 +1,7 @@
 // Makes a beta of the branch you are on, in one command:  bun run beta          (build, check, write the notes; nothing leaves this computer)
 //                                                           bun run beta --publish   (also create the GitHub prerelease and print the link)
 // A beta is the next patch version of package.json, numbered -beta.1, -beta.2, ... (the next free number is found from the releases on GitHub).
-// What it does: builds both editions' zips with --beta, checks the zips the way a person would use them (scripts/verify-share.mjs), writes
+// What it does: builds the zips of all three editions (designer, studio, consumer) with --beta, checks the zips the way a person would use them (scripts/verify-share.mjs), writes
 // releases/notes-<version>.md from the changes waiting in CHANGELOG.md, and with --publish creates the prerelease from the commit you are on.
 // Publishing needs a clean working tree and the commit pushed, so that the beta is exactly something that can be rebuilt from the branch.
 // The same script is what the "beta" workflow on GitHub runs (Actions tab > beta > Run workflow, choosing the branch): no one's computer is involved.
@@ -42,9 +42,9 @@ if (publish) {
   if (pushed !== sha) fail(`This commit is not on GitHub yet. Push ${branch} first (git push -u origin ${branch}), then run this again.`);
 }
 
-// build both editions
-for (const edition of ["designer", "consumer"]) run("node", ["scripts/build.mjs", "--edition", edition, "--zip", "--share", `--beta=${n}`], { stdio: ["ignore", "ignore", "inherit"] });
-const files = [`SiteCleaner-${label}-share.zip`, `SiteCleaner-Personal-${label}-share.zip`];
+// build the three editions
+for (const edition of ["designer", "studio", "consumer"]) run("node", ["scripts/build.mjs", "--edition", edition, "--zip", "--share", `--beta=${n}`], { stdio: ["ignore", "ignore", "inherit"] });
+const files = [`SiteCleaner-${label}-share.zip`, `SiteCleaner-Studio-${label}-share.zip`, `SiteCleaner-Personal-${label}-share.zip`];
 for (const f of files) if (!fs.existsSync(path.join(root, "releases", f))) fail(`The build did not make ${f}.`);
 
 // check what was built
@@ -59,9 +59,10 @@ const notes = `**Beta: for testing only.** This is what the branch \`${branch}\`
 | | Download |
 |---|---|
 | **SiteCleaner** (designer) | \`${files[0]}\` |
-| **SiteCleaner Personal** (early version) | \`${files[1]}\` |
+| **SiteCleaner Studio** (early version, for designers used to Canva and Figma) | \`${files[1]}\` |
+| **SiteCleaner Personal** (early version) | \`${files[2]}\` |
 
-Install the same way as before: unzip, open \`chrome://extensions\`, switch on Developer mode, **Load unpacked**, choose the \`extension\` folder (\`README - START HERE.txt\` inside has the steps). Chrome shows the version as **${label}**. If you have another version loaded, remove it first.
+Install the same way as before: unzip, open \`chrome://extensions\`, switch on Developer mode, **Load unpacked**, choose the \`extension\` folder (\`README - START HERE.txt\` inside has the steps). Chrome shows the version as **${label}**. The three are separate extensions and can be loaded together. If you have another version of one loaded, remove it first.
 
 ## What is new in it
 
